@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>.NET Full Stack Roadmap</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+:root{--primary:#4f46e5;--primary-light:#ede9fe;--success:#16a34a;--warning:#d97706;--danger:#dc2626;--text:#1e1b4b;--muted:#6b7280;--border:#e5e7eb;--bg:#f8f7ff;}
+body{background:var(--bg);font-family:'Segoe UI',sans-serif;color:var(--text);}
+.navbar{background:var(--primary)!important;}
+.navbar-brand{font-weight:700;font-size:1.2rem;}
+.tab-nav{display:flex;gap:4px;background:#fff;border-radius:12px;padding:4px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:1.2rem;flex-wrap:wrap;}
+.tab-btn{flex:1;min-width:100px;border:none;background:transparent;border-radius:8px;padding:7px 10px;font-size:0.8rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all 0.2s;}
+.tab-btn.active{background:var(--primary);color:#fff;}
+.progress-bar-main{height:10px;border-radius:10px;background:#ddd6fe;}
+.progress-bar-main .fill{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--primary),#818cf8);transition:width 0.5s;}
+.stat-box{border-radius:12px;padding:1rem;text-align:center;}
+.stat-box .num{font-size:1.8rem;font-weight:700;line-height:1;}
+.stat-box .lbl{font-size:0.72rem;color:var(--muted);margin-top:4px;}
+.phase-card{border:none;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,0.07);margin-bottom:1.2rem;overflow:hidden;}
+.phase-header{padding:0.9rem 1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
+.phase-badge{font-size:0.7rem;font-weight:600;padding:2px 9px;border-radius:20px;}
+.week-card{border-radius:10px;border:1px solid var(--border);margin-bottom:0.65rem;overflow:hidden;}
+.week-header{padding:0.6rem 1rem;background:#f9fafb;display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:0.88rem;}
+.day-row{display:flex;align-items:flex-start;gap:10px;padding:0.5rem 1rem;border-top:1px solid #f3f4f6;font-size:0.85rem;transition:background 0.15s;}
+.day-row:hover{background:#f9fafb;}
+.day-num{min-width:48px;font-weight:700;color:var(--primary);font-size:0.78rem;padding-top:2px;}
+.day-check{width:17px;height:17px;border-radius:50%;border:2px solid #c4b5fd;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:2px;transition:all 0.2s;}
+.day-check.done{background:var(--success);border-color:var(--success);}
+.day-check.done::after{content:'✓';color:white;font-size:10px;font-weight:700;}
+.day-topic{flex:1;}
+.day-topic strong{display:block;color:#1f2937;font-weight:600;font-size:0.86rem;}
+.day-topic span{color:var(--muted);font-size:0.78rem;}
+.deadline-badge{font-size:0.68rem;background:#fef3c7;color:var(--warning);border-radius:12px;padding:2px 7px;white-space:nowrap;}
+.week-prog{height:4px;background:#e9ecef;border-radius:4px;width:50px;}
+.week-prog-fill{height:100%;border-radius:4px;transition:width 0.3s;}
+.filter-btn.active{background:var(--primary);color:white;border-color:var(--primary);}
+/* Resources */
+.res-card{border-radius:12px;border:1px solid var(--border);padding:1rem;margin-bottom:0.75rem;background:#fff;}
+.res-card h6{font-weight:700;font-size:0.88rem;margin-bottom:0.6rem;}
+.res-link{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:0.82rem;color:#1d4ed8;text-decoration:none;border-bottom:1px solid #f3f4f6;}
+.res-link:last-child{border-bottom:none;}
+.res-link:hover{color:var(--primary);}
+.res-type{font-size:0.65rem;border-radius:8px;padding:1px 7px;font-weight:600;white-space:nowrap;}
+/* Project */
+.proj-card{border-radius:14px;border:2px solid var(--border);padding:1.2rem;margin-bottom:1rem;background:#fff;}
+.proj-card.featured{border-color:var(--primary);background:#fafaff;}
+.proj-level{font-size:0.68rem;border-radius:10px;padding:2px 9px;font-weight:700;}
+.proj-tech{font-size:0.7rem;background:#f3f4f6;border-radius:8px;padding:2px 8px;margin:2px;}
+.struct-tree{font-family:monospace;font-size:0.78rem;background:#1e1b4b;color:#a5b4fc;border-radius:10px;padding:1rem;line-height:1.7;}
+.struct-tree .dir{color:#34d399;}
+.struct-tree .file{color:#fbbf24;}
+.struct-tree .comment{color:#6b7280;}
+/* Summary */
+.summary-phase{border-radius:12px;padding:1rem 1.2rem;margin-bottom:0.75rem;}
+.summary-phase h6{font-weight:700;margin-bottom:0.5rem;font-size:0.92rem;}
+.skill-pill{display:inline-block;font-size:0.7rem;border-radius:10px;padding:2px 9px;margin:2px;font-weight:600;}
+/* Advanced */
+.adv-card{border-radius:12px;border-left:4px solid;padding:1rem;margin-bottom:0.75rem;background:#fff;}
+.salary-bar{height:8px;border-radius:4px;background:#e5e7eb;margin-top:4px;}
+.salary-fill{height:100%;border-radius:4px;}
+.interview-q{background:#f8f7ff;border-radius:8px;padding:0.6rem 0.9rem;margin-bottom:0.5rem;font-size:0.83rem;border-left:3px solid var(--primary);}
+/* QA toggle */
+.qa-answer{display:none;background:#f0f9ff;border-radius:6px;padding:0.6rem 0.9rem;margin-top:4px;font-size:0.8rem;color:#0c4a6e;border-left:3px solid #0891b2;}
+</style>
+</head>
+<body>
+<nav class="navbar navbar-dark px-3 py-2 sticky-top">
+  <span class="navbar-brand"><i class="bi bi-code-slash me-2"></i>.NET Full Stack Roadmap</span>
+  <div class="d-flex align-items-center gap-2">
+    <input id="search-box" type="text" class="form-control form-control-sm" placeholder="🔍 Search..." style="width:160px;border-radius:20px;font-size:0.82rem" oninput="filterDays()">
+    <span class="text-white-50 small d-none d-md-block" id="today-date"></span>
+  </div>
+</nav>
+
+<div class="container-fluid px-3 py-3" style="max-width:980px;margin:0 auto">
+
+<!-- Stats -->
+<div class="row g-2 mb-3">
+  <div class="col-6 col-md-3"><div class="stat-box" style="background:#ede9fe"><div class="num" style="color:#4f46e5" id="stat-done">0</div><div class="lbl">Days Done</div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-box" style="background:#dcfce7"><div class="num" style="color:#16a34a" id="stat-left">175</div><div class="lbl">Days Left</div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-box" style="background:#fef3c7"><div class="num" style="color:#d97706" id="stat-pct">0%</div><div class="lbl">Complete</div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-box" style="background:#fee2e2"><div class="num" style="color:#dc2626" id="stat-streak">0🔥</div><div class="lbl">Day Streak</div></div></div>
+</div>
+
+<!-- Progress bar -->
+<div class="card border-0 shadow-sm mb-3 p-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <span style="font-weight:600">Overall Progress</span>
+    <span class="small text-muted" id="prog-label">0 / 175 days</span>
+  </div>
+  <div class="progress-bar-main"><div class="fill" id="main-prog" style="width:0%"></div></div>
+  <div class="d-flex justify-content-between mt-2" style="font-size:0.7rem;color:var(--muted)">
+    <span>Start</span><span>Month 1</span><span>Month 2</span><span>Month 3</span><span>Month 4</span><span>Month 5 ✓</span>
+  </div>
+</div>
+
+<!-- Tab Nav -->
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('roadmap',this)"><i class="bi bi-map me-1"></i>Roadmap</button>
+  <button class="tab-btn" onclick="showTab('resources',this)"><i class="bi bi-book me-1"></i>Resources</button>
+  <button class="tab-btn" onclick="showTab('projects',this)"><i class="bi bi-folder2-open me-1"></i>Projects</button>
+  <button class="tab-btn" onclick="showTab('structure',this)"><i class="bi bi-diagram-3 me-1"></i>Project Structure</button>
+  <button class="tab-btn" onclick="showTab('advanced',this)"><i class="bi bi-lightning me-1"></i>Advanced+</button>
+  <button class="tab-btn" onclick="showTab('interview',this)"><i class="bi bi-patch-question me-1"></i>Interview Q&A</button>
+  <button class="tab-btn" onclick="showTab('summary',this)"><i class="bi bi-trophy me-1"></i>Summary</button>
+</div>
+
+<!-- ===================== TAB: ROADMAP ===================== -->
+<div id="tab-roadmap">
+  <div class="d-flex gap-2 flex-wrap mb-3">
+    <button class="btn btn-sm btn-outline-secondary filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="btn btn-sm btn-outline-secondary filter-btn" onclick="setFilter('pending',this)">Pending</button>
+    <button class="btn btn-sm btn-outline-secondary filter-btn" onclick="setFilter('done',this)">Done ✓</button>
+    <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="resetAll()"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+  </div>
+  <div id="phases-container"></div>
+</div>
+
+<!-- ===================== TAB: RESOURCES ===================== -->
+<div id="tab-resources" style="display:none">
+  <div class="row g-3" id="res-container"></div>
+</div>
+
+<!-- ===================== TAB: PROJECTS ===================== -->
+<div id="tab-projects" style="display:none">
+  <div id="proj-container"></div>
+</div>
+
+<!-- ===================== TAB: PROJECT STRUCTURE ===================== -->
+<div id="tab-structure" style="display:none">
+  <div id="struct-container"></div>
+</div>
+
+<!-- ===================== TAB: ADVANCED ===================== -->
+<div id="tab-advanced" style="display:none">
+  <div id="adv-container"></div>
+</div>
+
+<!-- ===================== TAB: INTERVIEW Q&A ===================== -->
+<div id="tab-interview" style="display:none">
+  <div id="qa-container"></div>
+</div>
+
+<!-- ===================== TAB: SUMMARY ===================== -->
+<div id="tab-summary" style="display:none">
+  <div id="sum-container"></div>
+</div>
+
+</div><!-- /container -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ===================== DATA =====================
+const TOTAL = 175;
+
+const PHASES = [
+  {id:'p1',title:'Phase 1 — C# Fundamentals',color:'#4f46e5',bg:'#ede9fe',weeks:[
+    {week:'Week 1',title:'C# Basics',deadline:'Day 7',res:['Kudvenkat C# YouTube','W3Schools C#','dotnet.microsoft.com'],days:[
+      {n:1,topic:'Setup & First App',desc:'Install Visual Studio 2022, .NET 8 SDK, create Console App, understand solution/project structure'},
+      {n:2,topic:'Variables & Data Types',desc:'int, string, bool, double, decimal, var, const, readonly — value vs reference types, boxing/unboxing'},
+      {n:3,topic:'Operators & Conditions',desc:'if/else, switch expressions, ternary, null coalescing (??), null conditional (?.)'},
+      {n:4,topic:'Loops',desc:'for, while, do-while, foreach, break, continue, nested loops'},
+      {n:5,topic:'Methods & Functions',desc:'Parameters, return types, optional params, named args, out/ref/in, method overloading'},
+      {n:6,topic:'Arrays & Strings',desc:'1D/2D arrays, string methods, StringBuilder, string interpolation, verbatim strings'},
+      {n:7,topic:'Revision + 10 Problems',desc:'FizzBuzz, palindrome, factorial, fibonacci, prime check, reverse string, anagram, matrix, sorting'},
+    ]},
+    {week:'Week 2',title:'OOP in C#',deadline:'Day 14',res:['Kudvenkat OOP series','Tim Corey YouTube','C# in Depth book'],days:[
+      {n:8,topic:'Classes & Objects',desc:'Class definition, object creation, constructors (default, parameterized, copy), destructor, this keyword'},
+      {n:9,topic:'Encapsulation',desc:'Properties, auto-properties, getters/setters, access modifiers (public, private, protected, internal, protected internal)'},
+      {n:10,topic:'Inheritance',desc:'Base/derived class, base keyword, constructor chaining, method hiding (new keyword)'},
+      {n:11,topic:'Polymorphism',desc:'Virtual/override, method overriding vs overloading, runtime polymorphism'},
+      {n:12,topic:'Abstract & Interface',desc:'Abstract class vs interface, when to use which, explicit interface implementation, multiple interfaces'},
+      {n:13,topic:'Static, Sealed & Partial',desc:'Static class, static members, sealed class/method, partial class, record types'},
+      {n:14,topic:'Mini Project — Bank System',desc:'Bank Account with Savings/Current accounts — OOP, inheritance, encapsulation, interface'},
+    ]},
+    {week:'Week 3',title:'Advanced C#',deadline:'Day 21',res:['Nick Chapsas YouTube','C# Advanced Topics Udemy','Microsoft Learn C#'],days:[
+      {n:15,topic:'Collections',desc:'List<T>, Dictionary<K,V>, Queue, Stack, HashSet, SortedList, LinkedList, ConcurrentDictionary'},
+      {n:16,topic:'Generics',desc:'Generic classes, generic methods, constraints (where T:), covariance/contravariance'},
+      {n:17,topic:'Exception Handling',desc:'try/catch/finally, custom exceptions, exception filters (when), best practices, AggregateException'},
+      {n:18,topic:'Delegates & Events',desc:'Action, Func, Predicate, custom delegates, multicast, events, EventHandler<T>'},
+      {n:19,topic:'LINQ',desc:'Where, Select, SelectMany, OrderBy, GroupBy, Join, First/FirstOrDefault, Any, All, Count, Aggregate, ToList, ToDictionary'},
+      {n:20,topic:'Async / Await',desc:'Task, async/await, Task.Run, Task.WhenAll, Task.WhenAny, CancellationToken, ConfigureAwait, ValueTask'},
+      {n:21,topic:'Mini Project — Student Console App',desc:'Student Management using Collections, LINQ, Exception Handling, File I/O (JSON serialization)'},
+    ]},
+  ]},
+  {id:'p2',title:'Phase 2 — ASP.NET Core Web API',color:'#0891b2',bg:'#e0f7fa',weeks:[
+    {week:'Week 4',title:'Web API Basics',deadline:'Day 28',res:['Nick Chapsas ASP.NET','Microsoft Learn ASP.NET','REST API Design guide'],days:[
+      {n:22,topic:'REST API Concepts',desc:'HTTP methods (GET/POST/PUT/PATCH/DELETE), status codes, REST principles, idempotency, statelessness'},
+      {n:23,topic:'First Web API Project',desc:'Create project, understand Program.cs (minimal hosting), launchSettings.json, appsettings.json, middleware order'},
+      {n:24,topic:'Controllers & Routes',desc:'ApiController attribute, Route/HttpGet/HttpPost/HttpPut/HttpDelete attributes, route parameters, query strings'},
+      {n:25,topic:'Model Binding & Validation',desc:'FromBody, FromQuery, FromRoute, FromHeader, FromForm, ModelState, DataAnnotations'},
+      {n:26,topic:'DTOs & AutoMapper',desc:'Data Transfer Objects why/how, AutoMapper setup, mapping profiles, flattening/projection'},
+      {n:27,topic:'Postman + Swagger',desc:'Setup Swagger/OpenAPI (Swashbuckle), test all endpoints, document APIs with XML comments'},
+      {n:28,topic:'Mini Project — Product CRUD API',desc:'Full Product CRUD with DTOs, validation, Swagger docs, proper HTTP status codes'},
+    ]},
+    {week:'Week 5',title:'DI, Middleware & Filters',deadline:'Day 35',res:['Microsoft DI Docs','Serilog docs','Tim Corey DI series'],days:[
+      {n:29,topic:'Dependency Injection Deep Dive',desc:'AddSingleton vs AddScoped vs AddTransient — lifetimes, when to use each, service locator anti-pattern'},
+      {n:30,topic:'Service Layer Pattern',desc:'Create IProductService, ProductService, inject into controllers, separation of concerns'},
+      {n:31,topic:'Middleware Pipeline',desc:'Request/response pipeline, built-in middleware, custom middleware, IMiddleware vs convention-based, short-circuit'},
+      {n:32,topic:'Filters',desc:'IActionFilter, IExceptionFilter, IAuthorizationFilter, IResultFilter — order of execution, global vs controller vs action'},
+      {n:33,topic:'Configuration & Options Pattern',desc:'appsettings.json, environment-specific configs, IOptions<T>, IOptionsSnapshot<T>, IOptionsMonitor<T>, secrets'},
+      {n:34,topic:'Logging with Serilog',desc:'ILogger<T>, Serilog setup, sinks (Console, File, Seq), structured logging, log levels, enrichers'},
+      {n:35,topic:'Practice',desc:'Add DI service layer, custom middleware for request logging, global exception filter to Product API'},
+    ]},
+    {week:'Week 6',title:'Entity Framework Core',deadline:'Day 42',res:['EF Core Docs','IAmTimCorey EF YouTube','Julie Lerman Pluralsight'],days:[
+      {n:36,topic:'EF Core Basics',desc:'ORM concept, install EF Core + SQL Server provider, DbContext, DbSet<T>, connection strings'},
+      {n:37,topic:'Code First Approach',desc:'Entity classes, DataAnnotations vs Fluent API, OnModelCreating, table/column configuration'},
+      {n:38,topic:'Migrations',desc:'Add-Migration, Update-Database, migration files anatomy, data seeding, migration rollback'},
+      {n:39,topic:'CRUD Operations',desc:'Add, Find, FindAsync, Update (tracking), Remove, SaveChangesAsync, AsNoTracking for reads'},
+      {n:40,topic:'Relationships & Navigation',desc:'One-to-One, One-to-Many, Many-to-Many, cascade delete, navigation properties, foreign keys'},
+      {n:41,topic:'Advanced EF Queries',desc:'Include/ThenInclude (eager loading), lazy loading, explicit loading, raw SQL, stored procs, compiled queries'},
+      {n:42,topic:'Practice',desc:'Connect Product API to SQL Server with EF Core — full working DB-backed API'},
+    ]},
+    {week:'Week 7',title:'Security & Auth',deadline:'Day 49',res:['JWT.io docs','IdentityServer docs','OWASP Top 10'],days:[
+      {n:43,topic:'Auth Fundamentals',desc:'Authentication vs authorization, cookie vs token auth, session vs JWT, when to use what'},
+      {n:44,topic:'JWT Implementation',desc:'Generate/validate JWT, claims (sub, role, email), secret key, token expiry, symmetric vs asymmetric'},
+      {n:45,topic:'Role & Policy Authorization',desc:'[Authorize] attribute, roles, claims-based policies, resource-based authorization, IAuthorizationHandler'},
+      {n:46,topic:'Refresh Tokens',desc:'Refresh token concept, secure storage, token rotation, revocation, sliding expiry'},
+      {n:47,topic:'CORS, Security Headers & HTTPS',desc:'CORS policy configuration, security headers (HSTS, X-Frame-Options, CSP), HTTPS redirection'},
+      {n:48,topic:'Global Error Handling',desc:'ProblemDetails RFC 7807, exception middleware, consistent error response, logging errors'},
+      {n:49,topic:'Secure API Complete',desc:'Full JWT auth + role-based authorization + refresh tokens + CORS — production-ready API'},
+    ]},
+  ]},
+  {id:'p3',title:'Phase 3 — SQL Server + Database',color:'#059669',bg:'#dcfce7',weeks:[
+    {week:'Week 8',title:'SQL Server Fundamentals',deadline:'Day 56',res:['SQLBolt.com','Kudvenkat SQL series','Mode SQL Tutorial'],days:[
+      {n:50,topic:'SQL Basics + SSMS',desc:'Install SSMS, CREATE DATABASE/TABLE, data types, INSERT, SELECT, UPDATE, DELETE, constraints'},
+      {n:51,topic:'Filtering & Sorting',desc:'WHERE, AND/OR/NOT, LIKE, IN, BETWEEN, IS NULL, ORDER BY, DISTINCT, TOP/LIMIT'},
+      {n:52,topic:'Joins',desc:'INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN, CROSS JOIN, SELF JOIN — with real examples'},
+      {n:53,topic:'Aggregations & Grouping',desc:'GROUP BY, HAVING, COUNT, SUM, AVG, MIN, MAX, ROLLUP, CUBE'},
+      {n:54,topic:'Subqueries & CTEs',desc:'Correlated subqueries, EXISTS/NOT EXISTS, Common Table Expressions (WITH), recursive CTEs'},
+      {n:55,topic:'Stored Procedures & Functions',desc:'CREATE PROCEDURE, input/output params, EXEC, scalar functions, table-valued functions, triggers'},
+      {n:56,topic:'Practice — 25 SQL Problems',desc:'Write queries on HR/Sales database — complex joins, aggregations, window functions, CTEs'},
+    ]},
+    {week:'Week 9',title:'Database Advanced',deadline:'Day 63',res:['Use The Index Luke','Redis Docs','Dapper GitHub'],days:[
+      {n:57,topic:'Indexes & Performance',desc:'Clustered vs non-clustered, covering indexes, index fragmentation, when to add/avoid indexes'},
+      {n:58,topic:'Transactions & Concurrency',desc:'BEGIN TRANSACTION, COMMIT, ROLLBACK, ACID properties, isolation levels, deadlocks, optimistic concurrency'},
+      {n:59,topic:'Query Optimization',desc:'Execution plan, query cost, N+1 problem, avoid SELECT *, parameterized queries, statistics'},
+      {n:60,topic:'Repository + Unit of Work',desc:'Generic repository, specific repositories, Unit of Work pattern, transaction management'},
+      {n:61,topic:'Redis Caching',desc:'Caching strategies (cache-aside, write-through), install Redis, StackExchange.Redis, IDistributedCache, TTL'},
+      {n:62,topic:'Dapper Micro-ORM',desc:'Install Dapper, Query/Execute/QueryMultiple, dynamic params, multi-mapping, when Dapper over EF'},
+      {n:63,topic:'Practice',desc:'Optimize API queries (execution plans), add Redis caching layer, implement Repository+UoW pattern'},
+    ]},
+  ]},
+  {id:'p4',title:'Phase 4 — Angular + TypeScript',color:'#d97706',bg:'#fef3c7',weeks:[
+    {week:'Week 10',title:'TypeScript + HTML/CSS',deadline:'Day 70',res:['TypeScript Handbook','CSS Flexbox Froggy','HTML MDN Docs'],days:[
+      {n:64,topic:'HTML Essentials',desc:'Semantic HTML5 tags, forms (input types, validation), tables, accessibility basics (aria-*, role)'},
+      {n:65,topic:'CSS Essentials',desc:'Box model, flexbox, CSS Grid, responsive design, media queries, CSS variables, BEM naming'},
+      {n:66,topic:'TypeScript Basics',desc:'Types (string, number, boolean, any, unknown, never), interfaces, type aliases, union/intersection types'},
+      {n:67,topic:'TypeScript OOP',desc:'Classes, access modifiers, readonly, abstract, generics in TS, implements vs extends'},
+      {n:68,topic:'TypeScript Advanced',desc:'Decorators, mapped types, conditional types, utility types (Partial, Required, Readonly, Pick, Omit)'},
+      {n:69,topic:'ES6+ & Modules',desc:'Arrow functions, destructuring, spread/rest, template literals, Promise, async/await, ES modules (import/export)'},
+      {n:70,topic:'Mini Project — TS Todo App',desc:'TypeScript Todo app with local storage, classes, interfaces, strict mode enabled'},
+    ]},
+    {week:'Week 11',title:'Angular Fundamentals',deadline:'Day 77',res:['Angular.io official docs','Fireship Angular YouTube','Maximilian Udemy Angular'],days:[
+      {n:71,topic:'Angular Setup & Architecture',desc:'Install Node 20+, Angular CLI 17+, first project, standalone components concept, folder structure'},
+      {n:72,topic:'Components & Lifecycle',desc:'@Component decorator, lifecycle hooks (ngOnInit, ngOnDestroy, ngOnChanges), @Input/@Output, ViewChild'},
+      {n:73,topic:'Data Binding',desc:'String interpolation, property binding, event binding, two-way binding [(ngModel)], template reference variables'},
+      {n:74,topic:'Directives',desc:'Structural (*ngIf, *ngFor, *ngSwitch), attribute (ngClass, ngStyle), custom attribute directive'},
+      {n:75,topic:'Pipes',desc:'Built-in pipes (date, currency, decimal, uppercase, async), pure vs impure, custom pipes'},
+      {n:76,topic:'Modules & Standalone',desc:'NgModule vs standalone components (Angular 17+), lazy loading, shared module pattern'},
+      {n:77,topic:'Practice — Product List UI',desc:'Product listing app with search, filter, sort using Angular components and pipes'},
+    ]},
+    {week:'Week 12',title:'Services, HTTP & Routing',deadline:'Day 84',res:['RxJS docs','Angular Router docs','Fireship RxJS'],days:[
+      {n:78,topic:'Services & DI',desc:'@Injectable, providedIn root vs module, service singleton, hierarchical injection, token injection'},
+      {n:79,topic:'HTTP Client',desc:'HttpClientModule, GET/POST/PUT/DELETE, type-safe responses, error handling with catchError'},
+      {n:80,topic:'RxJS Essentials',desc:'Observable, Subject, BehaviorSubject, ReplaySubject, operators (map, filter, switchMap, mergeMap, debounceTime, takeUntil)'},
+      {n:81,topic:'Angular Router',desc:'RouterModule, Routes config, router-outlet, routerLink, ActivatedRoute, programmatic navigation'},
+      {n:82,topic:'Route Guards & Resolvers',desc:'CanActivate, CanDeactivate, CanLoad, Route Resolvers, lazy loading guards'},
+      {n:83,topic:'HTTP Interceptors',desc:'HttpInterceptor, add JWT to requests, refresh token logic, loading spinner, error interceptor'},
+      {n:84,topic:'Full Stack Connected!',desc:'Angular app fully connected to .NET API — CRUD with auth, interceptor, guards'},
+    ]},
+    {week:'Week 13',title:'Angular Advanced',deadline:'Day 91',res:['NgRx docs','Angular Material docs','Angular Performance Guide'],days:[
+      {n:85,topic:'Reactive Forms',desc:'FormGroup, FormControl, FormBuilder, validators (built-in + custom), async validators, FormArray'},
+      {n:86,topic:'Template-Driven Forms',desc:'NgForm, NgModel, form validation messages, comparing with reactive forms, when to use each'},
+      {n:87,topic:'NgRx State Management',desc:'Store, Actions, Reducers, Effects, Selectors, createAction/createReducer, DevTools'},
+      {n:88,topic:'Angular Material UI',desc:'Install CDK + Material, use Table (mat-table), Dialog, Snackbar, Paginator, Sort'},
+      {n:89,topic:'Performance Optimization',desc:'OnPush change detection, trackBy, async pipe, lazy loading, virtual scrolling, preloading strategies'},
+      {n:90,topic:'Angular Signals (v17+)',desc:'signal(), computed(), effect(), toSignal(), toObservable() — new reactivity model'},
+      {n:91,topic:'Auth UI Complete',desc:'Login/register pages, JWT stored in memory, refresh token, protected routes, role-based UI'},
+    ]},
+  ]},
+  {id:'p5',title:'Phase 5 — Senior & Advanced Level',color:'#dc2626',bg:'#fee2e2',weeks:[
+    {week:'Week 14',title:'Clean Architecture + Patterns',deadline:'Day 98',res:['Jason Taylor Clean Arch GitHub','ardalis.com','Pluralsight Design Patterns'],days:[
+      {n:92,topic:'SOLID Principles',desc:'SRP, OCP, LSP, ISP, DIP — C# real-world code examples, common violations, refactoring'},
+      {n:93,topic:'Clean Architecture',desc:'Domain layer (entities, value objects), Application (use cases), Infrastructure (EF, external), Presentation (API)'},
+      {n:94,topic:'Value Objects & DDD Basics',desc:'Entities vs Value Objects, Aggregates, Aggregate Roots, Domain Services, Bounded Context'},
+      {n:95,topic:'Creational Patterns',desc:'Singleton (thread-safe), Factory Method, Abstract Factory, Builder, Prototype — C# examples'},
+      {n:96,topic:'Structural Patterns',desc:'Adapter, Decorator, Facade, Proxy, Composite, Bridge — real .NET use cases'},
+      {n:97,topic:'Behavioral Patterns',desc:'Strategy, Observer, Command, Mediator, Chain of Responsibility, Template Method, State'},
+      {n:98,topic:'Refactor to Clean Arch',desc:'Refactor Product API into Clean Architecture with Domain/Application/Infrastructure/API layers'},
+    ]},
+    {week:'Week 15',title:'CQRS + MediatR + Event Sourcing',deadline:'Day 105',res:['MediatR GitHub','FluentValidation docs','Greg Young Event Sourcing'],days:[
+      {n:99,topic:'CQRS Pattern',desc:'Command Query Responsibility Segregation — when to use, separate read/write models, eventual consistency'},
+      {n:100,topic:'MediatR Implementation',desc:'Install MediatR, IRequest/IRequestHandler, INotification, pipeline behaviors, send vs publish'},
+      {n:101,topic:'Pipeline Behaviors',desc:'Validation behavior (FluentValidation), logging behavior, performance monitoring, transaction behavior'},
+      {n:102,topic:'FluentValidation',desc:'AbstractValidator, RuleFor, custom validators, WithMessage, async validation, DI integration'},
+      {n:103,topic:'Event Sourcing Concepts',desc:'Event store, event replay, snapshots, projections, difference from CRUD, EventStoreDB intro'},
+      {n:104,topic:'Domain Events',desc:'IDomainEvent, raise events in aggregates, dispatch with MediatR, eventual consistency pattern'},
+      {n:105,topic:'Full CQRS App',desc:'Implement CQRS + MediatR + FluentValidation in Clean Architecture — production pattern'},
+    ]},
+    {week:'Week 16',title:'Microservices Architecture',deadline:'Day 112',res:['dotnet-microservices GitHub','Chris Richardson microservices.io','Udi Dahan talks'],days:[
+      {n:106,topic:'Microservices Fundamentals',desc:'Monolith vs SOA vs microservices, 12-factor app, Conway\'s Law, bounded contexts, service autonomy'},
+      {n:107,topic:'Sync Communication',desc:'REST between services, gRPC (protocol buffers, streaming), service discovery, Polly resilience (retry, circuit breaker)'},
+      {n:108,topic:'API Gateway — Ocelot',desc:'Ocelot setup, routing, aggregation, rate limiting, auth at gateway, YARP alternative'},
+      {n:109,topic:'Async — RabbitMQ',desc:'AMQP concepts, exchanges (direct, topic, fanout), queues, RabbitMQ.Client, publish/consume patterns'},
+      {n:110,topic:'MassTransit Framework',desc:'MassTransit over RabbitMQ, consumers, fault consumers, Sagas (state machine), outbox pattern'},
+      {n:111,topic:'Service Mesh & Patterns',desc:'Sidecar pattern, strangler fig, saga pattern (choreography vs orchestration), outbox/inbox pattern'},
+      {n:112,topic:'Practice',desc:'Split into User + Product + Order microservices — REST + RabbitMQ events + Ocelot gateway'},
+    ]},
+    {week:'Week 17',title:'Docker + Kubernetes + Cloud',deadline:'Day 119',res:['TechWorld with Nana YouTube','Microsoft Azure Learn','Docker docs'],days:[
+      {n:113,topic:'Docker Fundamentals',desc:'Container vs VM, Docker architecture, images vs containers, Docker Hub, common commands'},
+      {n:114,topic:'Dockerfile for .NET',desc:'Multi-stage builds, COPY, RUN, EXPOSE, ENTRYPOINT, .dockerignore, image size optimization'},
+      {n:115,topic:'Docker Compose',desc:'docker-compose.yml — orchestrate API + SQL Server + Redis + RabbitMQ locally, networks, volumes'},
+      {n:116,topic:'Kubernetes Basics',desc:'Pods, Deployments, Services (ClusterIP/NodePort/LoadBalancer), ConfigMaps, Secrets, kubectl commands'},
+      {n:117,topic:'Azure Services',desc:'Azure Container Registry, AKS (Azure Kubernetes Service), App Service, Azure SQL, Key Vault, Service Bus'},
+      {n:118,topic:'CI/CD with GitHub Actions',desc:'Workflow YAML, build/test/push/deploy pipeline, environment secrets, Azure deployment, rollback strategy'},
+      {n:119,topic:'Practice — Full Deploy',desc:'Dockerize all microservices + Kubernetes manifests + GitHub Actions CI/CD to AKS'},
+    ]},
+    {week:'Week 18',title:'Performance, Security & Observability',deadline:'Day 126',res:['BenchmarkDotNet docs','OWASP Top 10','Application Insights docs'],days:[
+      {n:120,topic:'Advanced Caching Strategies',desc:'Cache-aside, read-through, write-through, write-behind, cache stampede prevention, distributed cache patterns'},
+      {n:121,topic:'Performance & Memory',desc:'BenchmarkDotNet, Span<T>/Memory<T>, ArrayPool<T>, object pooling, GC tuning, async vs sync performance'},
+      {n:122,topic:'Rate Limiting',desc:'Fixed window, sliding window, token bucket, concurrency limiter — AspNetCoreRateLimit + built-in .NET 7+'},
+      {n:123,topic:'OAuth 2.0 + OIDC + Keycloak',desc:'Authorization Code flow, PKCE, client credentials, Keycloak setup, token introspection, scopes'},
+      {n:124,topic:'OWASP Top 10 & Security',desc:'Injection, XSS, CSRF, IDOR, security misconfiguration, secret management, penetration testing basics'},
+      {n:125,topic:'Observability — Logs/Metrics/Traces',desc:'OpenTelemetry, distributed tracing, Jaeger, Prometheus + Grafana, Azure Application Insights'},
+      {n:126,topic:'Practice',desc:'Add rate limiting, OpenTelemetry tracing, Prometheus metrics, health checks dashboard'},
+    ]},
+  ]},
+  {id:'p6',title:'Phase 6 — Ultra Advanced (Architect Level)',color:'#7c3aed',bg:'#f3e8ff',weeks:[
+    {week:'Week 19',title:'System Design & Architecture',deadline:'Day 133',res:['ByteByteGo YouTube','Designing Data-Intensive Applications book','High Scalability blog'],days:[
+      {n:127,topic:'Distributed Systems Theory',desc:'CAP theorem, PACELC, consistency models (strong, eventual, causal), two-phase commit, distributed transactions'},
+      {n:128,topic:'High Availability & Scalability',desc:'Horizontal vs vertical scaling, load balancing strategies, database sharding, read replicas, connection pooling'},
+      {n:129,topic:'Message-Driven Architecture',desc:'Event-driven vs message-driven, event streaming (Kafka basics), event sourcing at scale, CQRS with separate DB'},
+      {n:130,topic:'Design Pattern — URL Shortener',desc:'System design: API design, hashing, DB schema, caching layer, rate limiting, analytics — full solution'},
+      {n:131,topic:'Design Pattern — Notification System',desc:'Fan-out, message queues, push/pull, real-time (SignalR/WebSocket), delivery guarantees, retry'},
+      {n:132,topic:'Design Pattern — E-Commerce Platform',desc:'Product catalog, cart, checkout, payment, order management — distributed, consistent, scalable design'},
+      {n:133,topic:'Architecture Review',desc:'Review all designs, trade-off analysis, present solutions like in a real architect interview'},
+    ]},
+    {week:'Week 20',title:'SignalR, gRPC & Advanced APIs',deadline:'Day 140',res:['SignalR docs','gRPC .NET docs','GraphQL Hot Chocolate'],days:[
+      {n:134,topic:'SignalR Real-Time',desc:'Hub setup, groups, client methods, JavaScript client, reconnection, scaling with Redis backplane'},
+      {n:135,topic:'gRPC in .NET',desc:'Protocol Buffers (.proto), server/client streaming, bidirectional streaming, interceptors, transcoding to REST'},
+      {n:136,topic:'GraphQL with Hot Chocolate',desc:'Schema definition, queries/mutations/subscriptions, DataLoader, filtering/sorting, Hot Chocolate setup'},
+      {n:137,topic:'Minimal APIs',desc:'.NET 8 Minimal APIs, endpoint filters, route groups, OpenAPI, performance vs controller-based'},
+      {n:138,topic:'Background Services',desc:'IHostedService, BackgroundService, Quartz.NET (job scheduling), Hangfire (recurring jobs, dashboards)'},
+      {n:139,topic:'Multi-Tenancy',desc:'Tenant identification, data isolation (separate DB vs schema vs row-level), tenant middleware, SaaS patterns'},
+      {n:140,topic:'Practice — Real-Time Notifications',desc:'Add SignalR notifications to microservices — order status updates, real-time dashboard'},
+    ]},
+    {week:'Week 21',title:'Capstone Project Build',deadline:'Day 147',res:['GitHub portfolio tips','Portfolio project ideas','Azure free tier'],days:[
+      {n:141,topic:'Project Architecture Design',desc:'Design full E-Commerce Microservices — service boundaries, DB per service, event flows, API contracts'},
+      {n:142,topic:'User + Auth Service',desc:'ASP.NET Core Identity, JWT, refresh tokens, OAuth (Google login), email verification'},
+      {n:143,topic:'Product + Catalog Service',desc:'CQRS, EF Core, Redis caching, full-text search (Elasticsearch basics), image upload (Azure Blob)'},
+      {n:144,topic:'Order + Payment Service',desc:'Saga orchestration, payment webhook handling, order state machine, MassTransit saga'},
+      {n:145,topic:'Notification Service',desc:'Email (SendGrid), SMS, SignalR push, RabbitMQ consumer, notification preferences'},
+      {n:146,topic:'Angular Frontend',desc:'Full Angular 17 frontend — login, product browse, cart, checkout, order history, real-time updates'},
+      {n:147,topic:'DevOps & Deploy',desc:'Docker Compose locally, K8s manifests, GitHub Actions CI/CD, Azure AKS deployment, monitoring'},
+    ]},
+    {week:'Week 22',title:'Interview Preparation',deadline:'Day 154',res:['LeetCode','NeetCode.io','Pramp.com mock interviews'],days:[
+      {n:148,topic:'C# Advanced Interview Qs',desc:'GC internals, threading (Mutex/Semaphore/Monitor), async internals, IL code, CLR, memory management'},
+      {n:149,topic:'ASP.NET + Architecture Qs',desc:'DI internals, middleware pipeline deep dive, CQRS trade-offs, Clean Architecture questions'},
+      {n:150,topic:'Database Design Qs',desc:'Normalization (1NF-3NF-BCNF), ER diagrams, indexing strategy, sharding approaches, CAP theorem'},
+      {n:151,topic:'Microservices Qs',desc:'Service discovery, circuit breaker, saga vs 2PC, event sourcing vs CRUD, bounded contexts'},
+      {n:152,topic:'System Design Practice',desc:'Twitter feed, Uber dispatch, Netflix streaming, WhatsApp — whiteboard design 4 systems'},
+      {n:153,topic:'Coding Rounds',desc:'LeetCode Medium: arrays, strings, hash maps, trees, graphs, dynamic programming — 20 problems'},
+      {n:154,topic:'Full Mock Interview',desc:'1-hour full mock: system design + coding + behavioural + project walkthrough — YOU ARE READY! 🎉'},
+    ]},
+  ]},
+];
+
+// ===================== RESOURCES DATA =====================
+const RESOURCES = [
+  {phase:'Phase 1 — C# Fundamentals',color:'#4f46e5',bg:'#ede9fe',items:[
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'Kudvenkat C# Tutorial Playlist',url:'https://www.youtube.com/watch?v=OXion8hZ9Vo'},
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'IAmTimCorey — C# Basics',url:'https://www.youtube.com/c/IAmTimCorey'},
+    {type:'Docs',label:'Free',color:'#059669',name:'Microsoft Learn — C# Fundamentals',url:'https://learn.microsoft.com/en-us/dotnet/csharp/'},
+    {type:'Website',label:'Free',color:'#0891b2',name:'W3Schools C# Tutorial',url:'https://www.w3schools.com/cs/'},
+    {type:'Book',label:'Paid',color:'#7c3aed',name:'C# in Depth by Jon Skeet',url:'https://www.manning.com/books/c-sharp-in-depth-fourth-edition'},
+    {type:'Practice',label:'Free',color:'#d97706',name:'LeetCode — Easy C# problems',url:'https://leetcode.com'},
+  ]},
+  {phase:'Phase 2 — ASP.NET Core Web API',color:'#0891b2',bg:'#e0f7fa',items:[
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'Nick Chapsas — ASP.NET Core Series',url:'https://www.youtube.com/@nickchapsas'},
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'IAmTimCorey — REST API Tutorial',url:'https://www.youtube.com/c/IAmTimCorey'},
+    {type:'Docs',label:'Free',color:'#059669',name:'Microsoft ASP.NET Core Docs',url:'https://learn.microsoft.com/en-us/aspnet/core/'},
+    {type:'Course',label:'Paid',color:'#7c3aed',name:'Udemy — Complete ASP.NET Core MVC',url:'https://www.udemy.com'},
+    {type:'Tool',label:'Free',color:'#d97706',name:'Postman API Testing Tool',url:'https://www.postman.com'},
+    {type:'GitHub',label:'Free',color:'#1f2937',name:'ASP.NET Core sample apps',url:'https://github.com/dotnet/aspnetcore'},
+  ]},
+  {phase:'Phase 3 — SQL Server',color:'#059669',bg:'#dcfce7',items:[
+    {type:'Website',label:'Free',color:'#0891b2',name:'SQLBolt — Interactive SQL',url:'https://sqlbolt.com'},
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'Kudvenkat SQL Server Tutorial',url:'https://www.youtube.com/watch?v=s9vBk5ZdvZ4'},
+    {type:'Website',label:'Free',color:'#0891b2',name:'Mode SQL Tutorial',url:'https://mode.com/sql-tutorial/'},
+    {type:'Book',label:'Free',color:'#7c3aed',name:'Use The Index, Luke!',url:'https://use-the-index-luke.com'},
+    {type:'Docs',label:'Free',color:'#059669',name:'Redis Documentation',url:'https://redis.io/docs/'},
+    {type:'GitHub',label:'Free',color:'#1f2937',name:'Dapper — lightweight ORM',url:'https://github.com/DapperLib/Dapper'},
+  ]},
+  {phase:'Phase 4 — Angular + TypeScript',color:'#d97706',bg:'#fef3c7',items:[
+    {type:'Docs',label:'Free',color:'#059669',name:'Angular Official Documentation',url:'https://angular.io/docs'},
+    {type:'Docs',label:'Free',color:'#059669',name:'TypeScript Handbook',url:'https://www.typescriptlang.org/docs/'},
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'Fireship — Angular in 100 Seconds + Series',url:'https://www.youtube.com/@Fireship'},
+    {type:'Course',label:'Paid',color:'#7c3aed',name:'Maximilian Schwarzmüller — Angular Udemy',url:'https://www.udemy.com'},
+    {type:'Website',label:'Free',color:'#0891b2',name:'Flexbox Froggy — CSS Game',url:'https://flexboxfroggy.com'},
+    {type:'Docs',label:'Free',color:'#059669',name:'RxJS Documentation',url:'https://rxjs.dev/'},
+  ]},
+  {phase:'Phase 5 — Senior & Advanced',color:'#dc2626',bg:'#fee2e2',items:[
+    {type:'GitHub',label:'Free',color:'#1f2937',name:'Jason Taylor Clean Architecture Template',url:'https://github.com/jasontaylordev/CleanArchitecture'},
+    {type:'Blog',label:'Free',color:'#0891b2',name:'ardalis.com — Clean Architecture Blog',url:'https://ardalis.com'},
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'TechWorld with Nana — Docker & Kubernetes',url:'https://www.youtube.com/@TechWorldwithNana'},
+    {type:'Docs',label:'Free',color:'#059669',name:'Microsoft Azure Learning Path',url:'https://learn.microsoft.com/en-us/azure/'},
+    {type:'Docs',label:'Free',color:'#059669',name:'MassTransit Documentation',url:'https://masstransit.io/'},
+    {type:'GitHub',label:'Free',color:'#1f2937',name:'eShopOnContainers — Microsoft microservices',url:'https://github.com/dotnet-architecture/eShopOnContainers'},
+  ]},
+  {phase:'Phase 6 — Ultra Advanced',color:'#7c3aed',bg:'#f3e8ff',items:[
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'ByteByteGo — System Design',url:'https://www.youtube.com/@ByteByteGo'},
+    {type:'Book',label:'Paid',color:'#7c3aed',name:'Designing Data-Intensive Applications',url:'https://dataintensive.net/'},
+    {type:'Website',label:'Free',color:'#0891b2',name:'microservices.io — Chris Richardson',url:'https://microservices.io'},
+    {type:'Practice',label:'Free',color:'#d97706',name:'NeetCode.io — Coding Problems',url:'https://neetcode.io'},
+    {type:'Practice',label:'Free',color:'#d97706',name:'Pramp — Free Mock Interviews',url:'https://www.pramp.com'},
+    {type:'Blog',label:'Free',color:'#0891b2',name:'High Scalability Blog',url:'http://highscalability.com'},
+  ]},
+];
+
+// ===================== PROJECTS DATA =====================
+const PROJECTS = [
+  {
+    name:'Bank Account System',phase:'Phase 1 — Week 2',level:'Beginner',levelColor:'#059669',levelBg:'#dcfce7',
+    desc:'Console-based banking system demonstrating OOP fundamentals — the foundation of everything.',
+    goal:'Master classes, inheritance, polymorphism, interfaces in C#',
+    features:['Create Savings & Current accounts','Deposit, Withdraw, Transfer money','Account statement / history','Interest calculation for Savings','Exception handling for invalid operations'],
+    tech:['C#','OOP','Console App','File I/O (JSON)'],
+    time:'1 day'
+  },
+  {
+    name:'Student Management Console App',phase:'Phase 1 — Week 3',level:'Beginner',levelColor:'#059669',levelBg:'#dcfce7',
+    desc:'Student CRUD system using advanced C# — collections, LINQ, async, file storage.',
+    goal:'Master Collections, LINQ, Async/Await, Exception Handling',
+    features:['Add/Edit/Delete/Search students','Sort & filter using LINQ','Export to CSV/JSON file','Async file operations','Grade calculator with statistics'],
+    tech:['C#','LINQ','Collections','Async/Await','System.Text.Json'],
+    time:'1 day'
+  },
+  {
+    name:'Product Management REST API',phase:'Phase 2 — Week 4-7',level:'Intermediate',levelColor:'#d97706',levelBg:'#fef3c7',
+    desc:'Full production-ready REST API — the backbone you\'ll keep adding to throughout the course.',
+    goal:'Master ASP.NET Core, EF Core, JWT, Repository Pattern',
+    features:['Full CRUD for Products, Categories','JWT Authentication + Role-based auth','Refresh token support','Swagger documentation','Global error handling','Serilog logging','Redis caching','SQL Server with EF Core migrations'],
+    tech:['ASP.NET Core 8','EF Core','SQL Server','JWT','Redis','Serilog','AutoMapper','FluentValidation'],
+    time:'1 week',featured:true
+  },
+  {
+    name:'Full Stack Angular + .NET App',phase:'Phase 4 — Week 12',level:'Intermediate',levelColor:'#d97706',levelBg:'#fef3c7',
+    desc:'Connect your Angular frontend to your .NET API — first real full-stack working app!',
+    goal:'Master Angular, HTTP Client, RxJS, JWT in browser, Route Guards',
+    features:['Login / Register pages','JWT stored securely (memory + refresh)','Product listing with search & filter','Add to cart functionality','Protected routes (auth guards)','HTTP interceptor for tokens','Angular Material UI'],
+    tech:['Angular 17','TypeScript','RxJS','NgRx','Angular Material','ASP.NET Core 8'],
+    time:'1 week'
+  },
+  {
+    name:'Clean Architecture API',phase:'Phase 5 — Week 14-15',level:'Advanced',levelColor:'#dc2626',levelBg:'#fee2e2',
+    desc:'Refactor the Product API into Clean Architecture with CQRS + MediatR — senior-level code.',
+    goal:'Master Clean Architecture, CQRS, MediatR, Domain Events, Design Patterns',
+    features:['4-layer architecture (Domain/App/Infra/API)','CQRS — separate Commands & Queries','MediatR pipeline behaviors','FluentValidation for all commands','Domain events with MediatR','Repository + Unit of Work','Outbox pattern for events'],
+    tech:['Clean Architecture','CQRS','MediatR','FluentValidation','Domain Events','EF Core'],
+    time:'1 week'
+  },
+  {
+    name:'E-Commerce Microservices Platform',phase:'Phase 5-6 — Capstone',level:'Expert',levelColor:'#7c3aed',levelBg:'#f3e8ff',
+    desc:'The ultimate capstone — a production-grade microservices system that covers everything.',
+    goal:'Demonstrate Senior Full Stack .NET Developer skills end-to-end',
+    features:['User/Auth Service (Identity, JWT, OAuth Google)','Product/Catalog Service (CQRS, Redis, Search)','Order Service (Saga, state machine)','Payment Service (webhook, idempotency)','Notification Service (Email/SMS/SignalR)','API Gateway (Ocelot, rate limiting)','Angular 17 frontend (full UX)','Docker Compose (local dev)','Kubernetes manifests (production)','GitHub Actions CI/CD to Azure AKS','OpenTelemetry distributed tracing','Prometheus + Grafana monitoring'],
+    tech:['ASP.NET Core 8','Angular 17','RabbitMQ','MassTransit','Ocelot','Redis','SQL Server','MongoDB','Docker','Kubernetes','Azure','SignalR','OpenTelemetry'],
+    time:'1 week',featured:true
+  },
+];
+
+// ===================== PROJECT STRUCTURE DATA =====================
+const STRUCTURES = [
+  {
+    name:'Product API — Clean Architecture',
+    color:'#dc2626',
+    tree:`<span class="dir">ProductAPI.sln</span>
+<span class="dir">├── src/</span>
+<span class="dir">│   ├── ProductAPI.Domain/</span>
+<span class="file">│   │   ├── Entities/</span>
+<span class="file">│   │   │   ├── Product.cs</span>
+<span class="file">│   │   │   └── Category.cs</span>
+<span class="file">│   │   ├── Events/</span>
+<span class="file">│   │   │   └── ProductCreatedEvent.cs</span>
+<span class="file">│   │   └── Interfaces/</span>
+<span class="file">│   │       └── IProductRepository.cs</span>
+<span class="dir">│   ├── ProductAPI.Application/</span>
+<span class="file">│   │   ├── Products/</span>
+<span class="file">│   │   │   ├── Commands/</span>
+<span class="file">│   │   │   │   ├── CreateProductCommand.cs</span>
+<span class="file">│   │   │   │   └── CreateProductCommandHandler.cs</span>
+<span class="file">│   │   │   └── Queries/</span>
+<span class="file">│   │   │       ├── GetProductsQuery.cs</span>
+<span class="file">│   │   │       └── GetProductsQueryHandler.cs</span>
+<span class="file">│   │   ├── Validators/</span>
+<span class="file">│   │   │   └── CreateProductValidator.cs</span>
+<span class="file">│   │   └── Behaviours/</span>
+<span class="file">│   │       ├── ValidationBehaviour.cs</span>
+<span class="file">│   │       └── LoggingBehaviour.cs</span>
+<span class="dir">│   ├── ProductAPI.Infrastructure/</span>
+<span class="file">│   │   ├── Persistence/</span>
+<span class="file">│   │   │   ├── ApplicationDbContext.cs</span>
+<span class="file">│   │   │   └── Migrations/</span>
+<span class="file">│   │   ├── Repositories/</span>
+<span class="file">│   │   │   └── ProductRepository.cs</span>
+<span class="file">│   │   └── Caching/</span>
+<span class="file">│   │       └── RedisCacheService.cs</span>
+<span class="dir">│   └── ProductAPI.API/</span>
+<span class="file">│       ├── Controllers/</span>
+<span class="file">│       │   └── ProductsController.cs</span>
+<span class="file">│       ├── Middleware/</span>
+<span class="file">│       │   └── ExceptionMiddleware.cs</span>
+<span class="file">│       └── Program.cs</span>
+<span class="dir">└── tests/</span>
+<span class="file">    ├── ProductAPI.UnitTests/</span>
+<span class="file">    └── ProductAPI.IntegrationTests/</span>`
+  },
+  {
+    name:'E-Commerce Microservices',
+    color:'#7c3aed',
+    tree:`<span class="dir">ecommerce-microservices/</span>
+<span class="dir">├── src/</span>
+<span class="dir">│   ├── Services/</span>
+<span class="dir">│   │   ├── UserService/</span>
+<span class="file">│   │   │   ├── UserService.API/</span>
+<span class="file">│   │   │   ├── UserService.Application/</span>
+<span class="file">│   │   │   ├── UserService.Domain/</span>
+<span class="file">│   │   │   └── UserService.Infrastructure/</span>
+<span class="dir">│   │   ├── ProductService/</span>
+<span class="file">│   │   │   ├── ProductService.API/ <span class="comment">(CQRS + Redis)</span></span>
+<span class="file">│   │   │   ├── ProductService.Application/</span>
+<span class="file">│   │   │   ├── ProductService.Domain/</span>
+<span class="file">│   │   │   └── ProductService.Infrastructure/</span>
+<span class="dir">│   │   ├── OrderService/</span>
+<span class="file">│   │   │   └── <span class="comment">(Saga + MassTransit)</span></span>
+<span class="dir">│   │   ├── NotificationService/</span>
+<span class="file">│   │   │   └── <span class="comment">(SignalR + RabbitMQ consumer)</span></span>
+<span class="dir">│   │   └── PaymentService/</span>
+<span class="file">│   │       └── <span class="comment">(Webhook + Idempotency)</span></span>
+<span class="dir">│   ├── ApiGateway/</span>
+<span class="file">│   │   ├── ocelot.json <span class="comment">(routing config)</span></span>
+<span class="file">│   │   └── Program.cs</span>
+<span class="dir">│   └── Web/</span>
+<span class="file">│       └── ecommerce-angular/ <span class="comment">(Angular 17 app)</span></span>
+<span class="dir">├── k8s/</span>
+<span class="file">│   ├── deployments/ <span class="comment">(per-service k8s manifests)</span></span>
+<span class="file">│   ├── services/</span>
+<span class="file">│   └── ingress.yaml</span>
+<span class="dir">├── docker/</span>
+<span class="file">│   └── docker-compose.yml</span>
+<span class="dir">└── .github/</span>
+<span class="file">    └── workflows/</span>
+<span class="file">        └── ci-cd.yml <span class="comment">(GitHub Actions)</span></span>`
+  },
+  {
+    name:'Angular App Structure',
+    color:'#d97706',
+    tree:`<span class="dir">ecommerce-angular/</span>
+<span class="dir">├── src/</span>
+<span class="dir">│   ├── app/</span>
+<span class="dir">│   │   ├── core/ <span class="comment">(singleton services, guards)</span></span>
+<span class="file">│   │   │   ├── auth/</span>
+<span class="file">│   │   │   │   ├── auth.service.ts</span>
+<span class="file">│   │   │   │   ├── auth.guard.ts</span>
+<span class="file">│   │   │   │   └── auth.interceptor.ts</span>
+<span class="file">│   │   │   └── services/</span>
+<span class="dir">│   │   ├── shared/ <span class="comment">(reusable components)</span></span>
+<span class="file">│   │   │   ├── components/</span>
+<span class="file">│   │   │   ├── directives/</span>
+<span class="file">│   │   │   └── pipes/</span>
+<span class="dir">│   │   ├── features/ <span class="comment">(lazy-loaded modules)</span></span>
+<span class="file">│   │   │   ├── auth/</span>
+<span class="file">│   │   │   │   ├── login/login.component.ts</span>
+<span class="file">│   │   │   │   └── register/register.component.ts</span>
+<span class="file">│   │   │   ├── products/</span>
+<span class="file">│   │   │   │   ├── product-list/</span>
+<span class="file">│   │   │   │   └── product-detail/</span>
+<span class="file">│   │   │   ├── cart/</span>
+<span class="file">│   │   │   └── orders/</span>
+<span class="dir">│   │   └── store/ <span class="comment">(NgRx state)</span></span>
+<span class="file">│   │       ├── auth/</span>
+<span class="file">│   │       │   ├── auth.actions.ts</span>
+<span class="file">│   │       │   ├── auth.reducer.ts</span>
+<span class="file">│   │       │   └── auth.effects.ts</span>
+<span class="file">│   │       └── products/</span>
+<span class="file">│   ├── assets/</span>
+<span class="file">│   └── environments/</span>
+<span class="file">│       ├── environment.ts</span>
+<span class="file">│       └── environment.prod.ts</span>
+<span class="file">├── angular.json</span>
+<span class="file">└── package.json</span>`
+  },
+];
+
+// ===================== ADVANCED TOPICS =====================
+const ADV_TOPICS = [
+  {title:'Span<T> & Memory Optimization',color:'#dc2626',border:'#dc2626',
+   desc:'Span<T> and Memory<T> allow zero-copy memory operations. ArrayPool<T> reduces GC pressure. Essential for high-throughput APIs.',
+   points:['Span<T> — stack-allocated, slice arrays without copying','Memory<T> — heap-friendly version for async scenarios','ArrayPool<T> — rent/return buffers to avoid allocations','IMemoryOwner<T> for lifetime management','RecyclableMemoryStream for large streams']},
+  {title:'Channel<T> & Advanced Async Patterns',color:'#0891b2',border:'#0891b2',
+   desc:'Channel<T> is a producer-consumer pipeline built into .NET. Used for high-performance background processing.',
+   points:['Channel<T> — bounded/unbounded, backpressure support','IAsyncEnumerable<T> — async streaming of data','ValueTask — avoid heap allocation for hot paths','Parallel.ForEachAsync — parallel async iteration','AsyncLocal<T> — async context propagation']},
+  {title:'Source Generators & Reflection',color:'#7c3aed',border:'#7c3aed',
+   desc:'Source generators run at compile-time to generate code. They replace reflection for performance-critical scenarios.',
+   points:['ISourceGenerator / IIncrementalGenerator API','System.Text.Json source generation (AOT-ready)','Roslyn APIs for code analysis','Expression Trees — build LINQ at runtime','Compile-time validation vs runtime reflection']},
+  {title:'gRPC & Protocol Buffers',color:'#059669',border:'#059669',
+   desc:'gRPC is 7-10x faster than REST for internal service communication. Protocol Buffers provide strongly-typed contracts.',
+   points:['.proto file — service and message definitions','Unary, server streaming, client streaming, bidirectional','gRPC interceptors (middleware equivalent)','Deadlines and cancellation','gRPC transcoding — expose as REST + gRPC']},
+  {title:'Kafka / Event Streaming',color:'#d97706',border:'#d97706',
+   desc:'Apache Kafka for high-throughput, durable event streaming. Different from RabbitMQ (message broker) — Kafka retains events.',
+   points:['Topics, partitions, consumer groups','Confluent.Kafka .NET client','Producer + consumer implementation','Offset management and replay','When Kafka vs RabbitMQ — use case comparison']},
+  {title:'Elasticsearch + Full-Text Search',color:'#4f46e5',border:'#4f46e5',
+   desc:'Elasticsearch for full-text search, faceted search, and analytics. Common in product catalogs, logs, audit trails.',
+   points:['NEST / Elasticsearch.Net .NET client','Index mapping and analyzers','Full-text search queries (match, multi-match)','Aggregations for faceted search','Sync EF Core data to Elasticsearch']},
+  {title:'Multi-Tenancy Patterns',color:'#7c3aed',border:'#7c3aed',
+   desc:'Multi-tenancy is essential for SaaS products. Three isolation strategies each with different trade-offs.',
+   points:['Database per tenant — strongest isolation, highest cost','Schema per tenant — good balance','Row-level (discriminator column) — cost-effective, risk of data leak','Tenant resolution — subdomain, header, JWT claim','EF Core global query filters for row-level']},
+  {title:'Vertical Slice Architecture',color:'#dc2626',border:'#dc2626',
+   desc:'Alternative to Clean Architecture — organize code by feature (vertical slice) instead of layer. Reduces coupling between features.',
+   points:['Feature folder — all code for one feature together','No shared application layer between features','Jimmy Bogard\'s approach (MediatR author)','Trade-offs vs Clean Architecture','When to choose vertical slice over layered']},
+];
+
+// ===================== INTERVIEW Q&A =====================
+const QA_DATA = [
+  {cat:'C# Core',color:'#4f46e5',qs:[
+    {q:'What is the difference between value type and reference type?',a:'Value types (int, struct, bool) are stored on the stack and copied on assignment. Reference types (class, string, arrays) store a reference on the stack pointing to heap data. Assignment copies the reference, not the object.'},
+    {q:'Explain async/await internals — what happens under the hood?',a:'async/await uses a state machine generated by the compiler. When you await a Task, the method suspends and returns control to the caller. The continuation (rest of method) is registered as a callback. The ThreadPool resumes it when the awaited Task completes — it\'s not blocking a thread while waiting.'},
+    {q:'What is the difference between IEnumerable and IQueryable?',a:'IEnumerable executes queries in memory (LINQ to Objects). IQueryable builds an expression tree and executes at the database (LINQ to SQL). Use IQueryable for DB queries to avoid loading all records into memory.'},
+    {q:'What are Span<T> and Memory<T> used for?',a:'Span<T> is a stack-allocated, ref struct that provides a window into contiguous memory (array, string, native memory) without copying. Memory<T> is the heap-compatible version usable with async. Both avoid allocations in hot paths.'},
+    {q:'Explain the Garbage Collector generations.',a:'GC has 3 generations. Gen 0: short-lived objects, collected most frequently. Gen 1: buffer between Gen0 and Gen2. Gen 2: long-lived objects (static, cached), collected rarely. Large objects (>85KB) go to LOH (Large Object Heap), compacted separately.'},
+  ]},
+  {cat:'ASP.NET Core',color:'#0891b2',qs:[
+    {q:'What is the difference between AddSingleton, AddScoped, and AddTransient?',a:'Singleton: one instance for the entire app lifetime. Scoped: one instance per HTTP request (disposed at end of request). Transient: new instance every time it\'s requested. Never inject Scoped into Singleton — causes captive dependency bug.'},
+    {q:'How does the middleware pipeline work?',a:'Middleware forms a chain — each piece wraps the next. Request flows inward (top to bottom), response flows outward (bottom to top). Use() adds middleware that calls next(). Run() is terminal (doesn\'t call next). Map() branches the pipeline.'},
+    {q:'What is the difference between Authentication and Authorization?',a:'Authentication = WHO are you? (verifying identity via JWT, cookie, etc.). Authorization = WHAT can you do? (checking permissions after identity is confirmed). In ASP.NET Core, [Authorize] handles both but they are separate middleware.'},
+    {q:'Explain CQRS and when you would use it.',a:'CQRS (Command Query Responsibility Segregation) separates read models from write models. Commands mutate state, Queries just read. Use it when reads and writes have very different performance needs, or when domain events are important. Overkill for simple CRUD apps.'},
+    {q:'What is Clean Architecture and why use it?',a:'Clean Architecture organizes code into concentric layers — Domain (innermost, no dependencies), Application (use cases), Infrastructure (EF, APIs, external), Presentation (controllers). Dependencies only point inward. Benefits: testability, framework independence, clear separation of concerns.'},
+  ]},
+  {cat:'Database & EF Core',color:'#059669',qs:[
+    {q:'What is the N+1 problem and how do you fix it?',a:'N+1 happens when you load 1 parent record then make N separate queries for each child. In EF Core, fix with .Include() for eager loading, or use .Select() projection. In SQL, fix with JOIN instead of separate queries.'},
+    {q:'What is the difference between clustered and non-clustered index?',a:'Clustered index determines the physical order of data on disk — only one per table (usually primary key). Non-clustered index is a separate structure with pointers to the actual rows. Non-clustered is faster for lookups but adds write overhead.'},
+    {q:'Explain optimistic vs pessimistic concurrency.',a:'Pessimistic: lock the row when reading so others can\'t modify it (SELECT FOR UPDATE). Optimistic: don\'t lock — check if data changed before saving (using a RowVersion/timestamp column). EF Core supports optimistic concurrency with [Timestamp] or [ConcurrencyCheck] attributes.'},
+    {q:'What are ACID properties?',a:'Atomicity: transaction fully completes or fully rolls back. Consistency: DB always stays in valid state. Isolation: concurrent transactions don\'t interfere. Durability: committed data survives crashes. SQL Server supports all ACID properties at different isolation levels.'},
+    {q:'When would you use Dapper over Entity Framework Core?',a:'Dapper for: complex reporting queries, bulk operations, stored procedures with complex result mapping, when you need maximum query performance. EF Core for: standard CRUD, domain modeling, migrations, when productivity matters more than raw performance.'},
+  ]},
+  {cat:'Microservices & Architecture',color:'#dc2626',qs:[
+    {q:'How do microservices communicate?',a:'Synchronously: REST (HTTP) for simple request-response, gRPC for high-performance internal calls. Asynchronously: message brokers (RabbitMQ, Kafka, Azure Service Bus) for events/commands. Rule: prefer async to avoid tight coupling and improve resilience.'},
+    {q:'What is the Saga pattern?',a:'Saga manages distributed transactions across multiple services without 2-phase commit. Choreography: services emit events and react to each other (decoupled but hard to track). Orchestration: a central saga orchestrator tells each service what to do (easier to track, single point of coordination).'},
+    {q:'What is the CAP theorem?',a:'In a distributed system you can only guarantee 2 of 3: Consistency (every read gets latest write), Availability (every request gets a response), Partition tolerance (system works despite network failures). Since network partitions always happen, you choose CP (banks) or AP (e-commerce).'},
+    {q:'What is the Outbox Pattern?',a:'Ensures atomicity between saving to DB and publishing an event. Instead of publishing directly to RabbitMQ (which can fail), write the event to an Outbox table in the same DB transaction. A background worker reads the Outbox and publishes to the message broker, guaranteeing at-least-once delivery.'},
+    {q:'What is the difference between event-driven and message-driven architecture?',a:'Message-driven: services send messages to specific recipients (point-to-point). Event-driven: services publish events to a bus and any interested service subscribes (pub/sub). Event-driven is more decoupled — the publisher doesn\'t know who consumes.'},
+  ]},
+  {cat:'System Design',color:'#7c3aed',qs:[
+    {q:'How would you design a URL shortener like bit.ly?',a:'API: POST /shorten returns short code. Storage: original URL + short code in DB (SQL for ACID). Code generation: base62 encoding of auto-increment ID or MD5 hash. Redirect: GET /{code} → 302 redirect. Cache: Redis for hot URLs. Scale: read-heavy so cache aggressively, horizontal scaling behind load balancer.'},
+    {q:'How would you design a notification system?',a:'Producer services publish notification events to RabbitMQ. Notification service consumes events, checks user preferences, routes to channels (email/SMS/push). Email via SendGrid, SMS via Twilio, push via FCM/APNs. Real-time via SignalR hub. Store notification history in DB for inbox.'},
+    {q:'How do you handle distributed transactions without 2PC?',a:'Use Saga pattern with eventual consistency. Each service has a compensating transaction (undo action). Outbox pattern ensures event publishing is atomic with DB save. Accept temporary inconsistency — design UI to handle "processing" states gracefully.'},
+  ]},
+];
+
+// ===================== SUMMARY DATA =====================
+const SUMMARY = {
+  timeline:[
+    {month:'Month 1',color:'#4f46e5',bg:'#ede9fe',title:'C# + ASP.NET + SQL',skills:['C# OOP & advanced features','ASP.NET Core Web API','EF Core & SQL Server','JWT Authentication','Repository Pattern']},
+    {month:'Month 2',color:'#d97706',bg:'#fef3c7',title:'Angular Full Stack',skills:['TypeScript & HTML/CSS','Angular 17 (standalone)','RxJS & NgRx','HTTP interceptors','Full stack integration']},
+    {month:'Month 3',color:'#dc2626',bg:'#fee2e2',title:'Senior Architecture',skills:['Clean Architecture','CQRS + MediatR','Microservices','Docker + Kubernetes','Azure deployment']},
+    {month:'Month 4',color:'#7c3aed',bg:'#f3e8ff',title:'Expert + Capstone',skills:['System Design','SignalR + gRPC','Capstone project build','Interview preparation','Mock interviews']},
+    {month:'Month 5',color:'#059669',bg:'#dcfce7',title:'Ultra Advanced',skills:['Kafka / Event Streaming','Elasticsearch','Multi-tenancy SaaS','Architect-level patterns','Job hunting & offers 🎉']},
+  ],
+  salaries:[
+    {role:'.NET Backend Developer',min:'₹6L',max:'₹14L',pct:40,color:'#4f46e5'},
+    {role:'Full Stack .NET + Angular',min:'₹10L',max:'₹22L',pct:60,color:'#d97706'},
+    {role:'Senior .NET Developer (5YOE)',min:'₹15L',max:'₹30L',pct:80,color:'#dc2626'},
+    {role:'.NET Architect / Tech Lead',min:'₹25L',max:'₹50L+',pct:100,color:'#7c3aed'},
+  ],
+  dailySchedule:[
+    {time:'8:00 – 10:00 AM',task:'Watch tutorial / Read docs (new concept)'},
+    {time:'10:00 AM – 12:30 PM',task:'Code implementation / Hands-on practice'},
+    {time:'1:30 – 3:00 PM',task:'Build mini project / Solve problems'},
+    {time:'3:00 – 4:30 PM',task:'Revision + make notes in notebook'},
+    {time:'4:30 – 5:00 PM',task:'GitHub commit + track progress here'},
+  ]
+};
+
+// ===================== APP LOGIC =====================
+let done = new Set(JSON.parse(localStorage.getItem('dotnet_done2') || '[]'));
+let filter = 'all';
+let searchTerm = '';
+
+function save(){ localStorage.setItem('dotnet_done2', JSON.stringify([...done])); }
+function toggle(n){ if(done.has(n)) done.delete(n); else done.add(n); save(); render(); updateStats(); }
+function setFilter(f,btn){ filter=f; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); render(); }
+function filterDays(){ searchTerm=document.getElementById('search-box').value.toLowerCase(); render(); }
+function resetAll(){ if(confirm('Reset all progress?')){ done.clear(); save(); render(); updateStats(); } }
+
+function updateStats(){
+  const d=done.size, l=TOTAL-d, pct=Math.round(d/TOTAL*100);
+  document.getElementById('stat-done').textContent=d;
+  document.getElementById('stat-left').textContent=l;
+  document.getElementById('stat-pct').textContent=pct+'%';
+  document.getElementById('main-prog').style.width=pct+'%';
+  document.getElementById('prog-label').textContent=d+' / '+TOTAL+' days';
+  let streak=0; for(let i=TOTAL;i>=1;i--){ if(done.has(i)) streak++; else break; }
+  document.getElementById('stat-streak').textContent=streak+'🔥';
+}
+
+function showTab(tab, btn){
+  document.querySelectorAll('[id^="tab-"]').forEach(t=>t.style.display='none');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tab).style.display='';
+  btn.classList.add('active');
+  if(tab==='resources') renderResources();
+  if(tab==='projects') renderProjects();
+  if(tab==='structure') renderStructure();
+  if(tab==='advanced') renderAdvanced();
+  if(tab==='interview') renderInterview();
+  if(tab==='summary') renderSummary();
+}
+
+function render(){
+  const c=document.getElementById('phases-container'); c.innerHTML='';
+  PHASES.forEach(phase=>{
+    let pd=0,pt=0;
+    phase.weeks.forEach(w=>w.days.forEach(d=>{pt++;if(done.has(d.n))pd++;}));
+    const pp=pt?Math.round(pd/pt*100):0;
+    const div=document.createElement('div'); div.className='phase-card';
+    div.innerHTML=`
+      <div class="phase-header" style="background:${phase.bg}" onclick="togglePhase('${phase.id}')">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span style="width:10px;height:10px;border-radius:50%;background:${phase.color};display:inline-block;flex-shrink:0"></span>
+          <span class="fw-bold" style="color:${phase.color};font-size:0.9rem">${phase.title}</span>
+          <span class="phase-badge" style="background:${phase.color};color:white">${pd}/${pt}</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span style="font-size:0.8rem;color:${phase.color};font-weight:600">${pp}%</span>
+          <i class="bi bi-chevron-down" id="chev-${phase.id}" style="color:${phase.color};transition:transform 0.25s"></i>
+        </div>
+      </div>
+      <div id="body-${phase.id}" style="padding:0.65rem">
+        ${phase.weeks.map(w=>renderWeek(w,phase.color)).join('')}
+      </div>`;
+    c.appendChild(div);
+  });
+}
+
+function renderWeek(w,color){
+  const wd=w.days.filter(d=>done.has(d.n)).length, wt=w.days.length;
+  const pct=Math.round(wd/wt*100);
+  const days=w.days.filter(d=>{
+    if(filter==='done'&&!done.has(d.n)) return false;
+    if(filter==='pending'&&done.has(d.n)) return false;
+    if(searchTerm&&!d.topic.toLowerCase().includes(searchTerm)&&!d.desc.toLowerCase().includes(searchTerm)) return false;
+    return true;
+  });
+  if(!days.length) return '';
+  const resHtml = w.res ? `<div style="padding:0.4rem 1rem 0.5rem;background:#f0f9ff;border-top:1px solid #e0f2fe;font-size:0.75rem;color:#0369a1">
+    <i class="bi bi-book me-1"></i><strong>Resources:</strong> ${w.res.map(r=>`<span style="background:#bae6fd;color:#0c4a6e;border-radius:8px;padding:1px 7px;margin:1px 2px;display:inline-block">${r}</span>`).join('')}
+  </div>` : '';
+  return `<div class="week-card mb-2">
+    <div class="week-header">
+      <span><span style="color:${color}">${w.week}</span> — ${w.title}</span>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="deadline-badge"><i class="bi bi-flag-fill me-1"></i>${w.deadline}</span>
+        <div class="week-prog"><div class="week-prog-fill" style="width:${pct}%;background:${color}"></div></div>
+        <span style="font-size:0.72rem;color:var(--muted)">${wd}/${wt}</span>
+      </div>
+    </div>
+    ${days.map(d=>`
+    <div class="day-row">
+      <span class="day-num">Day ${d.n}</span>
+      <div class="day-check ${done.has(d.n)?'done':''}" onclick="toggle(${d.n})"></div>
+      <div class="day-topic">
+        <strong style="${done.has(d.n)?'text-decoration:line-through;color:var(--muted)':''}">${d.topic}</strong>
+        <span>${d.desc}</span>
+      </div>
+    </div>`).join('')}
+    ${resHtml}
+  </div>`;
+}
+
+function togglePhase(id){
+  const body=document.getElementById('body-'+id);
+  const chev=document.getElementById('chev-'+id);
+  const hidden=body.style.display==='none';
+  body.style.display=hidden?'':'none';
+  chev.style.transform=hidden?'':'rotate(-90deg)';
+}
+
+function renderResources(){
+  const c=document.getElementById('res-container'); c.innerHTML='';
+  RESOURCES.forEach(r=>{
+    const col=document.createElement('div'); col.className='col-12 col-md-6';
+    col.innerHTML=`<div class="res-card" style="border-top:3px solid ${r.color}">
+      <h6 style="color:${r.color}">${r.phase}</h6>
+      ${r.items.map(i=>`<a class="res-link" href="${i.url}" target="_blank">
+        <span class="res-type" style="background:${i.color}22;color:${i.color}">${i.type}</span>
+        <span style="flex:1">${i.name}</span>
+        <span class="res-type" style="background:${i.label==='Free'?'#dcfce7':'#ede9fe'};color:${i.label==='Free'?'#16a34a':'#7c3aed'}">${i.label}</span>
+        <i class="bi bi-box-arrow-up-right" style="font-size:0.7rem;color:var(--muted)"></i>
+      </a>`).join('')}
+    </div>`;
+    c.appendChild(col);
+  });
+}
+
+function renderProjects(){
+  const c=document.getElementById('proj-container'); c.innerHTML='';
+  PROJECTS.forEach(p=>{
+    c.innerHTML+=`<div class="proj-card ${p.featured?'featured':''}">
+      <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-2">
+        <div>
+          <h5 class="mb-1" style="font-size:1rem;font-weight:700">${p.name}</h5>
+          <span style="font-size:0.75rem;color:var(--muted)">${p.phase} &nbsp;•&nbsp; ⏱ ${p.time}</span>
+        </div>
+        <span class="proj-level" style="background:${p.levelBg};color:${p.levelColor}">${p.level}</span>
+      </div>
+      <p style="font-size:0.83rem;color:#374151;margin-bottom:0.5rem">${p.desc}</p>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:0.6rem"><strong>Goal:</strong> ${p.goal}</p>
+      <div class="mb-2">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:4px">Features:</div>
+        <ul style="font-size:0.78rem;color:#374151;margin:0;padding-left:1.2rem">
+          ${p.features.map(f=>`<li>${f}</li>`).join('')}
+        </ul>
+      </div>
+      <div>${p.tech.map(t=>`<span class="proj-tech">${t}</span>`).join('')}</div>
+    </div>`;
+  });
+}
+
+function renderStructure(){
+  const c=document.getElementById('struct-container'); c.innerHTML='';
+  STRUCTURES.forEach(s=>{
+    c.innerHTML+=`<div class="phase-card mb-3">
+      <div class="phase-header" style="background:#f9fafb;border-bottom:2px solid ${s.color}">
+        <span class="fw-bold" style="color:${s.color}"><i class="bi bi-diagram-3 me-2"></i>${s.name}</span>
+      </div>
+      <div style="padding:1rem">
+        <div class="struct-tree">${s.tree}</div>
+      </div>
+    </div>`;
+  });
+}
+
+function renderAdvanced(){
+  const c=document.getElementById('adv-container'); c.innerHTML='';
+  c.innerHTML=`<div class="alert" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;font-size:0.83rem;color:#9a3412;margin-bottom:1rem">
+    <i class="bi bi-lightning-fill me-2"></i><strong>Ultra Advanced Topics</strong> — for Architect / Tech Lead level. Master these after completing all phases.
+  </div>`;
+  ADV_TOPICS.forEach(t=>{
+    c.innerHTML+=`<div class="adv-card" style="border-color:${t.border}">
+      <h6 style="color:${t.color};font-weight:700;margin-bottom:0.4rem">${t.title}</h6>
+      <p style="font-size:0.8rem;color:#374151;margin-bottom:0.5rem">${t.desc}</p>
+      <ul style="font-size:0.78rem;color:var(--muted);margin:0;padding-left:1.2rem">
+        ${t.points.map(p=>`<li>${p}</li>`).join('')}
+      </ul>
+    </div>`;
+  });
+}
+
+function renderInterview(){
+  const c=document.getElementById('qa-container'); c.innerHTML='';
+  c.innerHTML=`<div class="alert" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;font-size:0.82rem;color:#0c4a6e;margin-bottom:1rem">
+    <i class="bi bi-patch-question-fill me-2"></i>Click any question to reveal the answer. Practice saying it out loud!
+  </div>`;
+  let qi=0;
+  QA_DATA.forEach(cat=>{
+    c.innerHTML+=`<div class="phase-card mb-3">
+      <div class="phase-header" style="background:${cat.color}15;border-bottom:2px solid ${cat.color}">
+        <span class="fw-bold" style="color:${cat.color}">${cat.cat}</span>
+        <span class="phase-badge" style="background:${cat.color};color:white">${cat.qs.length} Questions</span>
+      </div>
+      <div style="padding:0.75rem">
+        ${cat.qs.map(q=>{
+          const id='qa-'+(qi++);
+          return `<div class="interview-q" onclick="toggleQA('${id}',this)" style="cursor:pointer;border-color:${cat.color}">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <span>${q.q}</span>
+              <i class="bi bi-chevron-down" style="font-size:0.75rem;flex-shrink:0;color:${cat.color}"></i>
+            </div>
+            <div id="${id}" class="qa-answer">${q.a}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  });
+}
+
+function toggleQA(id, el){
+  const ans=document.getElementById(id);
+  const icon=el.querySelector('i');
+  const shown=ans.style.display==='block';
+  ans.style.display=shown?'none':'block';
+  icon.style.transform=shown?'':'rotate(180deg)';
+}
+
+function renderSummary(){
+  const c=document.getElementById('sum-container'); c.innerHTML='';
+  // Timeline
+  c.innerHTML+=`<h5 style="font-weight:700;margin-bottom:1rem"><i class="bi bi-calendar3 me-2 text-primary"></i>Month-by-Month Timeline</h5>`;
+  SUMMARY.timeline.forEach(m=>{
+    c.innerHTML+=`<div class="summary-phase mb-2" style="background:${m.bg};border-left:4px solid ${m.color}">
+      <h6 style="color:${m.color};margin-bottom:0.35rem">${m.month} — ${m.title}</h6>
+      <div>${m.skills.map(s=>`<span class="skill-pill" style="background:${m.color}22;color:${m.color}">${s}</span>`).join('')}</div>
+    </div>`;
+  });
+
+  // Daily schedule
+  c.innerHTML+=`<h5 style="font-weight:700;margin:1.5rem 0 1rem"><i class="bi bi-clock me-2 text-warning"></i>Ideal Daily Schedule</h5>
+  <div class="card border-0 shadow-sm p-3 mb-3">
+    ${SUMMARY.dailySchedule.map((s,i)=>`<div style="display:flex;gap:12px;padding:7px 0;${i>0?'border-top:1px solid #f3f4f6':''}">
+      <span style="min-width:150px;font-size:0.78rem;font-weight:600;color:var(--primary)">${s.time}</span>
+      <span style="font-size:0.82rem;color:#374151">${s.task}</span>
+    </div>`).join('')}
+  </div>`;
+
+  // Salary
+  c.innerHTML+=`<h5 style="font-weight:700;margin:1.5rem 0 1rem"><i class="bi bi-currency-rupee me-2 text-success"></i>Expected Salary (India)</h5>
+  <div class="card border-0 shadow-sm p-3 mb-3">
+    ${SUMMARY.salaries.map(s=>`<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px">
+        <span style="font-weight:600">${s.role}</span>
+        <span style="color:${s.color};font-weight:700">${s.min} – ${s.max}</span>
+      </div>
+      <div class="salary-bar"><div class="salary-fill" style="width:${s.pct}%;background:${s.color}"></div></div>
+    </div>`).join('')}
+  </div>`;
+
+  // Final note
+  c.innerHTML+=`<div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:14px;padding:1.5rem;color:white;text-align:center">
+    <div style="font-size:2rem;margin-bottom:0.5rem">🚀</div>
+    <h5 style="font-weight:700;color:white;margin-bottom:0.5rem">You are building a Senior Full Stack .NET Developer career</h5>
+    <p style="font-size:0.85rem;opacity:0.9;margin:0">154 days · 5+ months · Every day counts. Track your streak, build your projects, and you will get there.</p>
+  </div>`;
+}
+
+// Init
+document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+render();
+updateStats();
+</script>
+</body>
+</html>
