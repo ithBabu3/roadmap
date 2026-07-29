@@ -6,12 +6,12 @@
 <title>.NET Full Stack Roadmap</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--primary:#4f46e5;--primary-light:#ede9fe;--success:#16a34a;--warning:#d97706;--danger:#dc2626;--text:#1e1b4b;--muted:#6b7280;--border:#e5e7eb;--bg:#f8f7ff;}
-body{background:var(--bg);font-family:'Segoe UI',sans-serif;color:var(--text);}
+:root{--primary:#4f46e5;--primary-light:#ede9fe;--success:#16a34a;--warning:#d97706;--danger:#dc2626;--text:#1e1b4b;--muted:#6b7280;--border:#e5e7eb;--bg:#f8f7ff;--linkedin:#0a66c2;}
+body{background:var(--bg);font-family:'Inter','Segoe UI',sans-serif;color:var(--text);}
 .navbar{background:var(--primary)!important;}
-.navbar-brand{font-weight:700;font-size:1.2rem;}
-.tab-nav{display:flex;gap:4px;background:#fff;border-radius:12px;padding:4px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:1.2rem;flex-wrap:wrap;}
 .tab-btn{flex:1;min-width:100px;border:none;background:transparent;border-radius:8px;padding:7px 10px;font-size:0.8rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all 0.2s;}
 .tab-btn.active{background:var(--primary);color:#fff;}
 .progress-bar-main{height:10px;border-radius:10px;background:#ddd6fe;}
@@ -64,16 +64,185 @@ body{background:var(--bg);font-family:'Segoe UI',sans-serif;color:var(--text);}
 .interview-q{background:#f8f7ff;border-radius:8px;padding:0.6rem 0.9rem;margin-bottom:0.5rem;font-size:0.83rem;border-left:3px solid var(--primary);}
 /* QA toggle */
 .qa-answer{display:none;background:#f0f9ff;border-radius:6px;padding:0.6rem 0.9rem;margin-top:4px;font-size:0.8rem;color:#0c4a6e;border-left:3px solid #0891b2;}
+/* Author Content Hub */
+.author-board{display:flex;flex-direction:column;gap:1.2rem;}
+.author-card{background:#fff;border-radius:16px;box-shadow:0 1px 6px rgba(30,27,75,0.08);overflow:hidden;transition:box-shadow .2s;}
+.author-card.drag-over{box-shadow:0 0 0 2px var(--linkedin);}
+.author-topbar{display:flex;align-items:center;gap:12px;padding:1rem 1.2rem;background:linear-gradient(135deg,#4f46e5,#7c3aed);cursor:grab;}
+.author-topbar:active{cursor:grabbing;}
+.author-avatar{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.2);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;flex-shrink:0;border:2px solid rgba(255,255,255,0.5);}
+.author-meta{flex:1;min-width:0;}
+.author-meta .name{color:#fff;font-weight:700;font-size:0.98rem;margin:0;}
+.author-meta .role{color:rgba(255,255,255,0.85);font-size:0.76rem;margin:0;}
+.author-link{background:rgba(255,255,255,0.15);color:#fff;font-size:0.72rem;font-weight:600;border-radius:20px;padding:5px 12px;text-decoration:none;white-space:nowrap;border:1px solid rgba(255,255,255,0.3);transition:background .2s;}
+.author-link:hover{background:rgba(255,255,255,0.3);color:#fff;}
+.drag-handle{color:rgba(255,255,255,0.6);font-size:1.1rem;cursor:grab;}
+.item-list{padding:1rem 1.2rem;display:flex;flex-direction:column;gap:10px;background:#fbfbff;}
+.content-item{background:#fff;border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;display:flex;gap:10px;transition:box-shadow .15s,transform .15s;}
+.content-item:hover{box-shadow:0 2px 8px rgba(30,27,75,0.08);}
+.content-item.dragging{opacity:0.4;}
+.content-item.drag-over-item{border-top:3px solid var(--linkedin);}
+.item-handle{color:#c7ccd8;cursor:grab;padding-top:2px;flex-shrink:0;}
+.item-handle:active{cursor:grabbing;}
+.item-body{flex:1;min-width:0;}
+.item-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
+.item-badge{font-size:0.64rem;font-weight:700;border-radius:8px;padding:2px 8px;text-transform:uppercase;letter-spacing:.03em;}
+.item-title{font-weight:700;font-size:0.9rem;color:#1f2937;}
+.item-summary{font-size:0.82rem;color:#4b5563;line-height:1.5;margin:0 0 6px;}
+.item-points{margin:6px 0 6px;padding-left:1.1rem;font-size:0.8rem;color:#374151;line-height:1.6;}
+.item-open{font-size:0.76rem;font-weight:600;color:var(--linkedin);text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.item-open:hover{text-decoration:underline;}
+.add-author-card{border:2px dashed #c7ccd8;border-radius:16px;padding:1.5rem;text-align:center;color:var(--muted);cursor:pointer;transition:all .2s;background:#fff;}
+.add-author-card:hover{border-color:var(--primary);color:var(--primary);background:#fafaff;}
+.author-form{background:#fff;border-radius:16px;box-shadow:0 1px 6px rgba(30,27,75,0.08);padding:1.2rem;margin-bottom:1.2rem;}
+.author-form label{font-size:0.76rem;font-weight:600;color:var(--muted);margin-bottom:2px;display:block;}
+.author-form .form-control,.author-form .form-select{font-size:0.84rem;margin-bottom:10px;}
+.show-more-btn{align-self:center;font-size:0.8rem;font-weight:600;}
+.day-note-btn{background:none;border:none;color:#c7ccd8;font-size:0.85rem;padding:2px 5px;cursor:pointer;border-radius:5px;flex-shrink:0;}
+.day-note-btn:hover{background:#f3f4f6;color:var(--primary);}
+.day-note-btn.has-note{color:#d97706;}
+.day-note-box{display:none;padding:0.5rem 0 0.2rem;}
+.day-note-box textarea{width:100%;font-size:0.8rem;border:1px solid var(--border);border-radius:8px;padding:0.5rem;resize:vertical;}
+.day-note-box .note-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:4px;}
+.notes-search{border-radius:20px;font-size:0.82rem;}
+.note-card{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:0.7rem 0.9rem;margin-bottom:8px;}
+.note-card .note-meta{display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;color:#92400e;font-weight:600;margin-bottom:4px;}
+.note-card .note-text{font-size:0.82rem;color:#451a03;white-space:pre-wrap;margin:0;}
+/* Notes sidebar - only shown when there's real empty space to use */
+.notes-sidebar{display:none;}
+@media (min-width:1440px){
+  .notes-sidebar{
+    display:block;position:fixed;top:110px;right:24px;width:280px;max-height:calc(100vh - 140px);
+    overflow-y:auto;background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(30,27,75,0.1);padding:1rem;z-index:900;
+  }
+  .notes-sidebar-header{display:flex;align-items:center;gap:8px;font-weight:700;color:#92400e;margin-bottom:0.7rem;font-size:0.9rem;}
+  .notes-sidebar .notes-search{font-size:0.78rem;padding:0.35rem 0.7rem;}
+  .notes-sidebar .note-card{padding:0.55rem 0.7rem;margin-bottom:6px;}
+  .notes-sidebar .note-card .note-text{font-size:0.76rem;}
+  .notes-sidebar .note-card .note-meta{font-size:0.66rem;}
+  .quick-note-toggle{width:100%;font-size:0.78rem;margin-bottom:0.6rem;}
+  .quick-note-form{display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:0.6rem;margin-bottom:0.7rem;}
+  .quick-note-form select,.quick-note-form textarea{font-size:0.76rem;width:100%;margin-bottom:6px;border:1px solid var(--border);border-radius:8px;padding:0.4rem;}
+}
+/* Auth gate */
+body.app-locked > *:not(#auth-gate){display:none!important;}
+body.app-locked #notes-sidebar{display:none!important;}
+body:not(.app-locked) #auth-gate{display:none!important;}
+#auth-gate{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:1rem;}
+.auth-card{background:#fff;border-radius:18px;padding:2.2rem 2rem;max-width:360px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.2);}
+.auth-card i.bi-code-slash{font-size:2rem;color:var(--primary);}
+.auth-card h5{font-weight:800;margin:0.6rem 0 0.3rem;}
+.auth-card p{font-size:0.83rem;color:var(--muted);margin-bottom:1.4rem;}
+.gsi-btn{display:inline-flex;align-items:center;gap:10px;border:1px solid #dadce0;border-radius:10px;padding:10px 18px;font-size:0.88rem;font-weight:600;color:#3c4043;background:#fff;cursor:pointer;transition:box-shadow .15s;}
+.gsi-btn:hover{box-shadow:0 1px 6px rgba(0,0,0,0.15);}
+.auth-status-note{font-size:0.72rem;color:#9ca3af;margin-top:1rem;}
+/* Sync status badge */
+.sync-badge{font-size:0.68rem;color:rgba(255,255,255,0.85);display:flex;align-items:center;gap:5px;cursor:pointer;}
+.sync-badge .dot{width:7px;height:7px;border-radius:50%;background:#fbbf24;flex-shrink:0;}
+.sync-badge.synced .dot{background:#4ade80;}
+.sync-badge.error .dot{background:#f87171;}
+.collapse-btn{background:none;border:none;color:rgba(255,255,255,0.85);font-size:1rem;padding:2px 6px;cursor:pointer;transition:transform .2s;}
+.collapse-btn.collapsed{transform:rotate(-90deg);}
+.item-collapse-btn{background:none;border:none;color:var(--muted);font-size:0.85rem;padding:0 4px;cursor:pointer;margin-left:auto;}
+.item-actions{display:flex;gap:2px;margin-left:auto;flex-shrink:0;}
+.item-action-btn{background:none;border:none;color:var(--muted);font-size:0.85rem;padding:2px 5px;cursor:pointer;border-radius:5px;transition:all .15s;}
+.item-action-btn:hover{background:#f3f4f6;color:var(--text);}
+.item-action-btn.danger:hover{background:#fee2e2;color:var(--danger);}
+.author-actions{display:flex;gap:2px;margin-left:6px;}
+.author-actions button{background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:0.8rem;padding:5px 7px;border-radius:6px;cursor:pointer;transition:background .15s;}
+.author-actions button:hover{background:rgba(255,255,255,0.35);}
+.item-media-img{max-width:100%;border-radius:8px;margin:6px 0;display:block;box-shadow:0 1px 4px rgba(0,0,0,0.1);}
+.item-pdf-box{display:flex;align-items:center;gap:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:0.6rem 0.8rem;margin:6px 0;}
+.item-pdf-box i{color:#dc2626;font-size:1.3rem;}
+.diagram-flow{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:8px 0;padding:0.8rem;background:#1e1b4b;border-radius:10px;}
+.diagram-step{background:#312e81;color:#e0e7ff;font-size:0.76rem;font-weight:600;border-radius:8px;padding:6px 12px;white-space:nowrap;}
+.diagram-arrow{color:#818cf8;font-size:0.9rem;}
+.media-drop{border:1.5px dashed var(--border);border-radius:10px;padding:0.8rem;text-align:center;font-size:0.78rem;color:var(--muted);cursor:pointer;background:#fafafa;}
+.media-drop:hover{border-color:var(--primary);color:var(--primary);}
+.media-preview-name{font-size:0.76rem;color:var(--success);margin-top:4px;}
+.type-field{display:none;}
+.type-field.active{display:block;}
+.roadmap-embed{margin-top:8px;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.week-details{border-bottom:1px solid var(--border);}
+.week-details:last-child{border-bottom:none;}
+.week-details>summary{cursor:pointer;list-style:none;padding:0.6rem 0.9rem;font-size:0.82rem;font-weight:700;color:#4f46e5;background:#f5f4ff;display:flex;align-items:center;gap:8px;}
+.week-details>summary::before{content:'▸';transition:transform .15s;}
+.week-details[open]>summary::before{transform:rotate(90deg);}
+.week-details>summary::-webkit-details-marker{display:none;}
+.days-list{padding:0.4rem 0.9rem 0.6rem 1.4rem;}
+.day-details{border-bottom:1px dashed #eef0f4;}
+.day-details:last-child{border-bottom:none;}
+.day-details>summary{cursor:pointer;list-style:none;padding:0.4rem 0;font-size:0.78rem;font-weight:600;color:#374151;}
+.day-details>summary::-webkit-details-marker{display:none;}
+.sessions{display:grid;grid-template-columns:1fr;gap:3px;padding:0.2rem 0 0.6rem;font-size:0.75rem;color:#4b5563;}
+.sessions b{color:#4f46e5;font-weight:700;}
+/* Top navbar w/ embedded tabs + progress */
+.app-navbar{display:flex;flex-direction:column;gap:8px;padding:0.65rem 1rem 0.75rem;}
+.navbar-row1{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.navbar-brand-icon{color:#fff;font-size:1.3rem;display:flex;align-items:center;}
+.tab-nav-top{display:flex;gap:4px;background:rgba(255,255,255,0.14);border-radius:10px;padding:4px;overflow-x:auto;scrollbar-width:none;}
+.tab-nav-top::-webkit-scrollbar{display:none;}
+.tab-btn-nav{color:rgba(255,255,255,0.82)!important;white-space:nowrap;flex:0 0 auto!important;}
+.tab-btn-nav.active{background:#fff!important;color:var(--primary)!important;}
+.navbar-progress{padding-top:2px;}
+.navbar-progress-label{display:flex;justify-content:space-between;font-size:0.72rem;color:rgba(255,255,255,0.9);margin-bottom:4px;font-weight:600;}
+.navbar-progress-bar{height:7px;border-radius:10px;background:rgba(255,255,255,0.22);}
+.navbar-progress-bar .fill{height:100%;border-radius:10px;background:#fff;transition:width 0.5s;}
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleAuth()"></script>
 </head>
-<body>
-<nav class="navbar navbar-dark px-3 py-2 sticky-top">
-  <span class="navbar-brand"><i class="bi bi-code-slash me-2"></i>.NET Full Stack Roadmap</span>
-  <div class="d-flex align-items-center gap-2">
-    <input id="search-box" type="text" class="form-control form-control-sm" placeholder="🔍 Search..." style="width:160px;border-radius:20px;font-size:0.82rem" oninput="filterDays()">
-    <span class="text-white-50 small d-none d-md-block" id="today-date"></span>
+<body class="app-locked">
+<div id="auth-gate">
+  <div class="auth-card">
+    <i class="bi bi-code-slash"></i>
+    <h5>.NET Roadmap Tracker</h5>
+    <p>Sign in to sync your progress, notes, and content to your own Google Drive.</p>
+    <button class="gsi-btn" onclick="signInWithGoogle()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.5 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.4-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.1 18.9 12 24 12c3.1 0 5.8 1.1 8 3l6-6C34.5 5.1 29.6 3 24 3 15.6 3 8.4 7.8 6.3 14.7z"/><path fill="#4CAF50" d="M24 45c5.5 0 10.4-2.1 14.1-5.6l-6.5-5.5C29.6 35.8 26.9 37 24 37c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C8.4 41.2 15.6 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.5 5.5C41 35.9 43 30.3 43 24c0-1.4-.1-2.7-.4-3.5z"/></svg>
+      Sign in with Google
+    </button>
+    <p class="auth-status-note" id="auth-status-note">Uses only files this app creates — never your existing Drive files.</p>
+  </div>
+</div>
+<nav class="navbar navbar-dark sticky-top app-navbar">
+  <div class="navbar-row1">
+    <span class="navbar-brand-icon"><i class="bi bi-code-slash"></i></span>
+    <div class="d-flex align-items-center gap-2">
+      <span class="sync-badge" id="sync-badge" onclick="syncNow()" title="Click to sync now"><span class="dot"></span><span id="sync-badge-text">Not signed in</span></span>
+      <input id="search-box" type="text" class="form-control form-control-sm" placeholder="🔍 Search..." style="width:160px;border-radius:20px;font-size:0.82rem" oninput="filterDays()">
+      <span class="text-white-50 small d-none d-md-block" id="today-date"></span>
+      <button class="author-actions" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:6px;padding:5px 8px" onclick="signOutGoogle()" title="Sign out"><i class="bi bi-box-arrow-right"></i></button>
+    </div>
+  </div>
+  <div class="tab-nav-top" id="top-tabs">
+    <button class="tab-btn tab-btn-nav active" onclick="showTab('roadmap',this)"><i class="bi bi-map me-1"></i>Roadmap</button>
+    <button class="tab-btn tab-btn-nav" onclick="showTab('resources',this)"><i class="bi bi-book me-1"></i>Resources</button>
+    <button class="tab-btn tab-btn-nav" onclick="showTab('author',this)"><i class="bi bi-collection me-1"></i>Community Content</button>
+    <button class="tab-btn tab-btn-nav" onclick="showTab('projects',this)"><i class="bi bi-folder2-open me-1"></i>Projects</button>
+    <button class="tab-btn tab-btn-nav" onclick="showTab('advanced',this)"><i class="bi bi-lightning me-1"></i>Advanced+</button>
+    <button class="tab-btn tab-btn-nav" onclick="showTab('interview',this)"><i class="bi bi-patch-question me-1"></i>Interview Q&A</button>
+    <button class="tab-btn tab-btn-nav" onclick="showTab('summary',this)"><i class="bi bi-trophy me-1"></i>Summary</button>
+  </div>
+  <div class="navbar-progress">
+    <div class="navbar-progress-label"><span>Overall Progress</span><span id="prog-label">0 / 175 days</span></div>
+    <div class="navbar-progress-bar"><div class="fill" id="main-prog" style="width:0%"></div></div>
   </div>
 </nav>
+
+<div class="notes-sidebar" id="notes-sidebar">
+  <div class="notes-sidebar-header"><i class="bi bi-stickies-fill"></i> My Notes</div>
+  <button class="btn btn-sm btn-outline-primary quick-note-toggle" onclick="toggleQuickNoteForm()"><i class="bi bi-plus-lg me-1"></i>Quick add note</button>
+  <div class="quick-note-form" id="quick-note-form">
+    <select id="quick-note-day"><option value="">Choose a day...</option></select>
+    <textarea id="quick-note-text" rows="3" placeholder="What did you learn or struggle with?"></textarea>
+    <div class="d-flex justify-content-end gap-2">
+      <button class="btn btn-sm btn-outline-secondary" onclick="toggleQuickNoteForm()">Cancel</button>
+      <button class="btn btn-sm btn-primary" onclick="quickAddNote()">Save</button>
+    </div>
+  </div>
+  <input id="notes-search-sidebar" class="form-control notes-search mb-2" placeholder="🔍 Search notes..." oninput="filterNotesSidebar()">
+  <div id="all-notes-list-sidebar"></div>
+</div>
 
 <div class="container-fluid px-3 py-3" style="max-width:980px;margin:0 auto">
 
@@ -83,29 +252,6 @@ body{background:var(--bg);font-family:'Segoe UI',sans-serif;color:var(--text);}
   <div class="col-6 col-md-3"><div class="stat-box" style="background:#dcfce7"><div class="num" style="color:#16a34a" id="stat-left">175</div><div class="lbl">Days Left</div></div></div>
   <div class="col-6 col-md-3"><div class="stat-box" style="background:#fef3c7"><div class="num" style="color:#d97706" id="stat-pct">0%</div><div class="lbl">Complete</div></div></div>
   <div class="col-6 col-md-3"><div class="stat-box" style="background:#fee2e2"><div class="num" style="color:#dc2626" id="stat-streak">0🔥</div><div class="lbl">Day Streak</div></div></div>
-</div>
-
-<!-- Progress bar -->
-<div class="card border-0 shadow-sm mb-3 p-3">
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <span style="font-weight:600">Overall Progress</span>
-    <span class="small text-muted" id="prog-label">0 / 175 days</span>
-  </div>
-  <div class="progress-bar-main"><div class="fill" id="main-prog" style="width:0%"></div></div>
-  <div class="d-flex justify-content-between mt-2" style="font-size:0.7rem;color:var(--muted)">
-    <span>Start</span><span>Month 1</span><span>Month 2</span><span>Month 3</span><span>Month 4</span><span>Month 5 ✓</span>
-  </div>
-</div>
-
-<!-- Tab Nav -->
-<div class="tab-nav">
-  <button class="tab-btn active" onclick="showTab('roadmap',this)"><i class="bi bi-map me-1"></i>Roadmap</button>
-  <button class="tab-btn" onclick="showTab('resources',this)"><i class="bi bi-book me-1"></i>Resources</button>
-  <button class="tab-btn" onclick="showTab('projects',this)"><i class="bi bi-folder2-open me-1"></i>Projects</button>
-  <button class="tab-btn" onclick="showTab('structure',this)"><i class="bi bi-diagram-3 me-1"></i>Project Structure</button>
-  <button class="tab-btn" onclick="showTab('advanced',this)"><i class="bi bi-lightning me-1"></i>Advanced+</button>
-  <button class="tab-btn" onclick="showTab('interview',this)"><i class="bi bi-patch-question me-1"></i>Interview Q&A</button>
-  <button class="tab-btn" onclick="showTab('summary',this)"><i class="bi bi-trophy me-1"></i>Summary</button>
 </div>
 
 <!-- ===================== TAB: ROADMAP ===================== -->
@@ -124,24 +270,32 @@ body{background:var(--bg);font-family:'Segoe UI',sans-serif;color:var(--text);}
   <div class="row g-3" id="res-container"></div>
 </div>
 
-<!-- ===================== TAB: PROJECTS ===================== -->
-<div id="tab-projects" style="display:none">
-  <div id="proj-container"></div>
+<!-- ===================== TAB: COMMUNITY CONTENT ===================== -->
+<div id="tab-author" style="display:none">
+  <div id="author-board" class="author-board"></div>
+  <div id="author-form-slot" class="mt-3"></div>
 </div>
 
-<!-- ===================== TAB: PROJECT STRUCTURE ===================== -->
-<div id="tab-structure" style="display:none">
-  <div id="struct-container"></div>
+<!-- ===================== TAB: PROJECTS (+ STRUCTURE) ===================== -->
+<div id="tab-projects" style="display:none">
+  <div class="d-flex gap-2 mb-3">
+    <button class="btn btn-sm btn-outline-primary proj-subtab active" onclick="setProjSubtab('list',this)"><i class="bi bi-folder2-open me-1"></i>Projects</button>
+    <button class="btn btn-sm btn-outline-primary proj-subtab" onclick="setProjSubtab('structure',this)"><i class="bi bi-diagram-3 me-1"></i>Folder Structure</button>
+  </div>
+  <div id="proj-container"></div>
+  <div id="struct-container" style="display:none"></div>
 </div>
 
 <!-- ===================== TAB: ADVANCED ===================== -->
 <div id="tab-advanced" style="display:none">
   <div id="adv-container"></div>
+  <div id="adv-form-slot" class="mt-3"></div>
 </div>
 
 <!-- ===================== TAB: INTERVIEW Q&A ===================== -->
 <div id="tab-interview" style="display:none">
   <div id="qa-container"></div>
+  <div id="qa-form-slot" class="mt-3"></div>
 </div>
 
 <!-- ===================== TAB: SUMMARY ===================== -->
@@ -421,6 +575,549 @@ const RESOURCES = [
   ]},
 ];
 
+// ===================== COMMUNITY CONTENT DATA =====================
+// Grouped by author. LinkedIn blocks automated access to post bodies, so 'Post' items
+// carry title + link only (open while signed in to read the full post). 'Roadmap' items are
+// summarized from the source document itself, which we do have full access to.
+const CONTENT_AUTHORS = [
+  {
+    id:'sandip', name:'Sandip Mhaske', role:'Lead Developer · .NET Stack · AWS · Angular',
+    avatar:'SM', linkedin:'https://www.linkedin.com/in/sandip-mhaske',
+    items:[
+      {id:'sm-pdf', type:'Roadmap', badgeColor:'#7c3aed', title:'30-Day Full-Stack .NET Developer Plan',
+        summary:'The original source document this whole tracker is built from — a day-by-day roadmap covering C#, ASP.NET Core, SQL, Angular, Identity Server, Azure, CI/CD, woven together with daily Blind 75 practice.',
+        points:[
+          'Week 1 — C# & OOP foundations, LINQ, SQL, EF Core (Database First) · Blind 75 Arrays',
+          'Week 2 — ASP.NET Core MVC & Web API, JWT auth, repository pattern · Blind 75 Strings',
+          'Week 3 — Angular basic → advanced: forms, routing, RxJS, HttpClient · Blind 75 Binary Search / Linked List',
+          'Week 4 — Identity Server (OAuth2/OIDC), Azure App Service, CI/CD, final deployment · Blind 75 mix + interview prep'
+        ]},
+      {id:'sm-1', type:'Post', badgeColor:'#0a66c2', title:'.NET Working with MongoDB',
+        summary:'Practical notes on wiring a MongoDB data layer into a .NET application.',
+        url:'https://www.linkedin.com/posts/sandip-mhaske_net-working-with-mongodb-activity-7292436771064238080-Q4k9'},
+      {id:'sm-2', type:'Post', badgeColor:'#0a66c2', title:'.NET Integration with AWS DynamoDB',
+        summary:'Connecting a .NET service to DynamoDB as a NoSQL, cloud-native data store.',
+        url:'https://www.linkedin.com/posts/sandip-mhaske_net-integration-with-aws-dynamodb-activity-7312710308203040768-810V'},
+      {id:'sm-3', type:'Post', badgeColor:'#0a66c2', title:'AWS DynamoDB & NoSQL',
+        summary:'A grounding in DynamoDB fundamentals for developers coming from relational SQL.',
+        url:'https://www.linkedin.com/posts/sandip-mhaske_aws-dynamodb-nosql-activity-7283716769712648192-rnVl'},
+      {id:'sm-4', type:'Post', badgeColor:'#0a66c2', title:"The Developer's Notebook",
+        summary:'A recurring series of day-to-day developer notes and lessons learned.',
+        url:'https://www.linkedin.com/posts/sandip-mhaske_the-developers-notebook-activity-7314308345056714752-vre-'}
+    ]
+  }
+];
+
+const TYPE_ICON = {Roadmap:'bi-signpost-split',Post:'bi-linkedin',Link:'bi-link-45deg',Note:'bi-sticky',Paragraph:'bi-text-paragraph',Bullets:'bi-list-ul',Image:'bi-image',PDF:'bi-file-earmark-pdf-fill',Diagram:'bi-diagram-3'};
+const TYPE_COLOR = {Roadmap:'#7c3aed',Post:'#0a66c2',Link:'#0891b2',Note:'#6b7280',Paragraph:'#1f2937',Bullets:'#16a34a',Image:'#d97706',PDF:'#dc2626',Diagram:'#4f46e5'};
+const ITEM_PAGE_SIZE = 4;
+let authorOrder = JSON.parse(localStorage.getItem('dotnet_author_order') || 'null');
+let itemOrders = JSON.parse(localStorage.getItem('dotnet_item_orders') || '{}');
+let customAuthors = JSON.parse(localStorage.getItem('dotnet_custom_authors') || '[]');
+let expandedCount = JSON.parse(localStorage.getItem('dotnet_item_expanded') || '{}');
+let authorCollapsed = JSON.parse(localStorage.getItem('dotnet_author_collapsed') || '{}');
+let itemCollapsed = JSON.parse(localStorage.getItem('dotnet_item_collapsed') || '{}');
+let itemOverrides = JSON.parse(localStorage.getItem('dotnet_item_overrides') || '{}'); // persisted edits to built-in items
+let deletedItemIds = new Set(JSON.parse(localStorage.getItem('dotnet_deleted_items') || '[]')); // persisted deletes of built-in items
+let authorOverrides = JSON.parse(localStorage.getItem('dotnet_author_overrides') || '{}'); // persisted edits to built-in author profile (name/role/link)
+let editingItem = null; // {authorId, itemId} or null when adding new
+let editingAuthorId = null; // author id being edited (name/role), or null
+let pendingMedia = null; // {dataUrl, name, mime} staged from file input before save
+
+// ---- IndexedDB (free, local, no server — used only for images/PDFs which can be large) ----
+const IDB_NAME='dotnet_roadmap_media', IDB_STORE='media';
+function idbOpen(){
+  return new Promise((res,rej)=>{
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = ()=> req.result.createObjectStore(IDB_STORE);
+    req.onsuccess = ()=> res(req.result);
+    req.onerror = ()=> rej(req.error);
+  });
+}
+async function idbPut(key, value){ const db = await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).put(value,key); tx.oncomplete=()=>res(true); tx.onerror=()=>rej(tx.error); }); }
+async function idbGet(key){ const db = await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readonly'); const r=tx.objectStore(IDB_STORE).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbDelete(key){ const db = await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).delete(key); tx.oncomplete=()=>res(true); tx.onerror=()=>rej(tx.error); }); }
+
+function getAllAuthors(){
+  const all = [...CONTENT_AUTHORS, ...customAuthors].map(a=>({
+    ...a,
+    ...(authorOverrides[a.id]||{}),
+    items: a.items.filter(it=>!deletedItemIds.has(it.id)).map(it=> itemOverrides[it.id] ? {...it, ...itemOverrides[it.id]} : it)
+  }));
+  all.forEach(a=>{
+    const ord = itemOrders[a.id];
+    if(ord){
+      const map = new Map(a.items.map(it=>[it.id,it]));
+      const ordered = ord.map(id=>map.get(id)).filter(Boolean);
+      a.items.forEach(it=>{ if(!ord.includes(it.id)) ordered.push(it); });
+      a.items = ordered;
+    }
+  });
+  if(authorOrder){
+    const map = new Map(all.map(a=>[a.id,a]));
+    const ordered = authorOrder.map(id=>map.get(id)).filter(Boolean);
+    all.forEach(a=>{ if(!authorOrder.includes(a.id)) ordered.push(a); });
+    return ordered;
+  }
+  return all;
+}
+function persistCustomAuthors(){ localStorage.setItem('dotnet_custom_authors', JSON.stringify(customAuthors)); }
+function saveAuthorOrder(list){ authorOrder = list.map(a=>a.id); localStorage.setItem('dotnet_author_order', JSON.stringify(authorOrder)); }
+function saveItemOrder(authorId, items){ itemOrders[authorId] = items.map(i=>i.id); localStorage.setItem('dotnet_item_orders', JSON.stringify(itemOrders)); }
+function toggleAuthorCollapse(authorId){ authorCollapsed[authorId] = !authorCollapsed[authorId]; localStorage.setItem('dotnet_author_collapsed', JSON.stringify(authorCollapsed)); renderAuthorPosts(); }
+function toggleItemCollapse(itemId){ itemCollapsed[itemId] = !itemCollapsed[itemId]; localStorage.setItem('dotnet_item_collapsed', JSON.stringify(itemCollapsed)); renderAuthorPosts(); }
+
+// Sourced directly from the original 30-Day Full-Stack .NET PDF (Sandip Mhaske).
+const ROADMAP_PLAN = [
+  {week:'Week 1 — C# & .NET Foundations + SQL + Blind 75 Arrays', days:[
+    {n:1,topic:'C# Basics',morning:'Syntax, variables, types.',midday:'Calculator console app.',afternoon:'Blind 75 — Two Sum, Best Time to Buy/Sell Stock.',evening:'Review & notes.'},
+    {n:2,topic:'Control Structures & Collections',morning:'Loops, collections.',midday:'Student Management app.',afternoon:'Blind 75 — Contains Duplicate, Product of Array Except Self.',evening:'LINQ basics.'},
+    {n:3,topic:'OOP Concepts',morning:'Encapsulation, inheritance, polymorphism.',midday:'Library System app.',afternoon:'Blind 75 — Maximum Subarray, Maximum Product Subarray.',evening:'OOP Q&A.'},
+    {n:4,topic:'Advanced C#',morning:'Interfaces, delegates, events.',midday:'Event-driven console app.',afternoon:'Blind 75 — Find Min in Rotated Sorted Array.',evening:'Practice.'},
+    {n:5,topic:'LINQ',morning:'Basics & lambda expressions.',midday:'LINQ dataset practice.',afternoon:'Blind 75 — Search in Rotated Sorted Array, 3Sum.',evening:'SQL intro.'},
+    {n:6,topic:'SQL Basics',morning:'CRUD, joins.',midday:'Database creation.',afternoon:'Blind 75 — Container With Most Water.',evening:'DB normalization.'},
+    {n:7,topic:'Database First Approach',morning:'EF model scaffold.',midday:'CRUD with EF Core.',afternoon:'Blind 75 — Longest Consecutive Sequence.',evening:'Week recap.'},
+  ]},
+  {week:'Week 2 — ASP.NET Core MVC/API + Blind 75 Strings', days:[
+    {n:8,topic:'ASP.NET Core Intro',morning:'Middleware, DI.',midday:'MVC app.',afternoon:'Blind 75 — Valid Anagram, Group Anagrams.',evening:'Middleware review.'},
+    {n:9,topic:'MVC in Depth',morning:'Controllers, Views, Razor.',midday:'CRUD.',afternoon:'Blind 75 — Valid Palindrome, Longest Palindromic Substring.',evening:'ViewData/ViewBag.'},
+    {n:10,topic:'API Development',morning:'API controllers, CRUD.',midday:'Postman testing.',afternoon:'Blind 75 — Longest Substring Without Repeating Characters.',evening:'Validation.'},
+    {n:11,topic:'Advanced API',morning:'DTOs, AutoMapper, filters.',midday:'Repository pattern.',afternoon:'Blind 75 — Minimum Window Substring.',evening:'Auth intro.'},
+    {n:12,topic:'Authentication Basics',morning:'JWT.',midday:'Secure API.',afternoon:'Blind 75 — Encode and Decode Strings.',evening:'Claims & roles.'},
+    {n:13,topic:'API + SQL Integration',morning:'EF DB First.',midday:'CRUD with repository.',afternoon:'Blind 75 — Longest Repeating Character Replacement.',evening:'Refactor.'},
+    {n:14,topic:'MVC + API Integration Project',morning:'Employee CRUD API.',midday:'MVC consumes API.',afternoon:'Blind 75 — Valid Parentheses.',evening:'Week review.'},
+  ]},
+  {week:'Week 3 — Angular Basic to Advanced + Blind 75 Binary Search / Linked List', days:[
+    {n:15,topic:'Angular Setup & Basics',morning:'CLI setup, components.',midday:'Data binding.',afternoon:'Blind 75 — Binary Search problems.',evening:'Angular notes.'},
+    {n:16,topic:'Directives, Pipes, Services',morning:'ngIf/ngFor, pipes.',midday:'Services & DI.',afternoon:'Blind 75 — Reverse Linked List, Merge Two Sorted Lists.',evening:'Review.'},
+    {n:17,topic:'Forms',morning:'Template & reactive forms.',midday:'Validation.',afternoon:'Blind 75 — Reorder List, Remove Nth Node From End.',evening:'Form Q&A.'},
+    {n:18,topic:'Routing',morning:'Router, lazy loading.',midday:'Routing project.',afternoon:'Blind 75 — Linked List Cycle, Intersection of Two Linked Lists.',evening:'Guards intro.'},
+    {n:19,topic:'Lifecycle Hooks & State',morning:'ngOnInit, Observables.',midday:'State sharing.',afternoon:'Blind 75 — Validate BST, Lowest Common Ancestor.',evening:'RxJS basics.'},
+    {n:20,topic:'API Integration in Angular',morning:'HttpClient.',midday:'Interceptors.',afternoon:'Blind 75 — Tree problems.',evening:'Review.'},
+    {n:21,topic:'Angular CRUD Project',morning:'Full CRUD with API.',midday:'UI improvements.',afternoon:'Blind 75 — Graph problems.',evening:'Week recap.'},
+  ]},
+  {week:'Week 4 — Identity Server, Azure, CI/CD + Blind 75 Mix', days:[
+    {n:22,topic:'Identity Server Intro',morning:'OAuth2 & OIDC.',midday:'Setup Identity Server.',afternoon:'Blind 75 — Climbing Stairs, Coin Change.',evening:'Clients & scopes.'},
+    {n:23,topic:'Authentication Flow',morning:'Register/Login.',midday:'Secure API.',afternoon:'Blind 75 — Longest Increasing Subsequence.',evening:'Refresh tokens.'},
+    {n:24,topic:'Authorization',morning:'Roles, policies, claims.',midday:'Protect Angular routes.',afternoon:'Blind 75 — Word Break.',evening:'Access control tests.'},
+    {n:25,topic:'Auth Microservice',morning:'Create Auth microservice.',midday:'Integrate API + Angular.',afternoon:'Blind 75 — House Robber.',evening:'Sessions.'},
+    {n:26,topic:'Token Management in Angular',morning:'Store tokens securely.',midday:'Auto-refresh.',afternoon:'Blind 75 — Unique Paths.',evening:'Review.'},
+    {n:27,topic:'Azure Basics',morning:'App Service, Azure SQL.',midday:'Deploy API.',afternoon:'Blind 75 — Heap problems.',evening:'Blob storage.'},
+    {n:28,topic:'CI/CD in Azure DevOps',morning:'Build pipelines.',midday:'Release pipelines.',afternoon:'Blind 75 — Interval problems.',evening:'Test deployment.'},
+    {n:29,topic:'Final Project Deployment',morning:'Deploy API + Angular + Identity Server.',midday:'Testing.',afternoon:'Blind 75 — Backtracking problems.',evening:'Polish portfolio.'},
+    {n:30,topic:'Interview Prep',morning:'Revise all concepts.',midday:'Mock interview.',afternoon:'Remaining Blind 75 problems.',evening:'HR/behavioral prep.'},
+  ]},
+];
+
+function roadmapAccordionHTML(){
+  return `<div class="roadmap-embed">${ROADMAP_PLAN.map(w=>`
+    <details class="week-details">
+      <summary>${w.week}</summary>
+      <div class="days-list">
+        ${w.days.map(d=>`<details class="day-details">
+          <summary>Day ${d.n} — ${d.topic}</summary>
+          <div class="sessions">
+            <div><b>Morning:</b> ${d.morning}</div>
+            <div><b>Midday:</b> ${d.midday}</div>
+            <div><b>Afternoon:</b> ${d.afternoon}</div>
+            <div><b>Evening:</b> ${d.evening}</div>
+          </div>
+        </details>`).join('')}
+      </div>
+    </details>`).join('')}</div>`;
+}
+
+function itemBodyHTML(item){
+  let html = `${item.summary ? `<p class="item-summary">${item.summary}</p>` : ''}`;
+  if(item.points) html += `<ul class="item-points">${item.points.map(p=>`<li>${p}</li>`).join('')}</ul>`;
+  if(item.type==='Roadmap') html += roadmapAccordionHTML();
+  if(item.type==='Diagram' && item.steps){
+    html += `<div class="diagram-flow">${item.steps.map((s,i)=>`<span class="diagram-step">${s}</span>${i<item.steps.length-1?'<i class="bi bi-arrow-right diagram-arrow"></i>':''}`).join('')}</div>`;
+  }
+  if(item.type==='Image' && item.mediaKey){ html += `<img class="item-media-img" id="img-${item.id}" alt="${item.title}">`; }
+  if(item.type==='PDF' && item.mediaKey){ html += `<div class="item-pdf-box"><i class="bi bi-file-earmark-pdf-fill"></i><span style="flex:1;font-size:0.82rem">${item.mediaName||'Attached PDF'}</span><button class="btn btn-sm btn-outline-primary" onclick="togglePdfPreview('${item.id}')"><i class="bi bi-eye me-1"></i>Preview</button><button class="btn btn-sm btn-outline-danger" onclick="openStoredPdf('${item.id}')"><i class="bi bi-box-arrow-up-right me-1"></i>Open</button></div><div id="pdf-preview-${item.id}" style="display:none"></div>`; }
+  if(item.url) html += `<a class="item-open" href="${item.url}" target="_blank" rel="noopener">Open on LinkedIn <i class="bi bi-box-arrow-up-right"></i></a>`;
+  return html;
+}
+
+function renderAuthorPosts(){
+  const board = document.getElementById('author-board'); board.innerHTML='';
+  const authors = getAllAuthors();
+
+  authors.forEach(author=>{
+    const card = document.createElement('div');
+    card.className='author-card';
+    card.dataset.authorId = author.id;
+
+    const collapsed = !!authorCollapsed[author.id];
+    const shown = expandedCount[author.id] || ITEM_PAGE_SIZE;
+    const visibleItems = author.items.slice(0, shown);
+    const hasMore = author.items.length > shown;
+    const isCustom = customAuthors.some(a=>a.id===author.id);
+
+    card.innerHTML = `
+      <div class="author-topbar" draggable="true">
+        <button class="collapse-btn ${collapsed?'collapsed':''}" onclick="toggleAuthorCollapse('${author.id}')" title="Collapse/expand"><i class="bi bi-chevron-down"></i></button>
+        <i class="bi bi-grip-vertical drag-handle"></i>
+        <div class="author-avatar">${author.avatar}</div>
+        <div class="author-meta">
+          <p class="name">${author.name} ${!collapsed?'':`<span style="font-weight:400;opacity:.8">· ${author.items.length} item${author.items.length!==1?'s':''}</span>`}</p>
+          <p class="role">${author.role}</p>
+        </div>
+        <a class="author-link" href="${author.linkedin}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>Profile</a>
+        <div class="author-actions">
+          <button onclick="editAuthorMeta('${author.id}')" title="Edit author"><i class="bi bi-pencil"></i></button>
+          ${isCustom ? `<button onclick="deleteAuthor('${author.id}')" title="Delete author"><i class="bi bi-trash"></i></button>` : ''}
+        </div>
+      </div>
+      ${collapsed ? '' : `<div class="item-list" data-author-id="${author.id}"></div>
+      ${hasMore ? `<div class="d-flex pb-3"><button class="btn btn-sm btn-outline-secondary show-more-btn mx-auto" onclick="showMoreItems('${author.id}')"><i class="bi bi-chevron-down me-1"></i>Show ${author.items.length - shown} more</button></div>` : ''}`}
+    `;
+    board.appendChild(card);
+
+    if(!collapsed){
+      const list = card.querySelector('.item-list');
+      visibleItems.forEach(item=>{
+        const itemClosed = !!itemCollapsed[item.id];
+        const el = document.createElement('div');
+        el.className='content-item';
+        el.draggable = true;
+        el.dataset.itemId = item.id;
+        el.innerHTML = `
+          <i class="bi bi-grip-vertical item-handle"></i>
+          <div class="item-body">
+            <div class="item-top">
+              <span class="item-badge" style="background:${(item.badgeColor||TYPE_COLOR[item.type])}18;color:${item.badgeColor||TYPE_COLOR[item.type]}"><i class="bi ${TYPE_ICON[item.type]||'bi-file-text'} me-1"></i>${item.type}</span>
+              <span class="item-title">${item.title}</span>
+              <button class="item-collapse-btn" onclick="toggleItemCollapse('${item.id}')" title="Collapse/expand"><i class="bi bi-chevron-${itemClosed?'down':'up'}"></i></button>
+              <div class="item-actions">
+                <button class="item-action-btn" onclick="editItem('${author.id}','${item.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
+                <button class="item-action-btn danger" onclick="deleteItem('${author.id}','${item.id}')" title="Delete"><i class="bi bi-trash"></i></button>
+              </div>
+            </div>
+            ${itemClosed ? '' : itemBodyHTML(item)}
+          </div>`;
+        list.appendChild(el);
+        attachItemDragEvents(el, author.id);
+        if(!itemClosed && item.type==='Image' && item.mediaKey){
+          idbGet(item.mediaKey).then(dataUrl=>{ const img=document.getElementById('img-'+item.id); if(img && dataUrl) img.src = dataUrl; });
+        }
+      });
+    }
+
+    attachAuthorDragEvents(card);
+  });
+
+  const addCard = document.createElement('div');
+  addCard.className='add-author-card';
+  addCard.innerHTML = `<i class="bi bi-plus-circle fs-4 d-block mb-1"></i><strong>Add new content or a new author</strong><div class="small">Write a paragraph, bullets, a mini roadmap diagram, or attach an image/PDF — draggable, collapsible, editable, all free & saved locally.</div>`;
+  addCard.onclick = ()=> openContentForm(null, null);
+  board.appendChild(addCard);
+}
+
+function dataUrlToBlob(dataUrl){
+  const [meta, b64] = dataUrl.split(',');
+  const mime = meta.match(/:(.*?);/)[1];
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], {type: mime});
+}
+
+async function openStoredPdf(itemId){
+  const author = getAllAuthors().find(a=>a.items.some(i=>i.id===itemId));
+  const item = author && author.items.find(i=>i.id===itemId);
+  if(!item || !item.mediaKey) return;
+  const dataUrl = await idbGet(item.mediaKey);
+  if(!dataUrl){ alert('Could not load this PDF from storage.'); return; }
+  // Browsers block window.open() on raw data: URLs — convert to a blob: URL first, which is allowed.
+  const blobUrl = URL.createObjectURL(dataUrlToBlob(dataUrl));
+  window.open(blobUrl, '_blank');
+}
+
+async function togglePdfPreview(itemId){
+  const box = document.getElementById('pdf-preview-'+itemId);
+  if(!box) return;
+  if(box.style.display==='block'){ box.style.display='none'; box.innerHTML=''; return; }
+  const author = getAllAuthors().find(a=>a.items.some(i=>i.id===itemId));
+  const item = author && author.items.find(i=>i.id===itemId);
+  if(!item || !item.mediaKey) return;
+  const dataUrl = await idbGet(item.mediaKey);
+  if(!dataUrl){ box.innerHTML = '<div class="small text-danger">Could not load this PDF from storage.</div>'; box.style.display='block'; return; }
+  const blobUrl = URL.createObjectURL(dataUrlToBlob(dataUrl));
+  box.innerHTML = `<embed src="${blobUrl}" type="application/pdf" style="width:100%;height:420px;border-radius:8px;border:1px solid var(--border);margin-top:6px">`;
+  box.style.display='block';
+}
+
+function showMoreItems(authorId){
+  expandedCount[authorId] = (expandedCount[authorId]||ITEM_PAGE_SIZE) + 10;
+  localStorage.setItem('dotnet_item_expanded', JSON.stringify(expandedCount));
+  renderAuthorPosts();
+}
+
+// ---- Drag & drop: authors ----
+let draggedAuthorId = null;
+function attachAuthorDragEvents(card){
+  const bar = card.querySelector('.author-topbar');
+  bar.addEventListener('dragstart', e=>{ draggedAuthorId = card.dataset.authorId; e.dataTransfer.effectAllowed='move'; setTimeout(()=>card.style.opacity='0.5',0); });
+  bar.addEventListener('dragend', ()=>{ card.style.opacity='1'; document.querySelectorAll('.author-card').forEach(c=>c.classList.remove('drag-over')); });
+  card.addEventListener('dragover', e=>{ e.preventDefault(); if(draggedAuthorId && draggedAuthorId!==card.dataset.authorId) card.classList.add('drag-over'); });
+  card.addEventListener('dragleave', ()=> card.classList.remove('drag-over'));
+  card.addEventListener('drop', e=>{
+    e.preventDefault(); card.classList.remove('drag-over');
+    if(!draggedAuthorId || draggedAuthorId===card.dataset.authorId) return;
+    const all = getAllAuthors();
+    const fromIdx = all.findIndex(a=>a.id===draggedAuthorId);
+    const toIdx = all.findIndex(a=>a.id===card.dataset.authorId);
+    const [moved] = all.splice(fromIdx,1);
+    all.splice(toIdx,0,moved);
+    saveAuthorOrder(all);
+    renderAuthorPosts();
+  });
+}
+
+// ---- Drag & drop: items within an author ----
+let draggedItemId = null, draggedItemAuthor = null;
+function attachItemDragEvents(el, authorId){
+  el.addEventListener('dragstart', e=>{ draggedItemId = el.dataset.itemId; draggedItemAuthor = authorId; e.stopPropagation(); el.classList.add('dragging'); });
+  el.addEventListener('dragend', ()=>{ el.classList.remove('dragging'); document.querySelectorAll('.content-item').forEach(i=>i.classList.remove('drag-over-item')); });
+  el.addEventListener('dragover', e=>{ e.preventDefault(); e.stopPropagation(); if(draggedItemAuthor===authorId && draggedItemId!==el.dataset.itemId) el.classList.add('drag-over-item'); });
+  el.addEventListener('dragleave', ()=> el.classList.remove('drag-over-item'));
+  el.addEventListener('drop', e=>{
+    e.preventDefault(); e.stopPropagation(); el.classList.remove('drag-over-item');
+    if(draggedItemAuthor!==authorId || draggedItemId===el.dataset.itemId) return;
+    const author = getAllAuthors().find(a=>a.id===authorId);
+    const fromIdx = author.items.findIndex(i=>i.id===draggedItemId);
+    const toIdx = author.items.findIndex(i=>i.id===el.dataset.itemId);
+    const [moved] = author.items.splice(fromIdx,1);
+    author.items.splice(toIdx,0,moved);
+    saveItemOrder(authorId, author.items);
+    renderAuthorPosts();
+  });
+}
+
+// ---- CRUD: delete ----
+function deleteItem(authorId, itemId){
+  if(!confirm('Delete this content? This cannot be undone.')) return;
+  const author = getAllAuthors().find(a=>a.id===authorId);
+  const item = author.items.find(i=>i.id===itemId);
+  if(item && item.mediaKey) idbDelete(item.mediaKey);
+  if(customAuthors.some(a=>a.id===authorId)){
+    const custAuthor = customAuthors.find(a=>a.id===authorId);
+    custAuthor.items = custAuthor.items.filter(i=>i.id!==itemId);
+    persistCustomAuthors();
+  } else {
+    deletedItemIds.add(itemId);
+    localStorage.setItem('dotnet_deleted_items', JSON.stringify([...deletedItemIds]));
+  }
+  renderAuthorPosts();
+}
+function deleteAuthor(authorId){
+  if(!confirm('Delete this whole author card and all its content?')) return;
+  const author = customAuthors.find(a=>a.id===authorId);
+  if(author) author.items.forEach(i=>{ if(i.mediaKey) idbDelete(i.mediaKey); });
+  customAuthors = customAuthors.filter(a=>a.id!==authorId);
+  persistCustomAuthors();
+  renderAuthorPosts();
+}
+
+// ---- CRUD: add / edit form ----
+function openContentForm(authorId, itemId){
+  editingAuthorId = null;
+  const isEdit = !!itemId;
+  let item = null, author = null;
+  if(isEdit){
+    author = getAllAuthors().find(a=>a.id===authorId);
+    item = author.items.find(i=>i.id===itemId);
+    editingItem = {authorId, itemId};
+  } else {
+    editingItem = null;
+  }
+  pendingMedia = null;
+
+  const slot = document.getElementById('author-form-slot');
+  slot.innerHTML = `
+    <div class="author-form">
+      <h6 class="fw-bold mb-3"><i class="bi ${isEdit?'bi-pencil-square':'bi-plus-circle'} me-1"></i>${isEdit?'Edit content':'Add content'}</h6>
+      <div class="row g-2">
+        <div class="col-md-6"><label>Author name</label><input id="naf-author" class="form-control" placeholder="e.g. Nick Chapsas" value="${isEdit?author.name:''}" ${isEdit?'readonly':''}></div>
+        <div class="col-md-6"><label>Role / headline</label><input id="naf-role" class="form-control" placeholder="e.g. .NET Content Creator" value="${isEdit?author.role:''}" ${isEdit?'readonly':''}></div>
+        <div class="col-md-8"><label>Content title</label><input id="naf-title" class="form-control" placeholder="e.g. Minimal APIs in .NET 8" value="${isEdit?item.title:''}" oninput="checkTopicOverlap()"><div id="naf-topic-hint"></div></div>
+        <div class="col-md-4"><label>Type</label>
+          <select id="naf-type" class="form-select" onchange="renderTypeFields()">
+            <option value="Paragraph">Paragraph</option>
+            <option value="Bullets">Bullets</option>
+            <option value="Diagram">Mini Roadmap Diagram</option>
+            <option value="Image">Image</option>
+            <option value="PDF">PDF</option>
+            <option value="Post">Link / Post</option>
+          </select>
+        </div>
+        <div class="col-12 type-field" data-type="Paragraph"><label>Paragraph text</label><textarea id="naf-para" class="form-control" rows="3" placeholder="Write your paragraph here...">${isEdit && item.type==='Paragraph'?item.summary||'':''}</textarea></div>
+        <div class="col-12 type-field" data-type="Bullets"><label>Bullet points (one per line)</label><textarea id="naf-bullets" class="form-control" rows="3" placeholder="First point\nSecond point\nThird point">${isEdit && item.type==='Bullets' && item.points?item.points.join('\n'):''}</textarea></div>
+        <div class="col-12 type-field" data-type="Diagram"><label>Roadmap steps (one per line, shown left → right)</label><textarea id="naf-steps" class="form-control" rows="3" placeholder="Setup\nBuild API\nAdd Auth\nDeploy">${isEdit && item.type==='Diagram' && item.steps?item.steps.join('\n'):''}</textarea></div>
+        <div class="col-12 type-field" data-type="Image"><label>Image file</label><div class="media-drop" onclick="document.getElementById('naf-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Click to choose an image<input type="file" id="naf-image-input" accept="image/*" style="display:none" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name">${isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):''}</div></div>
+        <div class="col-12 type-field" data-type="PDF"><label>PDF file</label><div class="media-drop" onclick="document.getElementById('naf-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Click to choose a PDF<input type="file" id="naf-pdf-input" accept="application/pdf" style="display:none" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name-pdf">${isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):''}</div></div>
+        <div class="col-12 type-field" data-type="Post"><label>Link URL</label><input id="naf-url" class="form-control" placeholder="https://..." value="${isEdit && item.url?item.url:''}"></div>
+        <div class="col-12"><label>Short summary (optional, shown under the title)</label><textarea id="naf-summary" class="form-control" rows="2" placeholder="One or two lines of context">${isEdit && item.type!=='Paragraph'?item.summary||'':''}</textarea></div>
+      </div>
+      <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-primary btn-sm" onclick="submitContentForm()"><i class="bi bi-check2 me-1"></i>${isEdit?'Save changes':'Add'}</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeContentForm()">Cancel</button>
+      </div>
+      <div class="small text-muted mt-2"><i class="bi bi-hdd me-1"></i>Text is saved in your browser's local storage; images/PDFs go in IndexedDB (also local, free, no account) — both stay on this device/browser only.</div>
+    </div>`;
+  if(isEdit) document.getElementById('naf-type').value = item.type;
+  renderTypeFields();
+  slot.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function closeContentForm(){ document.getElementById('author-form-slot').innerHTML=''; editingItem=null; pendingMedia=null; }
+
+// Lightweight, non-blocking duplicate/overlap check: warns if a new title looks like it
+// already exists in the day-by-day Roadmap or elsewhere in Community Content, so you can
+// decide to skip it, merge it, or add it anyway.
+function checkTopicOverlap(){
+  const titleEl = document.getElementById('naf-title');
+  const hintEl = document.getElementById('naf-topic-hint');
+  if(!titleEl || !hintEl) return;
+  const words = titleEl.value.toLowerCase().split(/\W+/).filter(w=>w.length>3);
+  if(words.length===0){ hintEl.innerHTML=''; return; }
+  let match = null;
+  outer:
+  for(const phase of PHASES){
+    for(const w of phase.weeks){
+      for(const d of w.days){
+        if(words.some(word=>d.topic.toLowerCase().includes(word))){ match={type:'your Roadmap',label:`Day ${d.n} — ${d.topic}`}; break outer; }
+      }
+    }
+  }
+  if(!match){
+    for(const author of getAllAuthors()){
+      for(const it of author.items){
+        if(editingItem && it.id===editingItem.itemId) continue;
+        if(words.some(word=>it.title.toLowerCase().includes(word))){ match={type:'Community Content',label:it.title}; break; }
+      }
+      if(match) break;
+    }
+  }
+  hintEl.innerHTML = match ? `<div class="small mt-1" style="color:#d97706"><i class="bi bi-exclamation-triangle me-1"></i>Looks similar to "<strong>${match.label}</strong>" already in ${match.type} — add it anyway, or consider linking to that instead of duplicating.</div>` : '';
+}
+function renderTypeFields(){
+  const type = document.getElementById('naf-type').value;
+  document.querySelectorAll('.type-field').forEach(f=> f.classList.toggle('active', f.dataset.type===type));
+}
+function handleMediaFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    pendingMedia = {dataUrl: reader.result, name: file.name, mime: file.type};
+    const nameEl = document.getElementById('naf-media-name') || document.getElementById('naf-media-name-pdf');
+    if(nameEl) nameEl.textContent = '✓ ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitContentForm(){
+  const name = document.getElementById('naf-author').value.trim();
+  const title = document.getElementById('naf-title').value.trim();
+  if(!name || !title){ alert('Please fill in at least the author name and content title.'); return; }
+  const role = document.getElementById('naf-role').value.trim() || 'Community contributor';
+  const type = document.getElementById('naf-type').value;
+
+  const authors = getAllAuthors();
+  const authorId = editingItem ? editingItem.authorId : name.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+  let author = authors.find(a=>a.id===authorId);
+
+  let itemData = {type, title, badgeColor: TYPE_COLOR[type]};
+  itemData.summary = document.getElementById('naf-summary').value.trim();
+  if(type==='Paragraph') itemData.summary = document.getElementById('naf-para').value.trim();
+  if(type==='Bullets') itemData.points = document.getElementById('naf-bullets').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(type==='Diagram') itemData.steps = document.getElementById('naf-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(type==='Post') itemData.url = document.getElementById('naf-url').value.trim();
+
+  if((type==='Image' || type==='PDF') && pendingMedia){
+    const mediaKey = 'media-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+    await idbPut(mediaKey, pendingMedia.dataUrl);
+    itemData.mediaKey = mediaKey;
+    itemData.mediaName = pendingMedia.name;
+  }
+
+  if(editingItem){
+    const idx = author.items.findIndex(i=>i.id===editingItem.itemId);
+    const old = author.items[idx];
+    if((type==='Image'||type==='PDF') && !pendingMedia && old.mediaKey){ itemData.mediaKey = old.mediaKey; itemData.mediaName = old.mediaName; }
+    if(old.mediaKey && itemData.mediaKey && old.mediaKey!==itemData.mediaKey) idbDelete(old.mediaKey);
+    const merged = {...old, ...itemData, id: old.id};
+    author.items[idx] = merged;
+    if(customAuthors.some(a=>a.id===authorId)){
+      persistCustomAuthors();
+    } else {
+      itemOverrides[old.id] = itemData; // store only the changed fields as an override for built-in items
+      localStorage.setItem('dotnet_item_overrides', JSON.stringify(itemOverrides));
+    }
+  } else {
+    const newItem = {id: authorId+'-'+Date.now(), ...itemData};
+    if(author){
+      author.items.push(newItem);
+      if(customAuthors.some(a=>a.id===authorId)) persistCustomAuthors();
+    } else {
+      author = {id:authorId, name, role, avatar:name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2), linkedin: itemData.url || '#', items:[newItem]};
+      customAuthors.push(author);
+      persistCustomAuthors();
+    }
+  }
+  closeContentForm();
+  renderAuthorPosts();
+}
+
+function editItem(authorId, itemId){ openContentForm(authorId, itemId); }
+
+function editAuthorMeta(authorId){
+  const author = getAllAuthors().find(a=>a.id===authorId);
+  if(!author) return;
+  const slot = document.getElementById('author-form-slot');
+  slot.innerHTML = `
+    <div class="author-form">
+      <h6 class="fw-bold mb-3"><i class="bi bi-pencil-square me-1"></i>Edit author</h6>
+      <div class="row g-2">
+        <div class="col-md-6"><label>Name</label><input id="naf-ea-name" class="form-control" value="${author.name}"></div>
+        <div class="col-md-6"><label>Role / headline</label><input id="naf-ea-role" class="form-control" value="${author.role}"></div>
+        <div class="col-12"><label>LinkedIn / profile URL</label><input id="naf-ea-url" class="form-control" value="${author.linkedin||''}" placeholder="https://www.linkedin.com/in/..."></div>
+      </div>
+      <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-primary btn-sm" onclick="saveAuthorMeta('${authorId}')"><i class="bi bi-check2 me-1"></i>Save changes</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeContentForm()">Cancel</button>
+      </div>
+    </div>`;
+}
+function saveAuthorMeta(authorId){
+  const name = document.getElementById('naf-ea-name').value.trim();
+  const role = document.getElementById('naf-ea-role').value.trim();
+  const linkedin = document.getElementById('naf-ea-url').value.trim();
+  const avatar = (name || getAllAuthors().find(a=>a.id===authorId).name).split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const custom = customAuthors.find(a=>a.id===authorId);
+  if(custom){
+    custom.name = name || custom.name;
+    custom.role = role || custom.role;
+    custom.linkedin = linkedin || custom.linkedin;
+    custom.avatar = avatar;
+    persistCustomAuthors();
+  } else {
+    // Built-in author (e.g. Sandip Mhaske) — persist as an override so it survives reloads.
+    authorOverrides[authorId] = {
+      ...(authorOverrides[authorId]||{}),
+      ...(name ? {name} : {}),
+      ...(role ? {role} : {}),
+      ...(linkedin ? {linkedin} : {}),
+      avatar
+    };
+    localStorage.setItem('dotnet_author_overrides', JSON.stringify(authorOverrides));
+  }
+  closeContentForm();
+  renderAuthorPosts();
+}
+
 // ===================== PROJECTS DATA =====================
 const PROJECTS = [
   {
@@ -670,12 +1367,7 @@ const SUMMARY = {
     {month:'Month 4',color:'#7c3aed',bg:'#f3e8ff',title:'Expert + Capstone',skills:['System Design','SignalR + gRPC','Capstone project build','Interview preparation','Mock interviews']},
     {month:'Month 5',color:'#059669',bg:'#dcfce7',title:'Ultra Advanced',skills:['Kafka / Event Streaming','Elasticsearch','Multi-tenancy SaaS','Architect-level patterns','Job hunting & offers 🎉']},
   ],
-  salaries:[
-    {role:'.NET Backend Developer',min:'₹6L',max:'₹14L',pct:40,color:'#4f46e5'},
-    {role:'Full Stack .NET + Angular',min:'₹10L',max:'₹22L',pct:60,color:'#d97706'},
-    {role:'Senior .NET Developer (5YOE)',min:'₹15L',max:'₹30L',pct:80,color:'#dc2626'},
-    {role:'.NET Architect / Tech Lead',min:'₹25L',max:'₹50L+',pct:100,color:'#7c3aed'},
-  ],
+  salaries:[], // removed from UI per request; kept as empty array in case other code references SUMMARY.salaries
   dailySchedule:[
     {time:'8:00 – 10:00 AM',task:'Watch tutorial / Read docs (new concept)'},
     {time:'10:00 AM – 12:30 PM',task:'Code implementation / Hands-on practice'},
@@ -713,11 +1405,88 @@ function showTab(tab, btn){
   document.getElementById('tab-'+tab).style.display='';
   btn.classList.add('active');
   if(tab==='resources') renderResources();
-  if(tab==='projects') renderProjects();
-  if(tab==='structure') renderStructure();
+  if(tab==='author') renderAuthorPosts();
+  if(tab==='projects'){ renderProjects(); renderStructure(); }
   if(tab==='advanced') renderAdvanced();
   if(tab==='interview') renderInterview();
   if(tab==='summary') renderSummary();
+}
+
+function setProjSubtab(which, btn){
+  document.querySelectorAll('.proj-subtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('proj-container').style.display = which==='list' ? '' : 'none';
+  document.getElementById('struct-container').style.display = which==='structure' ? '' : 'none';
+}
+
+// ===================== DAY NOTES =====================
+let dayNotes = JSON.parse(localStorage.getItem('dotnet_day_notes') || '{}'); // {dayNum: {text, updatedAt}}
+
+function toggleNoteBox(n){
+  const box = document.getElementById('note-box-'+n);
+  if(!box) return;
+  box.style.display = box.style.display==='block' ? 'none' : 'block';
+  if(box.style.display==='block') document.getElementById('note-text-'+n).focus();
+}
+function saveNote(n){
+  const text = document.getElementById('note-text-'+n).value.trim();
+  if(text){ dayNotes[n] = {text, updatedAt: Date.now()}; }
+  else { delete dayNotes[n]; }
+  localStorage.setItem('dotnet_day_notes', JSON.stringify(dayNotes));
+  render(); // re-render Roadmap so the note icon (has-note state) updates
+  refreshAllNoteViews();
+}
+function findDayTopic(n){
+  for(const phase of PHASES) for(const w of phase.weeks) for(const d of w.days) if(d.n===Number(n)) return d.topic;
+  return '';
+}
+function renderAllNotes(searchTerm){
+  const term = (searchTerm||'').toLowerCase();
+  const entries = Object.keys(dayNotes)
+    .map(n=>({n:Number(n), ...dayNotes[n], topic: findDayTopic(n)}))
+    .filter(e=> !term || e.text.toLowerCase().includes(term) || e.topic.toLowerCase().includes(term))
+    .sort((a,b)=>b.updatedAt-a.updatedAt);
+  if(entries.length===0) return `<div class="text-muted small text-center py-3">No notes ${term?'match your search':'yet'} — add one from any day, or use Quick Add.</div>`;
+  return entries.map(e=>`<div class="note-card">
+    <div class="note-meta">
+      <span><i class="bi bi-calendar3 me-1"></i>Day ${e.n} — ${e.topic}</span>
+      <span>${new Date(e.updatedAt).toLocaleDateString()}</span>
+    </div>
+    <p class="note-text">${e.text}</p>
+  </div>`).join('');
+}
+function filterNotes(){ const el=document.getElementById('all-notes-list'); if(el) el.innerHTML = renderAllNotes(document.getElementById('notes-search-input').value); }
+function filterNotesSidebar(){ const el=document.getElementById('all-notes-list-sidebar'); if(el) el.innerHTML = renderAllNotes(document.getElementById('notes-search-sidebar').value); }
+function refreshAllNoteViews(){
+  const s1=document.getElementById('notes-search-input'), s2=document.getElementById('notes-search-sidebar');
+  const l1=document.getElementById('all-notes-list'), l2=document.getElementById('all-notes-list-sidebar');
+  if(l1) l1.innerHTML = renderAllNotes(s1?s1.value:'');
+  if(l2) l2.innerHTML = renderAllNotes(s2?s2.value:'');
+}
+function populateQuickNoteDaySelect(){
+  const sel = document.getElementById('quick-note-day');
+  if(!sel) return;
+  let opts = '<option value="">Choose a day...</option>';
+  PHASES.forEach(phase=> phase.weeks.forEach(w=> w.days.forEach(d=>{
+    opts += `<option value="${d.n}">Day ${d.n} — ${d.topic}</option>`;
+  })));
+  sel.innerHTML = opts;
+}
+function toggleQuickNoteForm(){
+  const form = document.getElementById('quick-note-form');
+  form.style.display = form.style.display==='block' ? 'none' : 'block';
+}
+function quickAddNote(){
+  const n = document.getElementById('quick-note-day').value;
+  const text = document.getElementById('quick-note-text').value.trim();
+  if(!n || !text){ alert('Pick a day and write something first.'); return; }
+  dayNotes[n] = {text, updatedAt: Date.now()};
+  localStorage.setItem('dotnet_day_notes', JSON.stringify(dayNotes));
+  document.getElementById('quick-note-text').value='';
+  document.getElementById('quick-note-day').value='';
+  document.getElementById('quick-note-form').style.display='none';
+  refreshAllNoteViews();
+  if(document.getElementById('tab-roadmap').style.display!=='none') render();
 }
 
 function render(){
@@ -769,12 +1538,20 @@ function renderWeek(w,color){
       </div>
     </div>
     ${days.map(d=>`
-    <div class="day-row">
+    <div class="day-row" style="flex-wrap:wrap">
       <span class="day-num">Day ${d.n}</span>
       <div class="day-check ${done.has(d.n)?'done':''}" onclick="toggle(${d.n})"></div>
       <div class="day-topic">
         <strong style="${done.has(d.n)?'text-decoration:line-through;color:var(--muted)':''}">${d.topic}</strong>
         <span>${d.desc}</span>
+      </div>
+      <button class="day-note-btn ${dayNotes[d.n]?'has-note':''}" onclick="toggleNoteBox(${d.n})" title="Add/view note"><i class="bi bi-sticky${dayNotes[d.n]?'-fill':''}"></i></button>
+      <div class="day-note-box" id="note-box-${d.n}" style="width:100%">
+        <textarea id="note-text-${d.n}" rows="2" placeholder="What did you learn or struggle with on Day ${d.n}?">${dayNotes[d.n]?dayNotes[d.n].text:''}</textarea>
+        <div class="note-actions">
+          <button class="btn btn-sm btn-outline-secondary" onclick="toggleNoteBox(${d.n})">Close</button>
+          <button class="btn btn-sm btn-primary" onclick="saveNote(${d.n})"><i class="bi bi-check2 me-1"></i>Save note</button>
+        </div>
       </div>
     </div>`).join('')}
     ${resHtml}
@@ -844,29 +1621,211 @@ function renderStructure(){
   });
 }
 
+// ===================== ADVANCED+ TOPIC BOARD (add/edit/delete/drag/collapse) =====================
+let advOrder = JSON.parse(localStorage.getItem('dotnet_adv_order') || 'null');
+let advCollapsed = JSON.parse(localStorage.getItem('dotnet_adv_collapsed') || '{}');
+let advOverrides = JSON.parse(localStorage.getItem('dotnet_adv_overrides') || '{}');
+let advDeleted = new Set(JSON.parse(localStorage.getItem('dotnet_adv_deleted') || '[]'));
+let advCustom = JSON.parse(localStorage.getItem('dotnet_adv_custom') || '[]');
+let editingAdvItem = null;
+let pendingAdvMedia = null;
+
+function getAllAdvItems(){
+  const seed = ADV_TOPICS.map((t,i)=>({id:'adv-seed-'+i, type:'Bullets', badgeColor:t.color, title:t.title, summary:t.desc, points:t.points}));
+  let all = [...seed, ...advCustom]
+    .filter(it=>!advDeleted.has(it.id))
+    .map(it=> advOverrides[it.id] ? {...it, ...advOverrides[it.id]} : it);
+  if(advOrder){
+    const map = new Map(all.map(i=>[i.id,i]));
+    const ordered = advOrder.map(id=>map.get(id)).filter(Boolean);
+    all.forEach(i=>{ if(!advOrder.includes(i.id)) ordered.push(i); });
+    all = ordered;
+  }
+  return all;
+}
+function saveAdvOrder(items){ advOrder = items.map(i=>i.id); localStorage.setItem('dotnet_adv_order', JSON.stringify(advOrder)); }
+function toggleAdvCollapse(id){ advCollapsed[id]=!advCollapsed[id]; localStorage.setItem('dotnet_adv_collapsed', JSON.stringify(advCollapsed)); renderAdvanced(); }
+
 function renderAdvanced(){
   const c=document.getElementById('adv-container'); c.innerHTML='';
   c.innerHTML=`<div class="alert" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;font-size:0.83rem;color:#9a3412;margin-bottom:1rem">
-    <i class="bi bi-lightning-fill me-2"></i><strong>Ultra Advanced Topics</strong> — for Architect / Tech Lead level. Master these after completing all phases.
-  </div>`;
-  ADV_TOPICS.forEach(t=>{
-    c.innerHTML+=`<div class="adv-card" style="border-color:${t.border}">
-      <h6 style="color:${t.color};font-weight:700;margin-bottom:0.4rem">${t.title}</h6>
-      <p style="font-size:0.8rem;color:#374151;margin-bottom:0.5rem">${t.desc}</p>
-      <ul style="font-size:0.78rem;color:var(--muted);margin:0;padding-left:1.2rem">
-        ${t.points.map(p=>`<li>${p}</li>`).join('')}
-      </ul>
-    </div>`;
+    <i class="bi bi-lightning-fill me-2"></i><strong>Ultra Advanced Topics</strong> — for Architect / Tech Lead level. Add your own topics below, just like Community Content — draggable, collapsible, fully editable.
+  </div><div class="item-list" id="adv-list" style="padding:0;background:transparent"></div>`;
+  const list = document.getElementById('adv-list');
+  getAllAdvItems().forEach(item=>{
+    const closed = !!advCollapsed[item.id];
+    const el = document.createElement('div');
+    el.className='content-item';
+    el.draggable = true;
+    el.dataset.itemId = item.id;
+    el.innerHTML = `
+      <i class="bi bi-grip-vertical item-handle"></i>
+      <div class="item-body">
+        <div class="item-top">
+          <span class="item-badge" style="background:${(item.badgeColor||TYPE_COLOR[item.type])}18;color:${item.badgeColor||TYPE_COLOR[item.type]}"><i class="bi ${TYPE_ICON[item.type]||'bi-file-text'} me-1"></i>${item.type}</span>
+          <span class="item-title">${item.title}</span>
+          <button class="item-collapse-btn" onclick="toggleAdvCollapse('${item.id}')" title="Collapse/expand"><i class="bi bi-chevron-${closed?'down':'up'}"></i></button>
+          <div class="item-actions">
+            <button class="item-action-btn" onclick="editAdvItem('${item.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
+            <button class="item-action-btn danger" onclick="deleteAdvItem('${item.id}')" title="Delete"><i class="bi bi-trash"></i></button>
+          </div>
+        </div>
+        ${closed ? '' : itemBodyHTML(item)}
+      </div>`;
+    list.appendChild(el);
+    attachAdvDragEvents(el);
+    if(!closed && item.type==='Image' && item.mediaKey){ idbGet(item.mediaKey).then(d=>{ const img=document.getElementById('img-'+item.id); if(img&&d) img.src=d; }); }
   });
+
+  const addCard = document.createElement('div');
+  addCard.className='add-author-card mt-2';
+  addCard.innerHTML = `<i class="bi bi-plus-circle fs-4 d-block mb-1"></i><strong>Add an advanced topic</strong><div class="small">Same content types as Community Content — paragraph, bullets, diagram, image, PDF, link.</div>`;
+  addCard.onclick = ()=> openAdvForm(null);
+  c.appendChild(addCard);
+}
+
+let draggedAdvId = null;
+function attachAdvDragEvents(el){
+  el.addEventListener('dragstart', ()=>{ draggedAdvId = el.dataset.itemId; el.classList.add('dragging'); });
+  el.addEventListener('dragend', ()=>{ el.classList.remove('dragging'); document.querySelectorAll('#adv-list .content-item').forEach(i=>i.classList.remove('drag-over-item')); });
+  el.addEventListener('dragover', e=>{ e.preventDefault(); if(draggedAdvId && draggedAdvId!==el.dataset.itemId) el.classList.add('drag-over-item'); });
+  el.addEventListener('dragleave', ()=> el.classList.remove('drag-over-item'));
+  el.addEventListener('drop', e=>{
+    e.preventDefault(); el.classList.remove('drag-over-item');
+    if(!draggedAdvId || draggedAdvId===el.dataset.itemId) return;
+    const items = getAllAdvItems();
+    const fromIdx = items.findIndex(i=>i.id===draggedAdvId);
+    const toIdx = items.findIndex(i=>i.id===el.dataset.itemId);
+    const [moved] = items.splice(fromIdx,1);
+    items.splice(toIdx,0,moved);
+    saveAdvOrder(items);
+    renderAdvanced();
+  });
+}
+
+function deleteAdvItem(id){
+  if(!confirm('Delete this topic?')) return;
+  const item = getAllAdvItems().find(i=>i.id===id);
+  if(item && item.mediaKey) idbDelete(item.mediaKey);
+  if(id.startsWith('adv-seed-')){ advDeleted.add(id); localStorage.setItem('dotnet_adv_deleted', JSON.stringify([...advDeleted])); }
+  else { advCustom = advCustom.filter(i=>i.id!==id); localStorage.setItem('dotnet_adv_custom', JSON.stringify(advCustom)); }
+  renderAdvanced();
+}
+function editAdvItem(id){ openAdvForm(id); }
+
+function openAdvForm(itemId){
+  editingAdvItem = itemId; pendingAdvMedia = null;
+  const isEdit = !!itemId;
+  const item = isEdit ? getAllAdvItems().find(i=>i.id===itemId) : null;
+  const slot = document.getElementById('adv-form-slot');
+  slot.innerHTML = `
+    <div class="author-form">
+      <h6 class="fw-bold mb-3"><i class="bi ${isEdit?'bi-pencil-square':'bi-plus-circle'} me-1"></i>${isEdit?'Edit topic':'Add topic'}</h6>
+      <div class="row g-2">
+        <div class="col-md-8"><label>Topic title</label><input id="adv-title" class="form-control" value="${isEdit?item.title:''}" placeholder="e.g. Rate Limiting Strategies"></div>
+        <div class="col-md-4"><label>Type</label><select id="adv-type" class="form-select" onchange="renderAdvTypeFields()">
+          <option value="Bullets">Bullets</option><option value="Paragraph">Paragraph</option><option value="Diagram">Mini Roadmap Diagram</option><option value="Image">Image</option><option value="PDF">PDF</option><option value="Post">Link</option>
+        </select></div>
+        <div class="col-12 adv-type-field" data-type="Paragraph"><label>Paragraph text</label><textarea id="adv-para" class="form-control" rows="3">${isEdit && item.type==='Paragraph'?item.summary||'':''}</textarea></div>
+        <div class="col-12 adv-type-field" data-type="Bullets"><label>Bullet points (one per line)</label><textarea id="adv-bullets" class="form-control" rows="3">${isEdit && item.points?item.points.join('\n'):''}</textarea></div>
+        <div class="col-12 adv-type-field" data-type="Diagram"><label>Steps (one per line)</label><textarea id="adv-steps" class="form-control" rows="3">${isEdit && item.steps?item.steps.join('\n'):''}</textarea></div>
+        <div class="col-12 adv-type-field" data-type="Image"><label>Image file</label><div class="media-drop" onclick="document.getElementById('adv-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="adv-image-input" accept="image/*" style="display:none" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name"></div></div>
+        <div class="col-12 adv-type-field" data-type="PDF"><label>PDF file</label><div class="media-drop" onclick="document.getElementById('adv-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="adv-pdf-input" accept="application/pdf" style="display:none" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name-pdf"></div></div>
+        <div class="col-12 adv-type-field" data-type="Post"><label>Link URL</label><input id="adv-url" class="form-control" value="${isEdit && item.url?item.url:''}" placeholder="https://..."></div>
+        <div class="col-12"><label>Short summary (optional)</label><textarea id="adv-summary" class="form-control" rows="2">${isEdit && item.type!=='Paragraph'?item.summary||'':''}</textarea></div>
+      </div>
+      <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-primary btn-sm" onclick="submitAdvForm()"><i class="bi bi-check2 me-1"></i>${isEdit?'Save changes':'Add'}</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeAdvForm()">Cancel</button>
+      </div>
+    </div>`;
+  if(isEdit) document.getElementById('adv-type').value = item.type;
+  renderAdvTypeFields();
+  slot.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function closeAdvForm(){ document.getElementById('adv-form-slot').innerHTML=''; editingAdvItem=null; pendingAdvMedia=null; }
+function renderAdvTypeFields(){
+  const type = document.getElementById('adv-type').value;
+  document.querySelectorAll('.adv-type-field').forEach(f=>f.classList.toggle('active', f.dataset.type===type));
+}
+function handleAdvMediaFile(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    pendingAdvMedia = {dataUrl:reader.result, name:file.name};
+    const el = document.getElementById('adv-media-name') || document.getElementById('adv-media-name-pdf');
+    if(el) el.textContent = '✓ ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)';
+  };
+  reader.readAsDataURL(file);
+}
+async function submitAdvForm(){
+  const title = document.getElementById('adv-title').value.trim();
+  if(!title){ alert('Please add a topic title.'); return; }
+  const type = document.getElementById('adv-type').value;
+  let data = {type, title, badgeColor: TYPE_COLOR[type]};
+  data.summary = document.getElementById('adv-summary').value.trim();
+  if(type==='Paragraph') data.summary = document.getElementById('adv-para').value.trim();
+  if(type==='Bullets') data.points = document.getElementById('adv-bullets').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(type==='Diagram') data.steps = document.getElementById('adv-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(type==='Post') data.url = document.getElementById('adv-url').value.trim();
+  if((type==='Image'||type==='PDF') && pendingAdvMedia){
+    const key = 'media-adv-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+    await idbPut(key, pendingAdvMedia.dataUrl);
+    data.mediaKey = key; data.mediaName = pendingAdvMedia.name;
+  }
+  if(editingAdvItem){
+    const old = getAllAdvItems().find(i=>i.id===editingAdvItem);
+    if((type==='Image'||type==='PDF') && !pendingAdvMedia && old.mediaKey){ data.mediaKey=old.mediaKey; data.mediaName=old.mediaName; }
+    if(editingAdvItem.startsWith('adv-seed-')){
+      advOverrides[editingAdvItem] = data;
+      localStorage.setItem('dotnet_adv_overrides', JSON.stringify(advOverrides));
+    } else {
+      const idx = advCustom.findIndex(i=>i.id===editingAdvItem);
+      advCustom[idx] = {...old, ...data, id:old.id};
+      localStorage.setItem('dotnet_adv_custom', JSON.stringify(advCustom));
+    }
+  } else {
+    const newItem = {id:'adv-custom-'+Date.now(), ...data};
+    advCustom.push(newItem);
+    localStorage.setItem('dotnet_adv_custom', JSON.stringify(advCustom));
+  }
+  closeAdvForm();
+  renderAdvanced();
+}
+
+let customQA = JSON.parse(localStorage.getItem('dotnet_custom_qa') || '[]'); // [{cat, q, a}]
+
+function findRelatedContent(question){
+  const words = question.toLowerCase().split(/\W+/).filter(w=>w.length>4);
+  const hits = [];
+  for(const phase of PHASES){
+    for(const w of phase.weeks){
+      for(const d of w.days){
+        if(words.some(word=>d.topic.toLowerCase().includes(word))){ hits.push({label:`Day ${d.n} — ${d.topic}`, kind:'Roadmap'}); }
+      }
+    }
+  }
+  for(const author of getAllAuthors()){
+    for(const it of author.items){
+      if(words.some(word=>it.title.toLowerCase().includes(word))){ hits.push({label:it.title, kind:'Community Content'}); }
+    }
+  }
+  const seen = new Set(); 
+  return hits.filter(h=>{ const k=h.kind+h.label; if(seen.has(k)) return false; seen.add(k); return true; }).slice(0,2);
 }
 
 function renderInterview(){
   const c=document.getElementById('qa-container'); c.innerHTML='';
   c.innerHTML=`<div class="alert" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;font-size:0.82rem;color:#0c4a6e;margin-bottom:1rem">
-    <i class="bi bi-patch-question-fill me-2"></i>Click any question to reveal the answer. Practice saying it out loud!
+    <i class="bi bi-patch-question-fill me-2"></i>Click any question to reveal the answer. Where a question overlaps your Roadmap or Community Content, you'll see a related-content link.
   </div>`;
   let qi=0;
-  QA_DATA.forEach(cat=>{
+  const grouped = QA_DATA.map(cat=>({...cat, qs:[...cat.qs, ...customQA.filter(q=>q.cat===cat.cat)]}));
+  const extraCats = [...new Set(customQA.map(q=>q.cat))].filter(cn=>!QA_DATA.some(c=>c.cat===cn));
+  extraCats.forEach(cn=> grouped.push({cat:cn, color:'#16a34a', qs: customQA.filter(q=>q.cat===cn)}));
+
+  grouped.forEach(cat=>{
+    if(cat.qs.length===0) return;
     c.innerHTML+=`<div class="phase-card mb-3">
       <div class="phase-header" style="background:${cat.color}15;border-bottom:2px solid ${cat.color}">
         <span class="fw-bold" style="color:${cat.color}">${cat.cat}</span>
@@ -875,25 +1834,71 @@ function renderInterview(){
       <div style="padding:0.75rem">
         ${cat.qs.map(q=>{
           const id='qa-'+(qi++);
-          return `<div class="interview-q" onclick="toggleQA('${id}',this)" style="cursor:pointer;border-color:${cat.color}">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          const related = findRelatedContent(q.q);
+          const isCustom = customQA.includes(q);
+          return `<div class="interview-q" style="cursor:pointer;border-color:${cat.color};position:relative">
+            <div onclick="toggleQA('${id}',this)" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
               <span>${q.q}</span>
-              <i class="bi bi-chevron-down" style="font-size:0.75rem;flex-shrink:0;color:${cat.color}"></i>
+              <span class="d-flex align-items-center gap-2">
+                ${isCustom ? `<i class="bi bi-trash text-danger" style="font-size:0.8rem" onclick="event.stopPropagation();deleteCustomQA('${q.cat}','${q.q.replace(/'/g,"\\'")}')"></i>` : ''}
+                <i class="bi bi-chevron-down" style="font-size:0.75rem;flex-shrink:0;color:${cat.color}"></i>
+              </span>
             </div>
-            <div id="${id}" class="qa-answer">${q.a}</div>
+            <div id="${id}" class="qa-answer">
+              ${q.a}
+              ${related.length ? `<div class="mt-2 pt-2" style="border-top:1px dashed #cbd5e1">${related.map(r=>`<span class="badge rounded-pill" style="background:#e0e7ff;color:#4338ca;font-size:0.68rem;font-weight:600;margin-right:4px"><i class="bi bi-link-45deg"></i> ${r.label} (${r.kind})</span>`).join('')}</div>` : ''}
+            </div>
           </div>`;
         }).join('')}
       </div>
     </div>`;
   });
+
+  c.innerHTML += `<div class="add-author-card" onclick="openQAForm()"><i class="bi bi-plus-circle fs-4 d-block mb-1"></i><strong>Add your own question</strong><div class="small">Add it to an existing category or start a new one.</div></div>`;
+}
+
+function deleteCustomQA(cat, q){
+  if(!confirm('Delete this question?')) return;
+  customQA = customQA.filter(item=> !(item.cat===cat && item.q===q));
+  localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
+  renderInterview();
+}
+
+function openQAForm(){
+  const existingCats = QA_DATA.map(c=>c.cat);
+  const slot = document.getElementById('qa-form-slot');
+  slot.innerHTML = `
+    <div class="author-form">
+      <h6 class="fw-bold mb-3"><i class="bi bi-plus-circle me-1"></i>Add a question</h6>
+      <div class="row g-2">
+        <div class="col-md-6"><label>Category</label><input id="qa-cat" class="form-control" list="qa-cat-list" placeholder="e.g. C# Core"><datalist id="qa-cat-list">${existingCats.map(c=>`<option value="${c}">`).join('')}</datalist></div>
+        <div class="col-12"><label>Question</label><input id="qa-q" class="form-control" placeholder="e.g. What is the difference between ref and out?"></div>
+        <div class="col-12"><label>Answer</label><textarea id="qa-a" class="form-control" rows="3" placeholder="Write the answer in your own words"></textarea></div>
+      </div>
+      <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-primary btn-sm" onclick="submitQAForm()"><i class="bi bi-check2 me-1"></i>Add</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('qa-form-slot').innerHTML=''">Cancel</button>
+      </div>
+    </div>`;
+  slot.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function submitQAForm(){
+  const cat = document.getElementById('qa-cat').value.trim() || 'Custom Questions';
+  const q = document.getElementById('qa-q').value.trim();
+  const a = document.getElementById('qa-a').value.trim();
+  if(!q || !a){ alert('Please fill in both the question and the answer.'); return; }
+  customQA.push({cat, q, a});
+  localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
+  document.getElementById('qa-form-slot').innerHTML='';
+  renderInterview();
 }
 
 function toggleQA(id, el){
   const ans=document.getElementById(id);
-  const icon=el.querySelector('i');
+  const icon=el.querySelector('.bi-chevron-down');
   const shown=ans.style.display==='block';
   ans.style.display=shown?'none':'block';
-  icon.style.transform=shown?'':'rotate(180deg)';
+  if(icon) icon.style.transform=shown?'':'rotate(180deg)';
 }
 
 function renderSummary(){
@@ -916,30 +1921,164 @@ function renderSummary(){
     </div>`).join('')}
   </div>`;
 
-  // Salary
-  c.innerHTML+=`<h5 style="font-weight:700;margin:1.5rem 0 1rem"><i class="bi bi-currency-rupee me-2 text-success"></i>Expected Salary (India)</h5>
-  <div class="card border-0 shadow-sm p-3 mb-3">
-    ${SUMMARY.salaries.map(s=>`<div style="margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px">
-        <span style="font-weight:600">${s.role}</span>
-        <span style="color:${s.color};font-weight:700">${s.min} – ${s.max}</span>
-      </div>
-      <div class="salary-bar"><div class="salary-fill" style="width:${s.pct}%;background:${s.color}"></div></div>
-    </div>`).join('')}
-  </div>`;
+  // My Notes
+  c.innerHTML+=`<h5 style="font-weight:700;margin:1.5rem 0 1rem"><i class="bi bi-stickies me-2" style="color:#d97706"></i>My Notes</h5>
+  <input id="notes-search-input" class="form-control notes-search mb-2" placeholder="🔍 Search your notes..." oninput="filterNotes()">
+  <div id="all-notes-list">${renderAllNotes('')}</div>`;
 
   // Final note
-  c.innerHTML+=`<div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:14px;padding:1.5rem;color:white;text-align:center">
-    <div style="font-size:2rem;margin-bottom:0.5rem">🚀</div>
-    <h5 style="font-weight:700;color:white;margin-bottom:0.5rem">You are building a Senior Full Stack .NET Developer career</h5>
-    <p style="font-size:0.85rem;opacity:0.9;margin:0">154 days · 5+ months · Every day counts. Track your streak, build your projects, and you will get there.</p>
+  c.innerHTML+=`<div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:14px;padding:1.2rem;color:white;text-align:center;margin-top:1.5rem">
+    <div style="font-size:1.6rem;margin-bottom:0.3rem">🚀</div>
+    <p style="font-size:0.85rem;opacity:0.95;margin:0">154 days left · Every day counts. Track your streak, ship your projects.</p>
   </div>`;
 }
+
+// ===================== GOOGLE DRIVE SYNC =====================
+const DRIVE_CLIENT_ID = '878967706920-44pq6fluk7cgk3a2hnng0tsrooik4lq5.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FILE_NAME = 'dotnet-tracker-data.json';
+// Every localStorage key this app uses — this is the full snapshot that gets synced to/from Drive.
+const DRIVE_KEYS = ['dotnet_done2','dotnet_adv_collapsed','dotnet_adv_custom','dotnet_adv_deleted','dotnet_adv_order',
+  'dotnet_adv_overrides','dotnet_author_collapsed','dotnet_author_order','dotnet_author_overrides','dotnet_custom_authors',
+  'dotnet_custom_qa','dotnet_day_notes','dotnet_deleted_items','dotnet_item_collapsed','dotnet_item_expanded',
+  'dotnet_item_orders','dotnet_item_overrides'];
+
+let tokenClient = null, driveAccessToken = null, driveFileId = null, autoSyncTimer = null;
+
+function initGoogleAuth(){
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: DRIVE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    callback: (resp)=>{
+      if(resp.error){ updateSyncBadge('error','Sign-in failed'); return; }
+      driveAccessToken = resp.access_token;
+      onAuthSuccess();
+    },
+  });
+  // Try a silent sign-in so returning visitors don't have to click every time.
+  tokenClient.requestAccessToken({prompt:''});
+}
+function signInWithGoogle(){
+  if(!tokenClient){ alert('Still loading Google Sign-In — try again in a second.'); return; }
+  tokenClient.requestAccessToken({prompt:'consent'});
+}
+function signOutGoogle(){
+  if(driveAccessToken) google.accounts.oauth2.revoke(driveAccessToken, ()=>{});
+  driveAccessToken = null; driveFileId = null;
+  if(autoSyncTimer) clearInterval(autoSyncTimer);
+  document.body.classList.add('app-locked');
+  updateSyncBadge('none','Not signed in');
+}
+
+async function onAuthSuccess(){
+  updateSyncBadge('syncing','Connecting...');
+  try{
+    driveFileId = await findOrCreateDriveFile();
+    const cloudData = await loadFromDrive(driveFileId);
+    if(cloudData) applySnapshot(cloudData);
+    document.body.classList.remove('app-locked');
+    // Re-run the app's normal init now that (possibly newer) cloud data is in localStorage.
+    render(); updateStats(); populateQuickNoteDaySelect(); refreshAllNoteViews();
+    updateSyncBadge('synced','Synced');
+    if(autoSyncTimer) clearInterval(autoSyncTimer);
+    autoSyncTimer = setInterval(pushToDrive, 45000);
+  }catch(e){
+    console.error('Drive sync error:', e);
+    // Don't block the app on a Drive failure — unlock with local data and let them retry manually.
+    document.body.classList.remove('app-locked');
+    updateSyncBadge('error', (e.message||'Sync failed') + ' — using local data');
+  }
+}
+
+async function findOrCreateDriveFile(){
+  const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
+  const listRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name)`, {headers:{Authorization:'Bearer '+driveAccessToken}});
+  const listData = await listRes.json();
+  if(!listRes.ok) throw new Error('Drive list failed: '+(listData.error?.message||listRes.status));
+  if(listData.files && listData.files.length>0) return listData.files[0].id;
+  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method:'POST',
+    headers:{Authorization:'Bearer '+driveAccessToken, 'Content-Type':'application/json'},
+    body: JSON.stringify({name: DRIVE_FILE_NAME, mimeType:'application/json'})
+  });
+  const createData = await createRes.json();
+  if(!createRes.ok || !createData.id) throw new Error('Drive create failed: '+(createData.error?.message||createRes.status));
+  return createData.id;
+}
+async function loadFromDrive(fileId){
+  if(!fileId) throw new Error('No Drive file id to load');
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {headers:{Authorization:'Bearer '+driveAccessToken}});
+  if(!res.ok) throw new Error('Drive load failed: '+res.status);
+  const text = await res.text();
+  if(!text) return null;
+  try{ return JSON.parse(text); }catch(e){ return null; }
+}
+async function saveToDriveFile(fileId, dataObj){
+  await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+    method:'PATCH',
+    headers:{Authorization:'Bearer '+driveAccessToken, 'Content-Type':'application/json'},
+    body: JSON.stringify(dataObj)
+  });
+}
+function collectSnapshot(){
+  const snap = {};
+  DRIVE_KEYS.forEach(k=>{ const v = localStorage.getItem(k); if(v!==null) snap[k]=v; });
+  return snap;
+}
+function applySnapshot(snap){
+  Object.keys(snap).forEach(k=>{ if(DRIVE_KEYS.includes(k)) localStorage.setItem(k, snap[k]); });
+  // Reload in-memory copies of everything the app already cached at startup from localStorage.
+  done = new Set(JSON.parse(localStorage.getItem('dotnet_done2') || '[]'));
+  dayNotes = JSON.parse(localStorage.getItem('dotnet_day_notes') || '{}');
+  customQA = JSON.parse(localStorage.getItem('dotnet_custom_qa') || '[]');
+  customAuthors = JSON.parse(localStorage.getItem('dotnet_custom_authors') || '[]');
+  authorOrder = JSON.parse(localStorage.getItem('dotnet_author_order') || 'null');
+  itemOrders = JSON.parse(localStorage.getItem('dotnet_item_orders') || '{}');
+  itemOverrides = JSON.parse(localStorage.getItem('dotnet_item_overrides') || '{}');
+  deletedItemIds = new Set(JSON.parse(localStorage.getItem('dotnet_deleted_items') || '[]'));
+  authorOverrides = JSON.parse(localStorage.getItem('dotnet_author_overrides') || '{}');
+  authorCollapsed = JSON.parse(localStorage.getItem('dotnet_author_collapsed') || '{}');
+  itemCollapsed = JSON.parse(localStorage.getItem('dotnet_item_collapsed') || '{}');
+  expandedCount = JSON.parse(localStorage.getItem('dotnet_item_expanded') || '{}');
+  advOrder = JSON.parse(localStorage.getItem('dotnet_adv_order') || 'null');
+  advCollapsed = JSON.parse(localStorage.getItem('dotnet_adv_collapsed') || '{}');
+  advOverrides = JSON.parse(localStorage.getItem('dotnet_adv_overrides') || '{}');
+  advDeleted = new Set(JSON.parse(localStorage.getItem('dotnet_adv_deleted') || '[]'));
+  advCustom = JSON.parse(localStorage.getItem('dotnet_adv_custom') || '[]');
+}
+async function pushToDrive(){
+  if(!driveAccessToken || !driveFileId) return;
+  updateSyncBadge('syncing','Syncing...');
+  try{
+    await saveToDriveFile(driveFileId, collectSnapshot());
+    updateSyncBadge('synced','Synced '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
+  }catch(e){
+    console.error('Drive push failed:', e);
+    updateSyncBadge('error','Sync failed — will retry');
+  }
+}
+function syncNow(){
+  if(!driveAccessToken){ signInWithGoogle(); return; }
+  pushToDrive();
+}
+function updateSyncBadge(state, text){
+  const badge = document.getElementById('sync-badge');
+  const label = document.getElementById('sync-badge-text');
+  if(!badge || !label) return;
+  badge.classList.remove('synced','error');
+  if(state==='synced') badge.classList.add('synced');
+  if(state==='error') badge.classList.add('error');
+  label.textContent = text;
+}
+// Push whatever's local right before the tab closes, best-effort (not guaranteed to finish).
+window.addEventListener('beforeunload', ()=>{ if(driveAccessToken && driveFileId) pushToDrive(); });
 
 // Init
 document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
 render();
 updateStats();
+populateQuickNoteDaySelect();
+refreshAllNoteViews();
 </script>
 </body>
 </html>
