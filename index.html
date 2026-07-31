@@ -10,7 +10,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--primary:#4f46e5;--primary-light:#ede9fe;--success:#16a34a;--warning:#d97706;--danger:#dc2626;--text:#1e1b4b;--muted:#6b7280;--border:#e5e7eb;--bg:#f8f7ff;--linkedin:#0a66c2;}
-body{background:var(--bg);font-family:'Inter','Segoe UI',sans-serif;color:var(--text);}
+html{overflow-x:hidden;max-width:100%;}
+body{background:var(--bg);font-family:'Inter','Segoe UI',sans-serif;color:var(--text);overflow-x:hidden;max-width:100%;}
+img,table{max-width:100%;}
 .navbar{background:var(--primary)!important;}
 .tab-btn{flex:1;min-width:100px;border:none;background:transparent;border-radius:8px;padding:7px 10px;font-size:0.8rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all 0.2s;}
 .tab-btn.active{background:var(--primary);color:#fff;}
@@ -117,17 +119,26 @@ body{background:var(--bg);font-family:'Inter','Segoe UI',sans-serif;color:var(--
 .note-card .note-meta span:first-child{overflow-wrap:break-word;word-break:break-word;min-width:0;}
 .note-card .note-text{font-size:0.82rem;color:#451a03;white-space:pre-wrap;margin:0;overflow-wrap:break-word;word-break:break-word;}
 .note-card{overflow-x:hidden;max-width:100%;}
+.task-row-form{background:#fff;border:1px solid var(--border);border-radius:10px;padding:0.7rem;margin-bottom:8px;position:relative;}
+.task-row-form input,.task-row-form textarea{font-size:0.8rem;margin-bottom:6px;}
+.task-row-form .remove-task-btn{position:absolute;top:6px;right:6px;background:none;border:none;color:#dc2626;font-size:0.85rem;cursor:pointer;}
+.custom-task-row{display:flex;align-items:flex-start;gap:10px;padding:0.6rem 1rem;border-top:1px solid #f3f4f6;font-size:0.85rem;}
+.custom-task-row .task-actions{margin-left:auto;display:flex;gap:4px;flex-shrink:0;}
+.custom-task-row .task-actions button{background:none;border:none;color:var(--muted);padding:2px 5px;font-size:0.8rem;cursor:pointer;}
+.custom-task-row .task-actions button:hover{color:var(--primary);}
 .sync-banner{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:0.7rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:10px;font-size:0.82rem;color:#92400e;}
 .sync-banner i.bi-cloud-slash{font-size:1.1rem;flex-shrink:0;}
 .sync-banner .btn{flex-shrink:0;}
 .sync-banner .close-btn{background:none;border:none;color:#b45309;padding:2px 6px;flex-shrink:0;cursor:pointer;}
 /* Notes sidebar - only shown when there's real empty space to use */
-.app-layout{display:flex;gap:24px;justify-content:center;align-items:flex-start;padding:0 1rem;}
-.main-col{flex:0 1 980px;order:1;min-width:0;}
+.app-layout{display:block;padding:0 0.75rem;}
+.main-col{max-width:980px;margin:0 auto;width:100%;}
 .notes-sidebar{display:none;}
 @media (min-width:1300px){
+  .app-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:24px;max-width:1320px;margin:0 auto;align-items:start;padding:0 1rem;}
+  .main-col{max-width:980px;margin:0;justify-self:end;grid-column:1;grid-row:1;}
   .notes-sidebar{
-    display:block;order:2;flex:0 0 280px;position:sticky;top:130px;max-height:calc(100vh - 160px);
+    display:block;position:sticky;top:130px;max-height:calc(100vh - 160px);grid-column:2;grid-row:1;
     overflow-y:auto;overflow-x:hidden;background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(30,27,75,0.1);padding:1rem;
   }
   .notes-sidebar-header{display:flex;align-items:center;gap:8px;font-weight:700;color:#92400e;margin-bottom:0.7rem;font-size:0.9rem;}
@@ -139,6 +150,28 @@ body{background:var(--bg);font-family:'Inter','Segoe UI',sans-serif;color:var(--
   .quick-note-form{display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:0.6rem;margin-bottom:0.7rem;}
   .quick-note-form select,.quick-note-form textarea{font-size:0.76rem;width:100%;margin-bottom:6px;border:1px solid var(--border);border-radius:8px;padding:0.4rem;}
 }
+/* Mobile fixes */
+@media (max-width:576px){
+  .app-navbar{padding:0.5rem 0.6rem 0.6rem;}
+  .navbar-row1{flex-wrap:wrap;gap:6px;}
+  .navbar-brand-icon{font-size:1.1rem;}
+  #search-box{width:100px!important;font-size:0.72rem!important;}
+  .sync-badge{font-size:0.6rem;}
+  .sync-badge .dot{width:6px;height:6px;}
+  .tab-nav-top{gap:2px;padding:3px;}
+  .tab-btn-nav{font-size:0.68rem!important;padding:5px 8px!important;}
+  .tab-btn-nav i{margin-right:2px!important;}
+  .navbar-progress-label{font-size:0.66rem;}
+  .app-layout{padding:0 0.5rem;}
+  .main-col{padding-left:0.4rem!important;padding-right:0.4rem!important;}
+  .stat-box .num{font-size:1.4rem!important;}
+  .day-row{flex-wrap:wrap;}
+  .phase-header{flex-wrap:wrap;gap:6px;}
+  .author-form,.quick-note-form,.note-card{padding:0.7rem!important;}
+  .table-sm td{font-size:0.72rem;word-break:break-word;}
+  .quick-note-form{display:none;}
+}
+
 /* Auth gate */
 #auth-gate{display:none;}
 .auth-card{background:#fff;border-radius:18px;padding:2.2rem 2rem;max-width:360px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.2);}
@@ -275,9 +308,12 @@ body{background:var(--bg);font-family:'Inter','Segoe UI',sans-serif;color:var(--
     <button class="btn btn-sm btn-outline-secondary filter-btn active" onclick="setFilter('all',this)">All</button>
     <button class="btn btn-sm btn-outline-secondary filter-btn" onclick="setFilter('pending',this)">Pending</button>
     <button class="btn btn-sm btn-outline-secondary filter-btn" onclick="setFilter('done',this)">Done ✓</button>
-    <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="resetAll()"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+    <button class="btn btn-sm btn-primary ms-auto" onclick="openPhaseForm(null)"><i class="bi bi-plus-lg"></i> Add Phase</button>
+    <button class="btn btn-sm btn-outline-secondary" onclick="resetAll()"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
   </div>
   <div id="phases-container"></div>
+  <div id="custom-phases-container" class="mt-3"></div>
+  <div id="phase-form-slot" class="mt-3"></div>
 </div>
 
 <!-- ===================== TAB: RESOURCES ===================== -->
@@ -1608,6 +1644,142 @@ async function quickAddNote(){
   if(document.getElementById('tab-roadmap').style.display!=='none') render();
 }
 
+// ===================== CUSTOM PHASES (user-added, CRUD) =====================
+let customPhases = JSON.parse(localStorage.getItem('dotnet_custom_phases') || '[]'); // [{id,title,unit,color,tasks:[{id,label,title,points:[]}]}]
+let customPhaseDone = new Set(JSON.parse(localStorage.getItem('dotnet_custom_phase_done') || '[]'));
+let editingPhaseId = null;
+let taskRowCounter = 0;
+const PHASE_COLORS = ['#4f46e5','#16a34a','#d97706','#dc2626','#0891b2','#7c3aed'];
+
+function saveCustomPhases(){ localStorage.setItem('dotnet_custom_phases', JSON.stringify(customPhases)); }
+function saveCustomPhaseDone(){ localStorage.setItem('dotnet_custom_phase_done', JSON.stringify([...customPhaseDone])); }
+
+function openPhaseForm(phaseId){
+  editingPhaseId = phaseId;
+  const phase = phaseId ? customPhases.find(p=>p.id===phaseId) : null;
+  taskRowCounter = 0;
+  const slot = document.getElementById('phase-form-slot');
+  slot.innerHTML = `
+    <div class="author-form">
+      <h6 class="fw-bold mb-3"><i class="bi ${phase?'bi-pencil-square':'bi-plus-circle'} me-1"></i>${phase?'Edit phase':'Add a new phase'}</h6>
+      <div class="row g-2 mb-2">
+        <div class="col-md-8"><label class="small text-muted d-block">Phase title</label><input id="phase-title" class="form-control" placeholder="e.g. Phase 6 — Portfolio Prep" value="${phase?phase.title:''}"></div>
+        <div class="col-md-4"><label class="small text-muted d-block">Organize by</label>
+          <select id="phase-unit">
+            <option value="Day" ${phase&&phase.unit==='Day'?'selected':''}>Day</option>
+            <option value="Week" ${phase&&phase.unit==='Week'?'selected':''}>Week</option>
+            <option value="Month" ${phase&&phase.unit==='Month'?'selected':''}>Month</option>
+            <option value="Hour" ${phase&&phase.unit==='Hour'?'selected':''}>Hour</option>
+            <option value="Task" ${!phase||phase.unit==='Task'?'selected':''}>Task (no numbering)</option>
+          </select>
+        </div>
+      </div>
+      <div id="task-rows-container"></div>
+      <button class="btn btn-sm btn-outline-primary mb-3" onclick="addTaskRow()"><i class="bi bi-plus-lg me-1"></i>Add ${phase?phase.unit:'item'}</button>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm" onclick="submitPhaseForm()"><i class="bi bi-check2 me-1"></i>${phase?'Save changes':'Create phase'}</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="closePhaseForm()">Cancel</button>
+      </div>
+    </div>`;
+  document.getElementById('phase-unit').style.cssText = 'font-size:0.84rem;width:100%;border:1px solid var(--border);border-radius:8px;padding:0.375rem 0.5rem;';
+  if(phase && phase.tasks.length){
+    phase.tasks.forEach(t=>addTaskRow(t));
+  } else {
+    addTaskRow();
+  }
+  slot.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function closePhaseForm(){ document.getElementById('phase-form-slot').innerHTML=''; editingPhaseId=null; }
+
+function addTaskRow(existing){
+  const id = 'trow-'+(taskRowCounter++);
+  const container = document.getElementById('task-rows-container');
+  const row = document.createElement('div');
+  row.className = 'task-row-form';
+  row.id = id;
+  row.innerHTML = `
+    <button class="remove-task-btn" onclick="document.getElementById('${id}').remove()" title="Remove"><i class="bi bi-x-lg"></i></button>
+    <input class="form-control task-title" placeholder="Title (e.g. Setup & First App)" value="${existing?existing.title:''}">
+    <textarea class="form-control task-points" rows="2" placeholder="Bullet points, one per line (e.g. Morning: ..., Afternoon: ...)">${existing&&existing.points?existing.points.join('\n'):''}</textarea>
+  `;
+  container.appendChild(row);
+}
+
+function submitPhaseForm(){
+  const title = document.getElementById('phase-title').value.trim();
+  const unit = document.getElementById('phase-unit').value;
+  if(!title){ alert('Please give the phase a title.'); return; }
+  const rows = [...document.querySelectorAll('#task-rows-container .task-row-form')];
+  const tasks = rows.map((row,i)=>{
+    const existingId = editingPhaseId && customPhases.find(p=>p.id===editingPhaseId)?.tasks[i]?.id;
+    return {
+      id: existingId || ('task-'+Date.now()+'-'+i),
+      label: unit==='Task' ? '' : unit+' '+(i+1),
+      title: row.querySelector('.task-title').value.trim() || '(untitled)',
+      points: row.querySelector('.task-points').value.split('\n').map(s=>s.trim()).filter(Boolean)
+    };
+  }).filter(t=>t.title);
+  if(tasks.length===0){ alert('Add at least one item.'); return; }
+
+  if(editingPhaseId){
+    const phase = customPhases.find(p=>p.id===editingPhaseId);
+    phase.title = title; phase.unit = unit; phase.tasks = tasks;
+  } else {
+    customPhases.push({id:'phase-'+Date.now(), title, unit, color: PHASE_COLORS[customPhases.length % PHASE_COLORS.length], tasks});
+  }
+  saveCustomPhases();
+  closePhaseForm();
+  renderCustomPhases();
+}
+function editPhase(phaseId){ openPhaseForm(phaseId); }
+function deletePhase(phaseId){
+  if(!confirm('Delete this whole phase and all its items?')) return;
+  const phase = customPhases.find(p=>p.id===phaseId);
+  if(phase) phase.tasks.forEach(t=> customPhaseDone.delete(phase.id+':'+t.id));
+  customPhases = customPhases.filter(p=>p.id!==phaseId);
+  saveCustomPhases(); saveCustomPhaseDone();
+  renderCustomPhases();
+}
+function toggleCustomTask(phaseId, taskId){
+  const key = phaseId+':'+taskId;
+  if(customPhaseDone.has(key)) customPhaseDone.delete(key); else customPhaseDone.add(key);
+  saveCustomPhaseDone();
+  renderCustomPhases();
+}
+
+function renderCustomPhases(){
+  const c = document.getElementById('custom-phases-container'); if(!c) return;
+  c.innerHTML = '';
+  customPhases.forEach(phase=>{
+    const total = phase.tasks.length;
+    const done_ = phase.tasks.filter(t=>customPhaseDone.has(phase.id+':'+t.id)).length;
+    const pct = total ? Math.round(done_/total*100) : 0;
+    const card = document.createElement('div');
+    card.className = 'phase-card';
+    card.innerHTML = `
+      <div class="phase-header" style="background:${phase.color}12;border-bottom:2px solid ${phase.color}">
+        <span class="fw-bold" style="color:${phase.color}"><i class="bi bi-stars me-1"></i>${phase.title} <span class="text-muted fw-normal small">(custom)</span></span>
+        <div class="d-flex align-items-center gap-2">
+          <span class="phase-badge" style="background:${phase.color};color:#fff">${done_}/${total}</span>
+          <button class="btn btn-sm btn-outline-secondary" onclick="editPhase('${phase.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deletePhase('${phase.id}')" title="Delete"><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+      ${phase.tasks.map(t=>{
+        const isDone = customPhaseDone.has(phase.id+':'+t.id);
+        return `<div class="custom-task-row">
+          <div class="day-check ${isDone?'done':''}" onclick="toggleCustomTask('${phase.id}','${t.id}')"></div>
+          <div class="day-topic">
+            <strong style="${isDone?'text-decoration:line-through;color:var(--muted)':''}">${t.label?t.label+' — ':''}${t.title}</strong>
+            ${t.points.length ? `<ul style="margin:4px 0 0;padding-left:1.1rem;font-size:0.8rem;color:var(--muted)">${t.points.map(p=>`<li>${p}</li>`).join('')}</ul>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    `;
+    c.appendChild(card);
+  });
+}
+
 function render(){
   const c=document.getElementById('phases-container'); c.innerHTML='';
   PHASES.forEach(phase=>{
@@ -2070,7 +2242,8 @@ const DRIVE_FILE_NAME = 'dotnet-tracker-data.json';
 const DRIVE_KEYS = ['dotnet_done2','dotnet_adv_collapsed','dotnet_adv_custom','dotnet_adv_deleted','dotnet_adv_order',
   'dotnet_adv_overrides','dotnet_author_collapsed','dotnet_author_order','dotnet_author_overrides','dotnet_custom_authors',
   'dotnet_custom_qa','dotnet_day_notes','dotnet_deleted_items','dotnet_item_collapsed','dotnet_item_expanded',
-  'dotnet_item_orders','dotnet_item_overrides'];
+  'dotnet_item_orders','dotnet_item_overrides','dotnet_note_collapsed','dotnet_custom_phases','dotnet_custom_phase_done',
+  'dotnet_display_name','dotnet_start_date'];
 
 let tokenClient = null, driveAccessToken = null, driveFileId = null, autoSyncTimer = null;
 
@@ -2205,6 +2378,9 @@ function applySnapshot(snap){
   advOverrides = JSON.parse(localStorage.getItem('dotnet_adv_overrides') || '{}');
   advDeleted = new Set(JSON.parse(localStorage.getItem('dotnet_adv_deleted') || '[]'));
   advCustom = JSON.parse(localStorage.getItem('dotnet_adv_custom') || '[]');
+  noteCollapsed = JSON.parse(localStorage.getItem('dotnet_note_collapsed') || '{}');
+  customPhases = JSON.parse(localStorage.getItem('dotnet_custom_phases') || '[]');
+  customPhaseDone = new Set(JSON.parse(localStorage.getItem('dotnet_custom_phase_done') || '[]'));
 }
 async function pushToDrive(){
   if(!driveAccessToken || !driveFileId) return;
@@ -2272,6 +2448,58 @@ function updateGreeting(){
   if(el) el.textContent = name ? `Welcome back, ${name} 👋` : '';
 }
 
+function saveStartDate(){
+  const val = document.getElementById('start-date-input').value;
+  if(val) localStorage.setItem('dotnet_start_date', val);
+  renderProfile();
+}
+function renderTimelineCard(){
+  const TOTAL_DAYS = 175;
+  const startStr = localStorage.getItem('dotnet_start_date') || new Date().toISOString().slice(0,10);
+  const start = new Date(startStr+'T00:00:00');
+  const target = new Date(start.getTime() + TOTAL_DAYS*24*60*60*1000);
+  const now = new Date();
+  const msPerDay = 24*60*60*1000;
+  const elapsedDays = Math.max(0, Math.floor((now - start)/msPerDay));
+  const remainingMs = target - now;
+  const remainingDays = Math.max(0, Math.ceil(remainingMs/msPerDay));
+  const remainingHours = Math.max(0, Math.round(remainingMs/(60*60*1000)));
+  const doneCount = done.size;
+  const elapsedWeeks = Math.max(1, elapsedDays/7);
+  const currentPace = (doneCount/elapsedWeeks).toFixed(1);
+  const remainingDaysToDo = TOTAL_DAYS - doneCount;
+  const remainingWeeks = Math.max(0.1, remainingDays/7);
+  const requiredPace = (remainingDaysToDo/remainingWeeks).toFixed(1);
+  const overdue = remainingMs < 0;
+
+  return `<div class="phase-card mb-3" style="padding:1.1rem">
+    <h6 class="fw-bold mb-2"><i class="bi bi-hourglass-split me-2 text-primary"></i>Timeline</h6>
+    <div class="row g-2 mb-3">
+      <div class="col-6">
+        <label class="small text-muted d-block">Start date</label>
+        <div class="d-flex gap-2">
+          <input type="date" id="start-date-input" class="form-control form-control-sm" value="${startStr}">
+          <button class="btn btn-sm btn-outline-primary" onclick="saveStartDate()">Set</button>
+        </div>
+      </div>
+      <div class="col-6">
+        <label class="small text-muted d-block">Target completion</label>
+        <div class="form-control form-control-sm bg-light">${target.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
+      </div>
+    </div>
+    <div class="row g-2" style="font-size:0.8rem">
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:#f5f4ff"><div class="num" style="color:#4f46e5;font-size:1.2rem">${elapsedDays}</div><div class="lbl">Days Elapsed</div></div></div>
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:${overdue?'#fee2e2':'#dcfce7'}"><div class="num" style="color:${overdue?'#dc2626':'#16a34a'};font-size:1.2rem">${overdue?'0':remainingDays}</div><div class="lbl">${overdue?'Past target':'Days Remaining'}</div></div></div>
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:#fffbeb"><div class="num" style="color:#d97706;font-size:1.2rem">${overdue?'0':remainingHours}</div><div class="lbl">Hours Remaining</div></div></div>
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:#f0f9ff"><div class="num" style="color:#0891b2;font-size:1.2rem">${currentPace}</div><div class="lbl">Days/Week Pace</div></div></div>
+    </div>
+    <p class="small mt-2 mb-0" style="color:${doneCount>0 && currentPace>=requiredPace ? '#16a34a':'#d97706'}">
+      ${overdue ? "You're past your original target date — consider setting a new start date, or just keep going at your own pace." :
+        `To finish by ${target.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}, you need about <strong>${requiredPace} days/week</strong>. ${doneCount>0 ? `You're currently averaging <strong>${currentPace}/week</strong>.` : ''}`}
+    </p>
+  </div>`;
+}
+
 function renderProfile(){
   const c = document.getElementById('profile-container'); c.innerHTML='';
 
@@ -2282,10 +2510,12 @@ function renderProfile(){
     <h6 class="fw-bold mb-2"><i class="bi bi-person-badge me-2 text-primary"></i>Your name</h6>
     <p class="small text-muted mb-2">Optional — just personalizes the greeting on your Roadmap tab. Stored on this device only, never synced.</p>
     <div class="d-flex gap-2">
-      <input id="display-name-input" class="form-control form-control-sm" placeholder="e.g. Sandip" value="${displayName}">
+    <input id="display-name-input" class="form-control form-control-sm" placeholder="e.g. Sandip" value="${displayName}">
       <button class="btn btn-sm btn-primary" onclick="saveDisplayName()">Save</button>
     </div>
   </div>`;
+
+  c.innerHTML += renderTimelineCard();
 
   c.innerHTML += `<div class="phase-card mb-3" style="padding:1.1rem">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
@@ -2350,6 +2580,8 @@ populateQuickNoteDaySelect();
 refreshAllNoteViews();
 updateGreeting();
 renderSyncBanner();
+renderCustomPhases();
+if(!localStorage.getItem('dotnet_start_date')) localStorage.setItem('dotnet_start_date', new Date().toISOString().slice(0,10));
 </script>
 </body>
 </html>
