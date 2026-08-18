@@ -21,6 +21,32 @@ img,table{max-width:100%;}
 .stat-box{border-radius:12px;padding:1rem;text-align:center;}
 .stat-box .num{font-size:1.8rem;font-weight:700;line-height:1;}
 .stat-box .lbl{font-size:0.72rem;color:var(--muted);margin-top:4px;}
+.stat-box .lbl-sub{font-size:0.62rem;color:var(--muted);opacity:0.8;margin-top:2px;}
+#scroll-top-btn{
+  position:fixed;
+  right:16px;
+  bottom:calc(16px + env(safe-area-inset-bottom, 0px));
+  width:44px;height:44px;
+  border-radius:50%;
+  border:none;
+  background:var(--primary);
+  color:#fff;
+  font-size:1.4rem;
+  line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 12px rgba(79,70,229,0.35);
+  opacity:0;visibility:hidden;
+  transform:translateY(10px);
+  transition:opacity .2s,transform .2s,visibility .2s;
+  z-index:1050;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+#scroll-top-btn.show{opacity:1;visibility:visible;transform:translateY(0);}
+#scroll-top-btn:active{background:var(--primary-dark,#4338ca);transform:scale(0.94);}
+@media(max-width:576px){
+  #scroll-top-btn{width:42px;height:42px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom, 0px));font-size:1.3rem;}
+}
 .phase-card{border:none;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,0.07);margin-bottom:1.2rem;overflow:hidden;}
 .phase-header{padding:0.9rem 1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
 .phase-badge{font-size:0.7rem;font-weight:600;padding:2px 9px;border-radius:20px;}
@@ -108,6 +134,18 @@ img,table{max-width:100%;}
 .optional-toggle{font-size:0.76rem;font-weight:600;color:var(--primary);cursor:pointer;background:none;border:none;padding:0;display:inline-flex;align-items:center;gap:4px;}
 .optional-fields{display:none;margin-top:8px;}
 .optional-fields.open{display:block;}
+.qa-form-compact{padding:0.85rem 1rem;}
+.qa-form-compact h6{font-size:0.88rem;}
+.qa-form-compact label{font-size:0.72rem;}
+.qa-form-compact .type-chooser-btn{padding:0.65rem 0.4rem;}
+.qa-form-compact .type-chooser-btn i{font-size:1.3rem;margin-bottom:3px;}
+.qa-form-compact .tc-label{font-size:0.78rem;}
+.qa-showmore-btn{background:none;border:none;padding:0;color:var(--primary);font-size:0.78rem;font-weight:600;cursor:pointer;}
+.qa-showmore-btn:hover{text-decoration:underline;}
+.profile-details summary::-webkit-details-marker{display:none;}
+.profile-details summary{outline:none;}
+.profile-details[open] summary .bi-chevron-down{transform:rotate(180deg);}
+.profile-details summary .bi-chevron-down{transition:transform .2s;}
 .item-pdf-box .btn{font-size:0.72rem;}
 .item-video-wrap{position:relative;width:100%;padding-top:56.25%;border-radius:10px;overflow:hidden;margin:8px 0;background:#000;}
 .item-video-wrap iframe,.item-video-wrap video{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
@@ -122,6 +160,7 @@ img,table{max-width:100%;}
 .docshub-add-btn:hover{background:#f3f2ff;color:var(--primary);}
 .adv-header .docshub-add-btn{color:#b45309;}
 .docshub-subtab{border-radius:20px;font-weight:600;font-size:0.8rem;}
+.profile-subtab{border-radius:20px;font-weight:600;font-size:0.8rem;}
 .author-form .form-control,.author-form .form-select{font-size:0.84rem;margin-bottom:10px;}
 .show-more-btn{align-self:center;font-size:0.8rem;font-weight:600;}
 .day-note-btn{background:none;border:none;color:#c7ccd8;font-size:0.85rem;padding:2px 5px;cursor:pointer;border-radius:5px;flex-shrink:0;}
@@ -276,7 +315,6 @@ img,table{max-width:100%;}
     <button class="tab-btn tab-btn-nav" onclick="showTab('author',this)"><i class="bi bi-collection me-1"></i>Docs Hub</button>
     <button class="tab-btn tab-btn-nav" onclick="showTab('projects',this)"><i class="bi bi-folder2-open me-1"></i>Projects+</button>
     <button class="tab-btn tab-btn-nav" onclick="showTab('interview',this)"><i class="bi bi-patch-question me-1"></i>Interview Q&A</button>
-    <button class="tab-btn tab-btn-nav" onclick="showTab('summary',this)"><i class="bi bi-trophy me-1"></i>Summary</button>
     <button class="tab-btn tab-btn-nav" onclick="showTab('profile',this)"><i class="bi bi-person-circle me-1"></i>Profile</button>
   </div>
   <div class="navbar-progress">
@@ -316,12 +354,10 @@ img,table{max-width:100%;}
 <!-- Stats -->
 <div class="row g-2 mb-3">
   <div class="col-6 col-md-3"><div class="stat-box" style="background:#ede9fe"><div class="num" style="color:#4f46e5" id="stat-done">0</div><div class="lbl">Days Done</div></div></div>
-  <div class="col-6 col-md-3"><div class="stat-box" style="background:#dcfce7"><div class="num" style="color:#16a34a" id="stat-left">175</div><div class="lbl">Days Left</div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-box" style="background:#dcfce7"><div class="num" style="color:#16a34a" id="stat-left">175</div><div class="lbl">Days Left</div><div class="lbl-sub" id="stat-left-cal"></div></div></div>
   <div class="col-6 col-md-3"><div class="stat-box" style="background:#fef3c7"><div class="num" style="color:#d97706" id="stat-pct">0%</div><div class="lbl">Complete</div></div></div>
   <div class="col-6 col-md-3"><div class="stat-box" style="background:#fee2e2"><div class="num" style="color:#dc2626" id="stat-streak">0🔥</div><div class="lbl">Day Streak</div></div></div>
 </div>
-
-<div id="main-timeline-strip" class="mb-3"></div>
 
 <div id="sync-reminder-banner" style="display:none"></div>
 
@@ -397,18 +433,27 @@ img,table{max-width:100%;}
   <div id="qa-container"></div>
 </div>
 
-<!-- ===================== TAB: SUMMARY ===================== -->
-<div id="tab-summary" style="display:none">
-  <div id="sum-container"></div>
-</div>
-
-<!-- ===================== TAB: PROFILE ===================== -->
+<!-- ===================== TAB: PROFILE (incl. Timeline & Summary) ===================== -->
 <div id="tab-profile" style="display:none">
-  <div id="profile-container"></div>
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+    <button class="btn btn-sm btn-outline-primary profile-subtab active" onclick="setProfileSubtab('overview',this)"><i class="bi bi-person-circle me-1"></i>Overview</button>
+    <button class="btn btn-sm btn-outline-primary profile-subtab" onclick="setProfileSubtab('summary',this)"><i class="bi bi-trophy me-1"></i>Timeline &amp; Summary</button>
+  </div>
+  <div id="profile-overview-view">
+    <div id="profile-container"></div>
+  </div>
+  <div id="profile-summary-view" style="display:none">
+    <div id="sum-container"></div>
+  </div>
 </div>
 
 </div><!-- /container -->
 </div><!-- /app-layout -->
+
+<button id="scroll-top-btn" type="button" onclick="scrollToTop()" title="Back to top" aria-label="Scroll to top">
+  <i class="bi bi-arrow-up-short"></i>
+</button>
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -1624,9 +1669,18 @@ function updateStats(){
   document.getElementById('stat-pct').textContent=pct+'%';
   document.getElementById('main-prog').style.width=pct+'%';
   document.getElementById('prog-label').textContent=d+' / '+TOTAL+' days';
-  renderMainTimelineStrip();
+  updateCalendarCaption();
   let streak=0; for(let i=TOTAL;i>=1;i--){ if(done.has(i)) streak++; else break; }
   document.getElementById('stat-streak').textContent=streak+'🔥';
+}
+
+// Small caption under the "Days Left" box showing the actual calendar countdown
+// (start date → target date), separate from the task-count number above it.
+function updateCalendarCaption(){
+  const el = document.getElementById('stat-left-cal');
+  if(!el) return;
+  const t = getTimelineInfo();
+  el.textContent = t.overdue ? 'past target date' : `${t.remainingDays} cal. days to target`;
 }
 
 function showTab(tab, btn){
@@ -1637,8 +1691,7 @@ function showTab(tab, btn){
   if(tab==='author'){ renderAuthorPosts(); renderResources(); }
   if(tab==='projects'){ renderProjects(); renderStructure(); renderAdvanced(); }
   if(tab==='interview') renderInterview();
-  if(tab==='summary') renderSummary();
-  if(tab==='profile') renderProfile();
+  if(tab==='profile'){ renderProfile(); renderSummary(); }
 }
 
 function setDocsSubtab(which, btn){
@@ -1654,6 +1707,13 @@ function setProjSubtab(which, btn){
   document.getElementById('proj-container').style.display = which==='list' ? '' : 'none';
   document.getElementById('struct-container').style.display = which==='structure' ? '' : 'none';
   document.getElementById('advanced-container').style.display = which==='advanced' ? '' : 'none';
+}
+
+function setProfileSubtab(which, btn){
+  document.querySelectorAll('.profile-subtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('profile-overview-view').style.display = which==='overview' ? '' : 'none';
+  document.getElementById('profile-summary-view').style.display = which==='summary' ? '' : 'none';
 }
 
 // ===================== DAY NOTES =====================
@@ -2322,8 +2382,21 @@ async function submitAdvForm(category){
 }
 
 let customQA = JSON.parse(localStorage.getItem('dotnet_custom_qa') || '[]'); // [{id, cat, q, a}] or rich {id, cat, q, type, summary/points/steps/url/mediaKey/mediaName}
+let qaOverrides = JSON.parse(localStorage.getItem('dotnet_qa_overrides') || '{}'); // edits to hardcoded (seed) questions, keyed by seed id
+let qaDeleted = new Set(JSON.parse(localStorage.getItem('dotnet_qa_deleted') || '[]')); // deleted hardcoded question ids
 let editingQAItem = null; // id being edited, or null when adding
 let pendingQAMedia = null;
+
+// Hardcoded QA_DATA questions get stable ids and flow through the same
+// override/delete pattern as Docs Hub + Advanced+ seed items, so they're
+// editable and deletable too — not just custom-added ones.
+function getAllQAItems(){
+  const seed = [];
+  QA_DATA.forEach((cat,ci)=>{ cat.qs.forEach((qq,qi)=>{ seed.push({id:'qa-seed-'+ci+'-'+qi, cat:cat.cat, q:qq.q, a:qq.a}); }); });
+  return [...seed, ...customQA]
+    .filter(it=>!qaDeleted.has(it.id))
+    .map(it=> qaOverrides[it.id] ? {...it, ...qaOverrides[it.id]} : it);
+}
 
 function findRelatedContent(question){
   const words = question.toLowerCase().split(/\W+/).filter(w=>w.length>4);
@@ -2344,41 +2417,56 @@ function findRelatedContent(question){
   return hits.filter(h=>{ const k=h.kind+h.label; if(seen.has(k)) return false; seen.add(k); return true; }).slice(0,2);
 }
 
-// Renders a QA answer body: rich items (PDF/Image/Link/Video/Paragraph/Bullets/Diagram) reuse
-// itemBodyHTML just like Docs Hub / Advanced+; legacy plain-text items just show `.a`.
+// Renders a QA answer body: rich items (PDF/Image/Link/Video) reuse itemBodyHTML just like
+// Docs Hub / Advanced+; plain-text answers collapse behind "Show more" past ~220 chars.
 function qaAnswerHTML(q){
   if(q.type) return itemBodyHTML(q);
-  return `<p class="item-summary mb-0">${q.a||''}</p>`;
+  const text = q.a || '';
+  if(text.length <= 220) return `<p class="item-summary mb-0">${text}</p>`;
+  const short = text.slice(0,220).trim();
+  return `<p class="item-summary mb-0 qa-long-text" data-full="${encodeURIComponent(text)}" data-short="${encodeURIComponent(short)}" data-expanded="0">${short}… <button type="button" class="qa-showmore-btn" onclick="event.stopPropagation();toggleQALongText(this.parentElement)">Show more</button></p>`;
+}
+function toggleQALongText(p){
+  const expanded = p.dataset.expanded==='1';
+  const full = decodeURIComponent(p.dataset.full);
+  const short = decodeURIComponent(p.dataset.short);
+  p.innerHTML = expanded
+    ? `${short}… <button type="button" class="qa-showmore-btn" onclick="event.stopPropagation();toggleQALongText(this.parentElement)">Show more</button>`
+    : `${full} <button type="button" class="qa-showmore-btn" onclick="event.stopPropagation();toggleQALongText(this.parentElement)">Show less</button>`;
+  p.dataset.expanded = expanded ? '0' : '1';
 }
 
 function renderInterview(){
   const c=document.getElementById('qa-container'); c.innerHTML='';
-  c.innerHTML=`<div class="alert" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;font-size:0.82rem;color:#0c4a6e;margin-bottom:1rem">
-    <i class="bi bi-patch-question-fill me-2"></i>Click any question to reveal the answer. Where a question overlaps your Roadmap or Docs Hub, you'll see a related-content link.
+  c.innerHTML=`<div class="alert" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;font-size:0.8rem;color:#0c4a6e;margin-bottom:1rem">
+    <i class="bi bi-patch-question-fill me-2"></i>Tap a question to reveal the answer. All questions — built-in or custom — can be edited or deleted.
   </div>`;
-  let qi=0;
-  const grouped = QA_DATA.map(cat=>({...cat, qs:[...cat.qs, ...customQA.filter(q=>q.cat===cat.cat)]}));
-  const extraCats = [...new Set(customQA.map(q=>q.cat))].filter(cn=>!QA_DATA.some(c=>c.cat===cn));
-  extraCats.forEach(cn=> grouped.push({cat:cn, color:'#16a34a', qs: customQA.filter(q=>q.cat===cn)}));
+  const allItems = getAllQAItems();
+  const catColorMap = {}; QA_DATA.forEach(cc=> catColorMap[cc.cat]=cc.color);
+  const extraCats = [...new Set(allItems.map(i=>i.cat))].filter(cn=>!catColorMap[cn]);
+  const orderedCats = [...QA_DATA.map(cc=>cc.cat), ...extraCats];
 
-  grouped.forEach(cat=>{
-    if(cat.qs.length===0) return;
+  let qi=0;
+  orderedCats.forEach(catName=>{
+    const qs = allItems.filter(i=>i.cat===catName);
+    if(qs.length===0) return;
+    const color = catColorMap[catName] || '#16a34a';
     c.innerHTML+=`<div class="phase-card mb-3">
-      <div class="phase-header" style="background:${cat.color}15;border-bottom:2px solid ${cat.color}">
-        <span class="fw-bold" style="color:${cat.color}">${cat.cat}</span>
-        <span class="phase-badge" style="background:${cat.color};color:white">${cat.qs.length} Questions</span>
+      <div class="phase-header" style="background:${color}15;border-bottom:2px solid ${color}">
+        <span class="fw-bold" style="color:${color}">${catName}</span>
+        <span class="phase-badge" style="background:${color};color:white">${qs.length} Questions</span>
       </div>
       <div style="padding:0.75rem">
-        ${cat.qs.map(q=>{
+        ${qs.map(q=>{
           const id='qa-'+(qi++);
           const related = findRelatedContent(q.q);
-          const isCustom = customQA.includes(q);
-          return `<div class="interview-q" style="cursor:pointer;border-color:${cat.color};position:relative">
-            <div onclick="toggleQA('${id}','${q.id||''}',this)" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          return `<div class="interview-q" style="cursor:pointer;border-color:${color};position:relative">
+            <div onclick="toggleQA('${id}','${q.id}',this)" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
               <span class="d-flex align-items-center gap-2">${q.type?`<span class="item-badge" style="background:${(q.badgeColor||TYPE_COLOR[q.type])}18;color:${q.badgeColor||TYPE_COLOR[q.type]}"><i class="bi ${TYPE_ICON[q.type]||'bi-file-text'} me-1"></i>${q.type}</span>`:''}<span>${q.q}</span></span>
               <span class="d-flex align-items-center gap-2">
-                ${isCustom ? `<i class="bi bi-pencil text-primary" style="font-size:0.8rem" onclick="event.stopPropagation();editQAItem('${q.id}')"></i><i class="bi bi-trash text-danger" style="font-size:0.8rem" onclick="event.stopPropagation();deleteCustomQA('${q.id}')"></i>` : ''}
-                <i class="bi bi-chevron-down" style="font-size:0.75rem;flex-shrink:0;color:${cat.color}"></i>
+                <i class="bi bi-pencil text-primary" style="font-size:0.8rem" onclick="event.stopPropagation();editQAItem('${q.id}')"></i>
+                <i class="bi bi-trash text-danger" style="font-size:0.8rem" onclick="event.stopPropagation();deleteQAItem('${q.id}')"></i>
+                <i class="bi bi-chevron-down" style="font-size:0.75rem;flex-shrink:0;color:${color}"></i>
               </span>
             </div>
             <div id="${id}" class="qa-answer">
@@ -2392,12 +2480,12 @@ function renderInterview(){
   });
 }
 
-function deleteCustomQA(id){
+function deleteQAItem(id){
   if(!confirm('Delete this question?')) return;
-  const item = customQA.find(i=>i.id===id);
+  const item = getAllQAItems().find(i=>i.id===id);
   if(item && item.mediaKey) idbDelete(item.mediaKey);
-  customQA = customQA.filter(item=> item.id!==id);
-  localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
+  if(id.startsWith('qa-seed-')){ qaDeleted.add(id); localStorage.setItem('dotnet_qa_deleted', JSON.stringify([...qaDeleted])); }
+  else { customQA = customQA.filter(i=>i.id!==id); localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA)); }
   renderInterview();
 }
 function editQAItem(id){ openQAForm(id); }
@@ -2410,21 +2498,20 @@ function qaCategoryForType(type){
   return 'Content';
 }
 
-// ---- Step 1: ask what kind of answer to add — mirrors Docs Hub exactly ----
+// ---- Step 1: ask what kind of answer to add — compact chooser, same options as Docs Hub ----
 function openQAChooser(){
   editingQAItem = null; pendingQAMedia = null;
   const slot = document.getElementById('qa-form-slot');
   slot.innerHTML = `
-    <div class="author-form">
-      <h6 class="fw-bold mb-1"><i class="bi bi-plus-circle me-1"></i>What kind of answer are you adding?</h6>
-      <p class="small text-muted mb-3">Same upload options as Docs Hub — pick a type and the form only asks what's relevant.</p>
+    <div class="author-form qa-form-compact">
+      <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>Add a question</h6>
       <div class="type-chooser-grid">
-        <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'PDF')"><i class="bi bi-file-earmark-pdf-fill" style="color:#dc2626"></i><span class="tc-label">PDF</span><span class="tc-desc">Upload &amp; preview a PDF</span></button>
-        <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'Image')"><i class="bi bi-image" style="color:#d97706"></i><span class="tc-label">Image</span><span class="tc-desc">Upload a picture</span></button>
-        <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'Link')"><i class="bi bi-link-45deg" style="color:#0891b2"></i><span class="tc-label">Link</span><span class="tc-desc">Web link — video links auto-play</span></button>
-        <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'Content')"><i class="bi bi-text-paragraph" style="color:#16a34a"></i><span class="tc-label">Content</span><span class="tc-desc">Write the answer as text</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'PDF')"><i class="bi bi-file-earmark-pdf-fill" style="color:#dc2626"></i><span class="tc-label">PDF</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'Image')"><i class="bi bi-image" style="color:#d97706"></i><span class="tc-label">Image</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'Link')"><i class="bi bi-link-45deg" style="color:#0891b2"></i><span class="tc-label">Link</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'Content')"><i class="bi bi-text-paragraph" style="color:#16a34a"></i><span class="tc-label">Text</span></button>
       </div>
-      <div class="d-flex mt-3"><button class="btn btn-outline-secondary btn-sm" onclick="closeQAForm()">Cancel</button></div>
+      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeQAForm()">Cancel</button>
     </div>`;
   slot.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
@@ -2432,7 +2519,7 @@ function openQAChooser(){
 function openQAForm(itemId, category){
   const isEdit = !!itemId;
   editingQAItem = itemId; pendingQAMedia = null;
-  const item = isEdit ? customQA.find(i=>i.id===itemId) : null;
+  const item = isEdit ? getAllQAItems().find(i=>i.id===itemId) : null;
   if(isEdit) category = qaCategoryForType(item.type);
   if(!isEdit && !category){ openQAChooser(); return; }
 
@@ -2440,34 +2527,34 @@ function openQAForm(itemId, category){
   let typeSpecificHTML = '';
   if(category==='PDF'){
     typeSpecificHTML = `
-      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="qa-pdf-input" accept="application/pdf" style="display:none" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name-pdf">${isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):''}</div></div>
-      <div class="col-12"><label>Extra notes <span class="text-muted fw-normal">(optional, collapsible)</span></label><textarea id="qa-para" class="form-control" rows="2">${isEdit && item.type==='PDF'?item.summary||'':''}</textarea></div>`;
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="qa-pdf-input" accept="application/pdf" style="display:none" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name-pdf">${isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):''}</div></div>
+      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label><textarea id="qa-para" class="form-control" rows="2">${isEdit && item.type==='PDF'?item.summary||'':''}</textarea></div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="qa-image-input" accept="image/*" style="display:none" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name">${isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):''}</div></div>
-      <div class="col-12"><label>Extra notes <span class="text-muted fw-normal">(optional)</span></label><textarea id="qa-summary" class="form-control" rows="2">${isEdit && item.type==='Image'?item.summary||'':''}</textarea></div>`;
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="qa-image-input" accept="image/*" style="display:none" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name">${isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):''}</div></div>
+      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label><textarea id="qa-summary" class="form-control" rows="2">${isEdit && item.type==='Image'?item.summary||'':''}</textarea></div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Link URL <span class="text-danger">*required</span> <span class="text-muted fw-normal">— video links play right here</span></label><input id="qa-url" class="form-control" value="${isEdit && item.url?item.url:''}" placeholder="https://..."></div>
-      <div class="col-12"><label>Extra notes <span class="text-muted fw-normal">(optional)</span></label><textarea id="qa-summary" class="form-control" rows="2">${isEdit?item.summary||'':''}</textarea></div>`;
+      <div class="col-12"><label>Link URL <span class="text-danger">*</span></label><input id="qa-url" class="form-control" value="${isEdit && item.url?item.url:''}" placeholder="https://..."></div>
+      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label><textarea id="qa-summary" class="form-control" rows="2">${isEdit?item.summary||'':''}</textarea></div>`;
   } else {
-    typeSpecificHTML = `<div class="col-12"><label>Answer <span class="text-danger">*required</span></label><textarea id="qa-a" class="form-control" rows="3" placeholder="Write the answer in your own words">${isEdit?(item.a||item.summary||''):''}</textarea></div>`;
+    typeSpecificHTML = `<div class="col-12"><label>Answer <span class="text-danger">*</span></label><textarea id="qa-a" class="form-control" rows="3" placeholder="Write the answer">${isEdit?(item.a||item.summary||''):''}</textarea></div>`;
   }
 
   const catMeta = {PDF:{icon:'bi-file-earmark-pdf-fill',label:'PDF'},Image:{icon:'bi-image',label:'Image'},Link:{icon:'bi-link-45deg',label:'Link'},Content:{icon:'bi-text-paragraph',label:'Text'}}[category];
   const slot = document.getElementById('qa-form-slot');
   slot.innerHTML = `
-    <div class="author-form">
-      <h6 class="fw-bold mb-3"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit question':'Add '+catMeta.label+' answer'}</h6>
+    <div class="author-form qa-form-compact">
+      <h6 class="fw-bold mb-2"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit question':catMeta.label+' answer'}</h6>
       <div class="row g-2">
         <div class="col-md-6"><label>Category</label><input id="qa-cat" class="form-control" list="qa-cat-list" placeholder="e.g. C# Core" value="${isEdit?item.cat:''}"><datalist id="qa-cat-list">${existingCats.map(cn=>`<option value="${cn}">`).join('')}</datalist></div>
-        <div class="col-md-6"><label>Question <span class="text-danger">*required</span></label><input id="qa-q" class="form-control" placeholder="e.g. What is the difference between ref and out?" value="${isEdit?item.q:''}"></div>
+        <div class="col-md-6"><label>Question <span class="text-danger">*</span></label><input id="qa-q" class="form-control" placeholder="e.g. What is ref vs out?" value="${isEdit?item.q:''}"></div>
         ${typeSpecificHTML}
       </div>
-      <div class="d-flex gap-2 mt-3 flex-wrap">
-        <button class="btn btn-primary btn-sm" onclick="submitQAForm('${category}')"><i class="bi bi-check2 me-1"></i>${isEdit?'Save changes':'Add'}</button>
+      <div class="d-flex gap-2 mt-2 flex-wrap">
+        <button class="btn btn-primary btn-sm" onclick="submitQAForm('${category}')"><i class="bi bi-check2 me-1"></i>${isEdit?'Save':'Add'}</button>
         <button class="btn btn-outline-secondary btn-sm" onclick="closeQAForm()">Cancel</button>
-        ${!isEdit ? `<button class="btn btn-link btn-sm text-muted" onclick="openQAChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
+        ${!isEdit ? `<button class="btn btn-link btn-sm text-muted p-0 ps-2" onclick="openQAChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
       </div>
     </div>`;
   slot.scrollIntoView({behavior:'smooth', block:'nearest'});
@@ -2515,17 +2602,22 @@ async function submitQAForm(category){
   }
 
   if(editingQAItem){
-    const idx = customQA.findIndex(i=>i.id===editingQAItem);
-    const old = customQA[idx];
+    const old = getAllQAItems().find(i=>i.id===editingQAItem);
     if(type && (type==='Image'||type==='PDF') && !pendingQAMedia && old.mediaKey){ data.mediaKey=old.mediaKey; data.mediaName=old.mediaName; }
     if(old.mediaKey && data.mediaKey && old.mediaKey!==data.mediaKey) idbDelete(old.mediaKey);
-    customQA[idx] = {...old, ...data, id:old.id};
-    // Clear stale rich-item fields when switching to a plain-text answer on edit.
-    if(!type){ delete customQA[idx].type; delete customQA[idx].badgeColor; delete customQA[idx].url; delete customQA[idx].mediaKey; delete customQA[idx].mediaName; }
+    if(editingQAItem.startsWith('qa-seed-')){
+      qaOverrides[editingQAItem] = data;
+      localStorage.setItem('dotnet_qa_overrides', JSON.stringify(qaOverrides));
+    } else {
+      const idx = customQA.findIndex(i=>i.id===editingQAItem);
+      customQA[idx] = {...old, ...data, id:old.id};
+      if(!type){ delete customQA[idx].type; delete customQA[idx].badgeColor; delete customQA[idx].url; delete customQA[idx].mediaKey; delete customQA[idx].mediaName; }
+      localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
+    }
   } else {
     customQA.push({id:'qa-custom-'+Date.now(), ...data});
+    localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
   }
-  localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
   closeQAForm();
   renderInterview();
 }
@@ -2537,7 +2629,7 @@ function toggleQA(id, itemId, el){
   ans.style.display=shown?'none':'block';
   if(icon) icon.style.transform=shown?'':'rotate(180deg)';
   if(!shown && itemId){
-    const item = customQA.find(i=>i.id===itemId);
+    const item = getAllQAItems().find(i=>i.id===itemId);
     if(item && item.type==='Image' && item.mediaKey){
       idbGet(item.mediaKey).then(d=>{ const img=document.getElementById('img-'+item.id); if(img&&d) img.src=d; });
     }
@@ -2546,7 +2638,18 @@ function toggleQA(id, itemId, el){
 
 function renderSummary(){
   const c=document.getElementById('sum-container'); c.innerHTML='';
-  // Timeline
+
+  c.innerHTML+=`<div class="docshub-header" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+    <div>
+      <h5 class="docshub-title"><i class="bi bi-trophy-fill me-2"></i>Timeline &amp; Summary</h5>
+      <p class="docshub-sub mb-0">Your pace, the month-by-month plan, an ideal daily schedule, and every note you've written.</p>
+    </div>
+  </div>`;
+
+  // Timeline / pace card
+  c.innerHTML += renderTimelineCard();
+
+  // Month-by-month
   c.innerHTML+=`<h5 style="font-weight:700;margin-bottom:1rem"><i class="bi bi-calendar3 me-2 text-primary"></i>Month-by-Month Timeline</h5>`;
   SUMMARY.timeline.forEach(m=>{
     c.innerHTML+=`<div class="summary-phase mb-2" style="background:${m.bg};border-left:4px solid ${m.color}">
@@ -2569,10 +2672,11 @@ function renderSummary(){
   <input id="notes-search-input" class="form-control notes-search mb-2" placeholder="🔍 Search your notes..." oninput="filterNotes()">
   <div id="all-notes-list">${renderAllNotes('')}</div>`;
 
-  // Final note
+  // Final note — real, live countdown instead of a hardcoded number
+  const t = getTimelineInfo();
   c.innerHTML+=`<div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:14px;padding:1.2rem;color:white;text-align:center;margin-top:1.5rem">
     <div style="font-size:1.6rem;margin-bottom:0.3rem">🚀</div>
-    <p style="font-size:0.85rem;opacity:0.95;margin:0">154 days left · Every day counts. Track your streak, ship your projects.</p>
+    <p style="font-size:0.85rem;opacity:0.95;margin:0">${t.overdue ? 'Past target date' : t.remainingDays+' days left'} · Every day counts. Track your streak, ship your projects.</p>
   </div>`;
 }
 
@@ -2794,9 +2898,9 @@ function saveStartDate(){
   const val = document.getElementById('start-date-input').value;
   if(val) localStorage.setItem('dotnet_start_date', val);
   renderProfile();
-  renderMainTimelineStrip();
+  updateCalendarCaption();
 }
-// Shared by the Profile timeline card and the main-page timeline strip, so both
+// Shared by the Profile Timeline card and the "Days Left" stat caption, so both
 // always agree on start date, target end date, and days remaining.
 function getTimelineInfo(){
   const TOTAL_DAYS = 175;
@@ -2818,20 +2922,6 @@ function getTimelineInfo(){
   const overdue = remainingMs < 0;
   const hasCustomStart = !!localStorage.getItem('dotnet_start_date');
   return {TOTAL_DAYS, startStr, start, target, elapsedDays, remainingDays, remainingHours, doneCount, currentPace, requiredPace, overdue, hasCustomStart};
-}
-
-// Small always-visible strip shown right on the Roadmap tab, so remaining days / end date
-// don't require a trip to the Profile tab to see.
-function renderMainTimelineStrip(){
-  const el = document.getElementById('main-timeline-strip');
-  if(!el) return;
-  const t = getTimelineInfo();
-  const endStr = t.target.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
-  el.innerHTML = `<div class="d-flex flex-wrap align-items-center justify-content-center gap-3 small" style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:0.5rem 0.9rem;color:var(--muted)">
-    <span><i class="bi bi-play-circle me-1 text-primary"></i>Started <strong>${new Date(t.startStr+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</strong></span>
-    <span style="color:${t.overdue?'#dc2626':'#16a34a'}"><i class="bi bi-hourglass-split me-1"></i>${t.overdue?'Past target date':`<strong>${t.remainingDays}</strong> days remaining`}</span>
-    <span><i class="bi bi-flag me-1 text-primary"></i>Target end <strong>${endStr}</strong></span>
-  </div>`;
 }
 
 function renderTimelineCard(){
@@ -2872,60 +2962,57 @@ function renderProfile(){
   const signedIn = !!driveAccessToken;
   const displayName = localStorage.getItem('dotnet_display_name') || '';
 
-  c.innerHTML += `<div class="phase-card mb-3" style="padding:1.1rem">
-    <h6 class="fw-bold mb-2"><i class="bi bi-person-badge me-2 text-primary"></i>Your name</h6>
-    <p class="small text-muted mb-2">Optional — just personalizes the greeting on your Roadmap tab. Stored on this device only, never synced.</p>
-    <div class="d-flex gap-2">
-    <input id="display-name-input" class="form-control form-control-sm" placeholder="e.g. Sandip" value="${displayName}">
-      <button class="btn btn-sm btn-primary" onclick="saveDisplayName()">Save</button>
+  c.innerHTML += `<div class="docshub-header" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
+    <div>
+      <h5 class="docshub-title"><i class="bi bi-person-circle me-2"></i>${displayName ? displayName : 'Your'} Profile</h5>
+      <p class="docshub-sub mb-0">Switch to <strong>Timeline &amp; Summary</strong> for pace, plan, and notes.</p>
     </div>
   </div>`;
 
-  c.innerHTML += renderTimelineCard();
-
-  c.innerHTML += `<div class="phase-card mb-3" style="padding:1.1rem">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-      <div>
-        <h6 class="fw-bold mb-1"><i class="bi bi-cloud-check me-2" style="color:${signedIn?'#16a34a':'#9ca3af'}"></i>Google Drive Sync — optional</h6>
-        <p class="small text-muted mb-0">${signedIn ? 'Signed in — your data syncs to your own Google Drive across devices.' : 'Not signed in. The app works fully without this — everything saves locally on this device either way. Sign in only if you want it to follow you to another device.'}</p>
-      </div>
-      ${signedIn ? `<button class="btn btn-sm btn-outline-danger" onclick="signOutGoogle()"><i class="bi bi-box-arrow-right me-1"></i>Sign out</button>` : `<button class="btn btn-sm btn-primary" onclick="signInWithGoogle()"><i class="bi bi-google me-1"></i>Sign in (optional)</button>`}
+  // Name + Sync — one compact card instead of two
+  c.innerHTML += `<div class="phase-card mb-3" style="padding:1rem">
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <label class="mb-0 small fw-bold text-muted" style="min-width:70px"><i class="bi bi-person-badge me-1"></i>Name</label>
+      <input id="display-name-input" class="form-control form-control-sm" placeholder="e.g. Sandip" value="${displayName}">
+      <button class="btn btn-sm btn-primary flex-shrink-0" onclick="saveDisplayName()">Save</button>
+    </div>
+    <hr class="my-2">
+    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+      <span class="small d-flex align-items-center gap-1"><i class="bi bi-cloud-check" style="color:${signedIn?'#16a34a':'#9ca3af'}"></i>${signedIn ? 'Synced to Google Drive' : 'Not synced — saved on this device only'}</span>
+      ${signedIn ? `<button class="btn btn-sm btn-outline-danger" onclick="signOutGoogle()"><i class="bi bi-box-arrow-right me-1"></i>Sign out</button>` : `<button class="btn btn-sm btn-outline-primary" onclick="signInWithGoogle()"><i class="bi bi-google me-1"></i>Sign in</button>`}
     </div>
   </div>`;
 
   // Data snapshot — real numbers from what's actually stored right now
   const notesCount = Object.keys(dayNotes).length;
   const customContentCount = getAllAuthors().reduce((sum,a)=>sum+a.items.length,0);
-  const customAdvCount = getAllAdvItems().length;
-  const customQACount = customQA.length;
-  c.innerHTML += `<div class="phase-card mb-3" style="padding:1.1rem">
-    <h6 class="fw-bold mb-2"><i class="bi bi-bar-chart me-2 text-primary"></i>Your data, right now</h6>
+  const customQACount = getAllQAItems().length;
+  c.innerHTML += `<div class="phase-card mb-3" style="padding:1rem">
+    <h6 class="fw-bold mb-2" style="font-size:0.85rem"><i class="bi bi-bar-chart me-2 text-primary"></i>Your data, right now</h6>
     <div class="row g-2" style="font-size:0.8rem">
-      <div class="col-6 col-md-3"><div class="stat-box" style="background:#f5f4ff"><div class="num" style="color:#4f46e5;font-size:1.3rem">${done.size}</div><div class="lbl">Days Done</div></div></div>
-      <div class="col-6 col-md-3"><div class="stat-box" style="background:#fffbeb"><div class="num" style="color:#d97706;font-size:1.3rem">${notesCount}</div><div class="lbl">Notes Written</div></div></div>
-      <div class="col-6 col-md-3"><div class="stat-box" style="background:#f0f9ff"><div class="num" style="color:#0891b2;font-size:1.3rem">${customContentCount}</div><div class="lbl">Docs Hub Items</div></div></div>
-      <div class="col-6 col-md-3"><div class="stat-box" style="background:#fef2f2"><div class="num" style="color:#dc2626;font-size:1.3rem">${customQACount}</div><div class="lbl">Custom Questions</div></div></div>
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:#f5f4ff;padding:0.7rem"><div class="num" style="color:#4f46e5;font-size:1.2rem">${done.size}</div><div class="lbl">Days Done</div></div></div>
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:#fffbeb;padding:0.7rem"><div class="num" style="color:#d97706;font-size:1.2rem">${notesCount}</div><div class="lbl">Notes</div></div></div>
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:#f0f9ff;padding:0.7rem"><div class="num" style="color:#0891b2;font-size:1.2rem">${customContentCount}</div><div class="lbl">Docs Hub Items</div></div></div>
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:#fef2f2;padding:0.7rem"><div class="num" style="color:#dc2626;font-size:1.2rem">${customQACount}</div><div class="lbl">Q&amp;A Items</div></div></div>
     </div>
   </div>`;
 
-  c.innerHTML += `<div class="phase-card mb-3" style="padding:1.1rem">
-    <h6 class="fw-bold mb-2"><i class="bi bi-diagram-3 me-2 text-primary"></i>How this app is wired up</h6>
-    <table class="table table-sm mb-0" style="font-size:0.8rem">
+  // Technical details — tucked behind a collapsible so Overview stays short
+  c.innerHTML += `<details class="phase-card mb-3 profile-details">
+    <summary class="fw-bold" style="font-size:0.85rem;padding:1rem;cursor:pointer;list-style:none"><i class="bi bi-diagram-3 me-2 text-primary"></i>How this app is wired up <i class="bi bi-chevron-down float-end" style="font-size:0.7rem;color:var(--muted)"></i></summary>
+    <table class="table table-sm mb-0" style="font-size:0.78rem;padding:0 1rem 1rem">
       <tbody>
-        <tr><td class="text-muted" style="width:40%">Local storage</td><td>Always saves to this browser first — the app is fully usable offline, signed in or not</td></tr>
-        <tr><td class="text-muted">Cloud storage (optional)</td><td>One file in your Google Drive: <code>${DRIVE_FILE_NAME}</code></td></tr>
-        <tr><td class="text-muted">Permission scope</td><td><code>drive.file</code> — only files this app creates, never your existing Drive</td></tr>
-        <tr><td class="text-muted">OAuth Client ID</td><td style="word-break:break-all"><code>${DRIVE_CLIENT_ID}</code></td></tr>
-        <tr><td class="text-muted">Offline behavior</td><td>Falls back to the built-in Roadmap/Resources/Q&A data if Drive is unreachable</td></tr>
-        <tr><td class="text-muted">Auto-sync</td><td>Every 45 seconds while signed in, plus on tab close (best-effort)</td></tr>
-        <tr><td class="text-muted">What syncs</td><td>Progress, streak, notes, custom Docs Hub/Advanced+ items, custom Q&A, layout preferences</td></tr>
-        <tr><td class="text-muted">What doesn't sync</td><td>Uploaded images/PDFs in Docs Hub and Notes, and your display name — those stay local to this browser only</td></tr>
-        <tr><td class="text-muted">Notes</td><td>Paragraph or bullet format, one optional image attachment per note, long notes auto-collapse with a "Show more" toggle</td></tr>
+        <tr><td class="text-muted" style="width:40%">Local storage</td><td>Always saves to this browser first — usable offline, signed in or not</td></tr>
+        <tr><td class="text-muted">Cloud storage</td><td>One file in your Google Drive: <code>${DRIVE_FILE_NAME}</code></td></tr>
+        <tr><td class="text-muted">Permission scope</td><td><code>drive.file</code> — only files this app creates</td></tr>
+        <tr><td class="text-muted">Auto-sync</td><td>Every 45 seconds while signed in, plus on tab close</td></tr>
+        <tr><td class="text-muted">What syncs</td><td>Progress, streak, notes, Docs Hub/Advanced+/Q&amp;A content, layout prefs</td></tr>
+        <tr><td class="text-muted">What doesn't</td><td>Uploaded images/PDFs and your display name — local only</td></tr>
       </tbody>
     </table>
-  </div>`;
+  </details>`;
 
-  c.innerHTML += `<h6 class="fw-bold mb-2 mt-4"><i class="bi bi-life-preserver me-2" style="color:#d97706"></i>Troubleshooting</h6>`;
+  c.innerHTML += `<h6 class="fw-bold mb-2 mt-3" style="font-size:0.85rem"><i class="bi bi-life-preserver me-2" style="color:#d97706"></i>Troubleshooting</h6>`;
   c.innerHTML += `<div style="padding:0">` + TROUBLESHOOTING.map((t,i)=>{
     const id = 'profile-ts-'+i;
     return `<div class="interview-q" style="cursor:pointer;border-color:#d97706">
@@ -2937,6 +3024,32 @@ function renderProfile(){
     </div>`;
   }).join('') + `</div>`;
 }
+
+// ===================== SCROLL TO TOP =====================
+function scrollToTop(){
+  // Use both window and the app's own container just in case a mobile browser
+  // is treating a wrapping element as the actual scroll root.
+  window.scrollTo({top:0, left:0, behavior:'smooth'});
+  if(document.scrollingElement) document.scrollingElement.scrollTo({top:0, behavior:'smooth'});
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+(function initScrollTopButton(){
+  const btn = document.getElementById('scroll-top-btn');
+  if(!btn) return;
+  let ticking = false;
+  function updateVisibility(){
+    const y = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+    btn.classList.toggle('show', y > 320);
+    ticking = false;
+  }
+  function onScroll(){
+    if(!ticking){ window.requestAnimationFrame(updateVisibility); ticking = true; }
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', updateVisibility, {passive:true});
+  updateVisibility();
+})();
 
 // Init
 document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
