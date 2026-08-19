@@ -93,47 +93,50 @@ img,table{max-width:100%;}
 .qa-answer{display:none;background:#f0f9ff;border-radius:6px;padding:0.6rem 0.9rem;margin-top:4px;font-size:0.8rem;color:#0c4a6e;border-left:3px solid #0891b2;}
 /* Author Content Hub */
 .author-board{display:flex;flex-direction:column;gap:1.2rem;}
-.author-card{background:#fff;border-radius:16px;box-shadow:0 1px 6px rgba(30,27,75,0.08);overflow:hidden;transition:box-shadow .2s;}
+.author-card{background:#fff;border-radius:14px;box-shadow:0 1px 6px rgba(30,27,75,0.08);overflow:hidden;transition:box-shadow .2s;}
 .author-card.drag-over{box-shadow:0 0 0 2px var(--linkedin);}
-.author-topbar{display:flex;align-items:center;gap:12px;padding:1rem 1.2rem;background:linear-gradient(135deg,#4f46e5,#7c3aed);cursor:grab;}
+.author-topbar{display:flex;align-items:center;gap:10px;padding:0.7rem 0.9rem;background:linear-gradient(135deg,#4f46e5,#7c3aed);cursor:grab;flex-wrap:wrap;}
 .author-topbar:active{cursor:grabbing;}
-.author-avatar{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.2);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;flex-shrink:0;border:2px solid rgba(255,255,255,0.5);}
-.author-meta{flex:1;min-width:0;}
-.author-meta .name{color:#fff;font-weight:700;font-size:0.98rem;margin:0;}
-.author-meta .role{color:rgba(255,255,255,0.85);font-size:0.76rem;margin:0;}
-.author-link{background:rgba(255,255,255,0.15);color:#fff;font-size:0.72rem;font-weight:600;border-radius:20px;padding:5px 12px;text-decoration:none;white-space:nowrap;border:1px solid rgba(255,255,255,0.3);transition:background .2s;}
+.author-avatar{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.85rem;flex-shrink:0;border:2px solid rgba(255,255,255,0.5);}
+.author-meta{flex:1;min-width:80px;}
+.author-meta .name{color:#fff;font-weight:700;font-size:0.86rem;margin:0;}
+.author-meta .role{color:rgba(255,255,255,0.85);font-size:0.68rem;margin:0;}
+.author-link{background:rgba(255,255,255,0.15);color:#fff;font-size:0.66rem;font-weight:600;border-radius:20px;padding:3px 9px;text-decoration:none;white-space:nowrap;border:1px solid rgba(255,255,255,0.3);transition:background .2s;}
 .author-link:hover{background:rgba(255,255,255,0.3);color:#fff;}
-.drag-handle{color:rgba(255,255,255,0.6);font-size:1.1rem;cursor:grab;}
-.item-list{padding:1rem 1.2rem;display:flex;flex-direction:column;gap:10px;background:#fbfbff;}
-.content-item{background:#fff;border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;display:flex;gap:10px;transition:box-shadow .15s,transform .15s;}
+.drag-handle{color:rgba(255,255,255,0.6);font-size:0.95rem;cursor:grab;}
+.item-list{padding:0.7rem 0.8rem;display:flex;flex-direction:column;gap:8px;background:#fbfbff;}
+.content-item{background:#fff;border:1px solid var(--border);border-radius:10px;padding:0.6rem 0.75rem;display:flex;gap:8px;transition:box-shadow .15s,transform .15s;}
 .content-item:hover{box-shadow:0 2px 8px rgba(30,27,75,0.08);}
 .content-item.dragging{opacity:0.4;}
 .content-item.drag-over-item{border-top:3px solid var(--linkedin);}
-.item-handle{color:#c7ccd8;cursor:grab;padding-top:2px;flex-shrink:0;}
+.item-handle{color:#c7ccd8;cursor:grab;padding-top:2px;flex-shrink:0;font-size:0.85rem;}
 .item-handle:active{cursor:grabbing;}
 .item-body{flex:1;min-width:0;}
-.item-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
-.item-badge{font-size:0.64rem;font-weight:700;border-radius:8px;padding:2px 8px;text-transform:uppercase;letter-spacing:.03em;}
-.item-title{font-weight:700;font-size:0.9rem;color:#1f2937;}
-.item-summary{font-size:0.82rem;color:#4b5563;line-height:1.5;margin:0 0 6px;}
-.item-points{margin:6px 0 6px;padding-left:1.1rem;font-size:0.8rem;color:#374151;line-height:1.6;}
-.item-open{font-size:0.76rem;font-weight:600;color:var(--linkedin);text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.item-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;}
+.item-badge{font-size:0.6rem;font-weight:700;border-radius:7px;padding:2px 7px;text-transform:uppercase;letter-spacing:.03em;}
+.item-title{font-weight:700;font-size:0.83rem;color:#1f2937;min-width:0;word-break:break-word;}
+.item-summary{font-size:0.79rem;color:#4b5563;line-height:1.45;margin:0 0 5px;}
+.item-points{margin:5px 0 5px;padding-left:1.05rem;font-size:0.78rem;color:#374151;line-height:1.5;}
+.item-open{font-size:0.74rem;font-weight:600;color:var(--linkedin);text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .item-open:hover{text-decoration:underline;}
-.add-author-card{border:2px dashed #c7ccd8;border-radius:16px;padding:1.5rem;text-align:center;color:var(--muted);cursor:pointer;transition:all .2s;background:#fff;}
+.add-author-card{border:2px dashed #c7ccd8;border-radius:14px;padding:1.1rem;text-align:center;color:var(--muted);cursor:pointer;transition:all .2s;background:#fff;}
 .add-author-card:hover{border-color:var(--primary);color:var(--primary);background:#fafaff;}
-.author-form{background:#fff;border-radius:16px;box-shadow:0 1px 6px rgba(30,27,75,0.08);padding:1.2rem;margin-bottom:1.2rem;}
-.author-form label{font-size:0.76rem;font-weight:600;color:var(--muted);margin-bottom:2px;display:block;}
+.author-form{background:#fff;border-radius:14px;box-shadow:0 1px 6px rgba(30,27,75,0.08);padding:0.9rem 1rem;margin-bottom:0.9rem;}
+.author-form label{font-size:0.74rem;font-weight:600;color:var(--muted);margin-bottom:2px;display:block;}
 /* Add-content type chooser */
-.type-chooser-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.type-chooser-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
 @media(min-width:576px){.type-chooser-grid{grid-template-columns:repeat(4,1fr);}}
-.type-chooser-btn{border:2px solid var(--border);border-radius:14px;background:#fff;padding:1rem 0.6rem;text-align:center;cursor:pointer;transition:all .15s;color:var(--text);}
+.type-chooser-btn{border:2px solid var(--border);border-radius:12px;background:#fff;padding:0.7rem 0.5rem;text-align:center;cursor:pointer;transition:all .15s;color:var(--text);}
 .type-chooser-btn:hover{border-color:var(--primary);background:#fafaff;transform:translateY(-2px);}
-.type-chooser-btn i{font-size:1.6rem;display:block;margin-bottom:6px;}
-.type-chooser-btn .tc-label{font-weight:700;font-size:0.85rem;display:block;}
-.type-chooser-btn .tc-desc{font-size:0.68rem;color:var(--muted);display:block;margin-top:2px;}
-.optional-toggle{font-size:0.76rem;font-weight:600;color:var(--primary);cursor:pointer;background:none;border:none;padding:0;display:inline-flex;align-items:center;gap:4px;}
+.type-chooser-btn i{font-size:1.35rem;display:block;margin-bottom:4px;}
+.type-chooser-btn .tc-label{font-weight:700;font-size:0.78rem;display:block;}
+.type-chooser-btn .tc-desc{font-size:0.64rem;color:var(--muted);display:block;margin-top:2px;}
+.optional-toggle{font-size:0.74rem;font-weight:600;color:var(--primary);cursor:pointer;background:none;border:none;padding:0;display:inline-flex;align-items:center;gap:4px;}
 .optional-fields{display:none;margin-top:8px;}
 .optional-fields.open{display:block;}
+.docshub-form-compact{padding:0.85rem 1rem;}
+.docshub-form-compact h6{font-size:0.88rem;}
+.docshub-form-compact .tc-desc{display:none;}
 .qa-form-compact{padding:0.85rem 1rem;}
 .qa-form-compact h6{font-size:0.88rem;}
 .qa-form-compact label{font-size:0.72rem;}
@@ -142,6 +145,19 @@ img,table{max-width:100%;}
 .qa-form-compact .tc-label{font-size:0.78rem;}
 .qa-showmore-btn{background:none;border:none;padding:0;color:var(--primary);font-size:0.78rem;font-weight:600;cursor:pointer;}
 .qa-showmore-btn:hover{text-decoration:underline;}
+/* Rich text editor */
+.rte-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:2px;background:#f9fafb;border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;padding:4px 5px;}
+.rte-toolbar button,.rte-color-btn{border:none;background:#fff;border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:0.78rem;cursor:pointer;color:#374151;position:relative;padding:0;}
+.rte-toolbar button:hover,.rte-color-btn:hover{background:#eef2ff;color:var(--primary);}
+.rte-color-btn input[type=color]{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;border:none;padding:0;}
+.rte-sep{width:1px;height:18px;background:var(--border);margin:0 2px;}
+.rte-editor{min-height:70px;max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:0 0 8px 8px;padding:0.5rem 0.65rem;font-size:0.82rem;background:#fff;line-height:1.45;}
+.rte-editor:focus{outline:2px solid var(--primary);outline-offset:-1px;}
+.rte-editor img{max-width:100%;border-radius:6px;margin:4px 0;display:block;}
+.rte-editor:empty:before{content:attr(data-placeholder);color:#9ca3af;}
+.rte-editor ul,.rte-editor ol{padding-left:1.3rem;margin:4px 0;}
+.item-summary img{max-width:100%;border-radius:8px;margin:6px 0;display:block;}
+.item-summary ul,.item-summary ol{padding-left:1.2rem;margin:4px 0;}
 .profile-details summary::-webkit-details-marker{display:none;}
 .profile-details summary{outline:none;}
 .profile-details[open] summary .bi-chevron-down{transform:rotate(180deg);}
@@ -161,6 +177,7 @@ img,table{max-width:100%;}
 .adv-header .docshub-add-btn{color:#b45309;}
 .docshub-subtab{border-radius:20px;font-weight:600;font-size:0.8rem;}
 .profile-subtab{border-radius:20px;font-weight:600;font-size:0.8rem;}
+.qa-subtab{border-radius:20px;font-weight:600;font-size:0.8rem;}
 .author-form .form-control,.author-form .form-select{font-size:0.84rem;margin-bottom:10px;}
 .show-more-btn{align-self:center;font-size:0.8rem;font-weight:600;}
 .day-note-btn{background:none;border:none;color:#c7ccd8;font-size:0.85rem;padding:2px 5px;cursor:pointer;border-radius:5px;flex-shrink:0;}
@@ -425,12 +442,21 @@ img,table{max-width:100%;}
   <div class="docshub-header">
     <div>
       <h5 class="docshub-title"><i class="bi bi-patch-question-fill me-2"></i>Interview Q&amp;A</h5>
-      <p class="docshub-sub mb-0">Tap a question to reveal the answer. Answers can include a PDF, image, link/video, or written content — same as Docs Hub.</p>
+      <p class="docshub-sub mb-0">Tap a question to reveal the answer.</p>
     </div>
     <button class="btn btn-primary btn-sm docshub-add-btn" onclick="openQAChooser()"><i class="bi bi-plus-lg me-1"></i>Add question</button>
   </div>
   <div id="qa-form-slot" class="mb-3"></div>
-  <div id="qa-container"></div>
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+    <button class="btn btn-sm btn-outline-primary qa-subtab active" onclick="setQASubtab('builtin',this)"><i class="bi bi-collection me-1"></i>Built-in Topics</button>
+    <button class="btn btn-sm btn-outline-primary qa-subtab" onclick="setQASubtab('custom',this)"><i class="bi bi-person-lines-fill me-1"></i>My Questions</button>
+  </div>
+  <div id="qa-builtin-view">
+    <div id="qa-container"></div>
+  </div>
+  <div id="qa-custom-view" style="display:none">
+    <div id="qa-custom-container"></div>
+  </div>
 </div>
 
 <!-- ===================== TAB: PROFILE (incl. Timeline & Summary) ===================== -->
@@ -881,9 +907,9 @@ function itemBodyHTML(item){
   let html = '';
   // PDF: keep the optional topic/notes text collapsible rather than always shown.
   if(item.type==='PDF' && item.summary){
-    html += `<details class="pdf-note-details"><summary style="cursor:pointer;font-size:0.8rem;color:var(--muted);font-weight:600">Topic / notes</summary><p class="item-summary mt-1">${item.summary}</p></details>`;
+    html += `<details class="pdf-note-details"><summary style="cursor:pointer;font-size:0.8rem;color:var(--muted);font-weight:600">Topic / notes</summary><div class="item-summary mt-1">${item.summary}</div></details>`;
   } else if(item.summary){
-    html += `<p class="item-summary">${item.summary}</p>`;
+    html += `<div class="item-summary">${item.summary}</div>`;
   }
   if(item.points) html += `<ul class="item-points">${item.points.map(p=>`<li>${p}</li>`).join('')}</ul>`;
   if(item.type==='Roadmap') html += roadmapAccordionHTML();
@@ -1014,18 +1040,15 @@ function openAddChooser(){
   editingItem = null; editingAuthorId = null; pendingMedia = null;
   const slot = document.getElementById('author-form-slot');
   slot.innerHTML = `
-    <div class="author-form">
-      <h6 class="fw-bold mb-1"><i class="bi bi-plus-circle me-1"></i>What would you like to add?</h6>
-      <p class="small text-muted mb-3">Pick a type — the form below will only ask what's relevant.</p>
+    <div class="author-form docshub-form-compact">
+      <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>What would you like to add?</h6>
       <div class="type-chooser-grid">
-        <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'PDF')"><i class="bi bi-file-earmark-pdf-fill" style="color:#dc2626"></i><span class="tc-label">PDF</span><span class="tc-desc">Upload &amp; preview a PDF</span></button>
-        <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'Image')"><i class="bi bi-image" style="color:#d97706"></i><span class="tc-label">Image</span><span class="tc-desc">Upload a picture</span></button>
-        <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'Link')"><i class="bi bi-link-45deg" style="color:#0891b2"></i><span class="tc-label">Link</span><span class="tc-desc">Web link — video links auto-play</span></button>
-        <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'Content')"><i class="bi bi-text-paragraph" style="color:#16a34a"></i><span class="tc-label">Content</span><span class="tc-desc">Write a paragraph, bullets, or post</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'PDF')"><i class="bi bi-file-earmark-pdf-fill" style="color:#dc2626"></i><span class="tc-label">PDF</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'Image')"><i class="bi bi-image" style="color:#d97706"></i><span class="tc-label">Image</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'Link')"><i class="bi bi-link-45deg" style="color:#0891b2"></i><span class="tc-label">Link</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'Content')"><i class="bi bi-text-paragraph" style="color:#16a34a"></i><span class="tc-label">Content</span></button>
       </div>
-      <div class="d-flex mt-3">
-        <button class="btn btn-outline-secondary btn-sm" onclick="closeContentForm()">Cancel</button>
-      </div>
+      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeContentForm()">Cancel</button>
     </div>`;
   slot.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
@@ -1152,16 +1175,16 @@ function openContentForm(authorId, itemId, category){
   let typeSpecificHTML = '';
   if(category==='PDF'){
     typeSpecificHTML = `
-      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Click to choose a PDF<input type="file" id="naf-pdf-input" accept="application/pdf" style="display:none" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name-pdf">${isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):''}</div></div>
-      <div class="col-12"><label>Topic / notes <span class="text-muted fw-normal">(optional — shown as a collapsible note)</span></label><textarea id="naf-para" class="form-control" rows="2" placeholder="What's inside this PDF, briefly...">${isEdit && item.type==='PDF'?item.summary||'':''}</textarea></div>`;
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="naf-pdf-input" accept="application/pdf" style="display:none" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name-pdf">${isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):''}</div></div>
+      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional, collapsible)</span></label>${rteEditorHTML('naf-para','What\'s inside this PDF, briefly...', isEdit && item.type==='PDF'?item.summary||'':'')}</div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Click to choose an image<input type="file" id="naf-image-input" accept="image/*" style="display:none" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name">${isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):''}</div></div>
-      <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label><textarea id="naf-summary" class="form-control" rows="2" placeholder="One or two lines of context">${isEdit && item.type==='Image'?item.summary||'':''}</textarea></div>`;
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="naf-image-input" accept="image/*" style="display:none" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name">${isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):''}</div></div>
+      <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('naf-summary','One or two lines of context', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Link URL <span class="text-danger">*required</span> <span class="text-muted fw-normal">— paste a YouTube/Vimeo/video link and it'll play right here</span></label><input id="naf-url" class="form-control" placeholder="https://..." value="${isEdit && item.url?item.url:''}"></div>
-      <div class="col-12"><label>Short summary <span class="text-muted fw-normal">(optional)</span></label><textarea id="naf-summary" class="form-control" rows="2" placeholder="One or two lines of context">${isEdit?item.summary||'':''}</textarea></div>`;
+      <div class="col-12"><label>Link URL <span class="text-danger">*</span> <span class="text-muted fw-normal">— video links play right here</span></label><input id="naf-url" class="form-control" placeholder="https://..." value="${isEdit && item.url?item.url:''}"></div>
+      <div class="col-12"><label>Summary <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('naf-summary','One or two lines of context', isEdit?item.summary||'':'')}</div>`;
   } else { // Content
     typeSpecificHTML = `
       <div class="col-md-5"><label>Content type</label>
@@ -1172,21 +1195,21 @@ function openContentForm(authorId, itemId, category){
           <option value="Post">Link / Post</option>
         </select>
       </div>
-      <div class="col-12 type-field" data-type="Paragraph"><label>Paragraph text</label><textarea id="naf-para" class="form-control" rows="3" placeholder="Write your paragraph here...">${isEdit && item.type==='Paragraph'?item.summary||'':''}</textarea></div>
+      <div class="col-12 type-field" data-type="Paragraph"><label>Paragraph</label>${rteEditorHTML('naf-para','Write your paragraph here...', isEdit && item.type==='Paragraph'?item.summary||'':'')}</div>
       <div class="col-12 type-field" data-type="Bullets"><label>Bullet points (one per line)</label><textarea id="naf-bullets" class="form-control" rows="3" placeholder="First point\nSecond point\nThird point">${isEdit && item.type==='Bullets' && item.points?item.points.join('\n'):''}</textarea></div>
-      <div class="col-12 type-field" data-type="Diagram"><label>Roadmap steps (one per line, shown left → right)</label><textarea id="naf-steps" class="form-control" rows="3" placeholder="Setup\nBuild API\nAdd Auth\nDeploy">${isEdit && item.type==='Diagram' && item.steps?item.steps.join('\n'):''}</textarea></div>
+      <div class="col-12 type-field" data-type="Diagram"><label>Roadmap steps (one per line)</label><textarea id="naf-steps" class="form-control" rows="3" placeholder="Setup\nBuild API\nAdd Auth\nDeploy">${isEdit && item.type==='Diagram' && item.steps?item.steps.join('\n'):''}</textarea></div>
       <div class="col-12 type-field" data-type="Post"><label>Link URL</label><input id="naf-url" class="form-control" placeholder="https://..." value="${isEdit && item.url?item.url:''}"></div>
-      <div class="col-12"><label>Short summary <span class="text-muted fw-normal">(optional, shown under the title)</span></label><textarea id="naf-summary" class="form-control" rows="2" placeholder="One or two lines of context">${isEdit && item.type!=='Paragraph'?item.summary||'':''}</textarea></div>`;
+      <div class="col-12"><label>Summary <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('naf-summary','One or two lines of context', isEdit && item.type!=='Paragraph'?item.summary||'':'')}</div>`;
   }
 
   const catMeta = {PDF:{icon:'bi-file-earmark-pdf-fill',label:'PDF'},Image:{icon:'bi-image',label:'Image'},Link:{icon:'bi-link-45deg',label:'Link'},Content:{icon:'bi-text-paragraph',label:'Content'}}[category];
 
   const slot = document.getElementById('author-form-slot');
   slot.innerHTML = `
-    <div class="author-form">
-      <h6 class="fw-bold mb-3"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit content':'Add '+catMeta.label}</h6>
+    <div class="author-form docshub-form-compact">
+      <h6 class="fw-bold mb-2"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit content':'Add '+catMeta.label}</h6>
       <div class="row g-2">
-        <div class="col-12"><label>Heading / title <span class="text-danger">*required</span></label><input id="naf-title" class="form-control" placeholder="e.g. Minimal APIs in .NET 8" value="${isEdit?item.title:''}" oninput="checkTopicOverlap()"><div id="naf-topic-hint"></div></div>
+        <div class="col-12"><label>Heading / title <span class="text-danger">*</span></label><input id="naf-title" class="form-control" placeholder="e.g. Minimal APIs in .NET 8" value="${isEdit?item.title:''}" oninput="checkTopicOverlap()"><div id="naf-topic-hint"></div></div>
         ${typeSpecificHTML}
         <div class="col-12">
           <button type="button" class="optional-toggle" onclick="toggleOptionalAuthorFields(this)"><i class="bi bi-chevron-right"></i> Author details (optional)</button>
@@ -1196,7 +1219,7 @@ function openContentForm(authorId, itemId, category){
           </div>
         </div>
       </div>
-      <div class="d-flex gap-2 mt-3 flex-wrap">
+      <div class="d-flex gap-2 mt-2 flex-wrap">
         <button class="btn btn-primary btn-sm" onclick="submitContentForm('${category}')"><i class="bi bi-check2 me-1"></i>${isEdit?'Save changes':'Add'}</button>
         <button class="btn btn-outline-secondary btn-sm" onclick="closeContentForm()">Cancel</button>
         ${!isEdit ? `<button class="btn btn-link btn-sm text-muted" onclick="openAddChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
@@ -1213,6 +1236,57 @@ function toggleOptionalAuthorFields(btn){
   btn.querySelector('i').className = open ? 'bi bi-chevron-down' : 'bi bi-chevron-right';
 }
 function closeContentForm(){ document.getElementById('author-form-slot').innerHTML=''; editingItem=null; pendingMedia=null; }
+
+// ===================== RICH TEXT EDITOR (shared by Docs Hub + Interview Q&A) =====================
+// A small contenteditable-based editor: bold/italic/underline, bullet/numbered lists,
+// highlight colour, and inline images — no external library needed.
+function rteToolbarHTML(id){
+  return `<div class="rte-toolbar">
+    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','bold')" title="Bold"><i class="bi bi-type-bold"></i></button>
+    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','italic')" title="Italic"><i class="bi bi-type-italic"></i></button>
+    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','underline')" title="Underline"><i class="bi bi-type-underline"></i></button>
+    <span class="rte-sep"></span>
+    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','insertUnorderedList')" title="Bullet points"><i class="bi bi-list-ul"></i></button>
+    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','insertOrderedList')" title="Numbered list"><i class="bi bi-list-ol"></i></button>
+    <span class="rte-sep"></span>
+    <label class="rte-color-btn" title="Highlight colour" onmousedown="event.preventDefault()"><i class="bi bi-brush"></i><input type="color" value="#fff59d" onchange="rteHighlight('${id}', this.value)" onclick="document.getElementById('${id}').focus()"></label>
+    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="document.getElementById('${id}-img').click()" title="Insert image"><i class="bi bi-image"></i></button>
+    <input type="file" id="${id}-img" accept="image/*" style="display:none" onchange="rteInsertImage('${id}', event)">
+    <span class="rte-sep"></span>
+    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','removeFormat')" title="Clear formatting"><i class="bi bi-eraser"></i></button>
+  </div>`;
+}
+function rteEditorHTML(id, placeholder, existingHTML){
+  return `${rteToolbarHTML(id)}<div id="${id}" class="rte-editor" contenteditable="true" data-placeholder="${placeholder}">${existingHTML||''}</div>`;
+}
+function rteExec(id, cmd){
+  const el = document.getElementById(id); if(!el) return;
+  el.focus();
+  document.execCommand(cmd, false, null);
+}
+function rteHighlight(id, color){
+  const el = document.getElementById(id); if(!el) return;
+  el.focus();
+  document.execCommand('styleWithCSS', false, true);
+  if(!document.execCommand('hiliteColor', false, color)) document.execCommand('backColor', false, color);
+}
+function rteInsertImage(id, e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const el = document.getElementById(id); if(!el) return;
+    el.focus();
+    document.execCommand('insertImage', false, reader.result);
+  };
+  reader.readAsDataURL(file);
+}
+// Reads an editor's content back out — empty editors (just a stray <br>) come back as ''.
+function rteGetHTML(id){
+  const el = document.getElementById(id);
+  if(!el) return '';
+  const html = el.innerHTML.trim();
+  return (html==='<br>' || html==='') ? '' : html;
+}
 
 // Lightweight, non-blocking duplicate/overlap check: warns if a new title looks like it
 // already exists in the day-by-day Roadmap or elsewhere in Community Content, so you can
@@ -1299,10 +1373,9 @@ async function submitContentForm(category){
   let author = authors.find(a=>a.id===authorId);
 
   let itemData = {type, title, badgeColor: TYPE_COLOR[type]};
-  const summaryEl = document.getElementById('naf-summary');
-  itemData.summary = summaryEl ? summaryEl.value.trim() : '';
-  if(type==='Paragraph') itemData.summary = document.getElementById('naf-para').value.trim();
-  if(type==='PDF'){ const paraEl = document.getElementById('naf-para'); if(paraEl) itemData.summary = paraEl.value.trim(); }
+  itemData.summary = rteGetHTML('naf-summary');
+  if(type==='Paragraph') itemData.summary = rteGetHTML('naf-para');
+  if(type==='PDF') itemData.summary = rteGetHTML('naf-para');
   if(type==='Bullets') itemData.points = document.getElementById('naf-bullets').value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(type==='Diagram') itemData.steps = document.getElementById('naf-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(type==='Post' || type==='Link' || type==='Video') itemData.url = document.getElementById('naf-url').value.trim();
@@ -1714,6 +1787,12 @@ function setProfileSubtab(which, btn){
   btn.classList.add('active');
   document.getElementById('profile-overview-view').style.display = which==='overview' ? '' : 'none';
   document.getElementById('profile-summary-view').style.display = which==='summary' ? '' : 'none';
+}
+function setQASubtab(which, btn){
+  document.querySelectorAll('.qa-subtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('qa-builtin-view').style.display = which==='builtin' ? '' : 'none';
+  document.getElementById('qa-custom-view').style.display = which==='custom' ? '' : 'none';
 }
 
 // ===================== DAY NOTES =====================
@@ -2419,12 +2498,15 @@ function findRelatedContent(question){
 
 // Renders a QA answer body: rich items (PDF/Image/Link/Video) reuse itemBodyHTML just like
 // Docs Hub / Advanced+; plain-text answers collapse behind "Show more" past ~220 chars.
+// Rich-text answers (containing HTML tags from the editor) are never truncated, since cutting
+// mid-tag would break the markup — they're shown in full instead.
 function qaAnswerHTML(q){
   if(q.type) return itemBodyHTML(q);
   const text = q.a || '';
-  if(text.length <= 220) return `<p class="item-summary mb-0">${text}</p>`;
+  const isRich = /<[a-z][\s\S]*>/i.test(text);
+  if(isRich || text.length <= 220) return `<div class="item-summary mb-0">${text}</div>`;
   const short = text.slice(0,220).trim();
-  return `<p class="item-summary mb-0 qa-long-text" data-full="${encodeURIComponent(text)}" data-short="${encodeURIComponent(short)}" data-expanded="0">${short}… <button type="button" class="qa-showmore-btn" onclick="event.stopPropagation();toggleQALongText(this.parentElement)">Show more</button></p>`;
+  return `<div class="item-summary mb-0 qa-long-text" data-full="${encodeURIComponent(text)}" data-short="${encodeURIComponent(short)}" data-expanded="0">${short}… <button type="button" class="qa-showmore-btn" onclick="event.stopPropagation();toggleQALongText(this.parentElement)">Show more</button></div>`;
 }
 function toggleQALongText(p){
   const expanded = p.dataset.expanded==='1';
@@ -2436,27 +2518,15 @@ function toggleQALongText(p){
   p.dataset.expanded = expanded ? '0' : '1';
 }
 
-function renderInterview(){
-  const c=document.getElementById('qa-container'); c.innerHTML='';
-  c.innerHTML=`<div class="alert" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;font-size:0.8rem;color:#0c4a6e;margin-bottom:1rem">
-    <i class="bi bi-patch-question-fill me-2"></i>Tap a question to reveal the answer. All questions — built-in or custom — can be edited or deleted.
-  </div>`;
-  const allItems = getAllQAItems();
-  const catColorMap = {}; QA_DATA.forEach(cc=> catColorMap[cc.cat]=cc.color);
-  const extraCats = [...new Set(allItems.map(i=>i.cat))].filter(cn=>!catColorMap[cn]);
-  const orderedCats = [...QA_DATA.map(cc=>cc.cat), ...extraCats];
-
-  let qi=0;
-  orderedCats.forEach(catName=>{
-    const qs = allItems.filter(i=>i.cat===catName);
-    if(qs.length===0) return;
-    const color = catColorMap[catName] || '#16a34a';
-    c.innerHTML+=`<div class="phase-card mb-3">
+// Builds one category card's HTML (used by both the Built-in and My Questions views).
+function qaCategoryCardHTML(catName, qs, color, qiStart){
+  let qi = qiStart;
+  return {qi: qi + qs.length, html: `<div class="phase-card mb-3">
       <div class="phase-header" style="background:${color}15;border-bottom:2px solid ${color}">
         <span class="fw-bold" style="color:${color}">${catName}</span>
         <span class="phase-badge" style="background:${color};color:white">${qs.length} Questions</span>
       </div>
-      <div style="padding:0.75rem">
+      <div style="padding:0.6rem">
         ${qs.map(q=>{
           const id='qa-'+(qi++);
           const related = findRelatedContent(q.q);
@@ -2476,8 +2546,46 @@ function renderInterview(){
           </div>`;
         }).join('')}
       </div>
-    </div>`;
+    </div>`};
+}
+
+function renderInterview(){
+  const allItems = getAllQAItems();
+  const catColorMap = {}; QA_DATA.forEach(cc=> catColorMap[cc.cat]=cc.color);
+  const builtinIds = new Set();
+  QA_DATA.forEach((cat,ci)=> cat.qs.forEach((qq,qi)=> builtinIds.add('qa-seed-'+ci+'-'+qi)));
+
+  const builtinItems = allItems.filter(i=>builtinIds.has(i.id));
+  const customItems = allItems.filter(i=>!builtinIds.has(i.id));
+
+  // Built-in Topics — grouped by the original hardcoded categories (C# Core, ASP.NET Core, etc.)
+  const bc = document.getElementById('qa-container'); bc.innerHTML='';
+  bc.innerHTML=`<div class="alert" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;font-size:0.78rem;color:#0c4a6e;margin-bottom:0.9rem;padding:0.6rem 0.8rem">
+    <i class="bi bi-patch-question-fill me-2"></i>Tap a question to reveal the answer. Editable and deletable, like everything else.
+  </div>`;
+  let qi=0;
+  QA_DATA.forEach(cc=>{
+    const qs = builtinItems.filter(i=>i.cat===cc.cat);
+    if(qs.length===0) return;
+    const res = qaCategoryCardHTML(cc.cat, qs, cc.color, qi); qi = res.qi;
+    bc.innerHTML += res.html;
   });
+  if(builtinItems.length===0) bc.innerHTML += `<p class="small text-muted text-center py-3">No built-in topics left — they've all been removed.</p>`;
+
+  // My Questions — anything newly added via "Add question", in its own tab
+  const cc2 = document.getElementById('qa-custom-container'); cc2.innerHTML='';
+  if(customItems.length===0){
+    cc2.innerHTML = `<p class="small text-muted text-center py-3"><i class="bi bi-info-circle me-1"></i>No custom questions yet — tap "Add question" above to add one.</p>`;
+  } else {
+    const customCats = [...new Set(customItems.map(i=>i.cat))];
+    let qi2=0;
+    customCats.forEach(catName=>{
+      const qs = customItems.filter(i=>i.cat===catName);
+      const color = catColorMap[catName] || '#16a34a';
+      const res = qaCategoryCardHTML(catName, qs, color, qi2); qi2 = res.qi;
+      cc2.innerHTML += res.html;
+    });
+  }
 }
 
 function deleteQAItem(id){
@@ -2528,17 +2636,17 @@ function openQAForm(itemId, category){
   if(category==='PDF'){
     typeSpecificHTML = `
       <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="qa-pdf-input" accept="application/pdf" style="display:none" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name-pdf">${isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):''}</div></div>
-      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label><textarea id="qa-para" class="form-control" rows="2">${isEdit && item.type==='PDF'?item.summary||'':''}</textarea></div>`;
+      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-para','Optional notes', isEdit && item.type==='PDF'?item.summary||'':'')}</div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
       <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="qa-image-input" accept="image/*" style="display:none" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name">${isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):''}</div></div>
-      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label><textarea id="qa-summary" class="form-control" rows="2">${isEdit && item.type==='Image'?item.summary||'':''}</textarea></div>`;
+      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-summary','Optional notes', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
       <div class="col-12"><label>Link URL <span class="text-danger">*</span></label><input id="qa-url" class="form-control" value="${isEdit && item.url?item.url:''}" placeholder="https://..."></div>
-      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label><textarea id="qa-summary" class="form-control" rows="2">${isEdit?item.summary||'':''}</textarea></div>`;
+      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-summary','Optional notes', isEdit?item.summary||'':'')}</div>`;
   } else {
-    typeSpecificHTML = `<div class="col-12"><label>Answer <span class="text-danger">*</span></label><textarea id="qa-a" class="form-control" rows="3" placeholder="Write the answer">${isEdit?(item.a||item.summary||''):''}</textarea></div>`;
+    typeSpecificHTML = `<div class="col-12"><label>Answer <span class="text-danger">*</span></label>${rteEditorHTML('qa-a','Write the answer', isEdit?(item.a||item.summary||''):'')}</div>`;
   }
 
   const catMeta = {PDF:{icon:'bi-file-earmark-pdf-fill',label:'PDF'},Image:{icon:'bi-image',label:'Image'},Link:{icon:'bi-link-45deg',label:'Link'},Content:{icon:'bi-text-paragraph',label:'Text'}}[category];
@@ -2583,9 +2691,8 @@ async function submitQAForm(category){
   let data = {cat, q};
   if(type){
     data.type = type; data.badgeColor = TYPE_COLOR[type];
-    const summaryEl = document.getElementById('qa-summary');
-    data.summary = summaryEl ? summaryEl.value.trim() : '';
-    if(type==='PDF'){ const p=document.getElementById('qa-para'); if(p) data.summary = p.value.trim(); }
+    data.summary = rteGetHTML('qa-summary');
+    if(type==='PDF') data.summary = rteGetHTML('qa-para');
     if(type==='Link' || type==='Video') data.url = document.getElementById('qa-url').value.trim();
     if((type==='Image'||type==='PDF') && pendingQAMedia){
       const key = 'media-qa-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
@@ -2596,7 +2703,7 @@ async function submitQAForm(category){
     if(!editingQAItem && type==='Image' && !pendingQAMedia){ alert('Please choose an image file to upload.'); return; }
     if((type==='Link'||type==='Video') && !data.url){ alert('Please enter a link URL.'); return; }
   } else {
-    const a = document.getElementById('qa-a').value.trim();
+    const a = rteGetHTML('qa-a');
     if(!a){ alert('Please write the answer.'); return; }
     data.a = a;
   }
@@ -3040,7 +3147,7 @@ function scrollToTop(){
   let ticking = false;
   function updateVisibility(){
     const y = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-    btn.classList.toggle('show', y > 320);
+    btn.classList.toggle('show', y > 250);
     ticking = false;
   }
   function onScroll(){
