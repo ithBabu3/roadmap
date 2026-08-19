@@ -48,10 +48,10 @@ img,table{max-width:100%;}
   #scroll-top-btn{width:42px;height:42px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom, 0px));font-size:1.3rem;}
 }
 .phase-card{border:none;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,0.07);margin-bottom:1.2rem;overflow:hidden;}
-.phase-header{padding:0.9rem 1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
+.phase-header{padding:0.9rem 1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;}
 .phase-badge{font-size:0.7rem;font-weight:600;padding:2px 9px;border-radius:20px;}
 .week-card{border-radius:10px;border:1px solid var(--border);margin-bottom:0.65rem;overflow:hidden;}
-.week-header{padding:0.6rem 1rem;background:#f9fafb;display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:0.88rem;}
+.week-header{padding:0.6rem 1rem;background:#f9fafb;display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:0.88rem;flex-wrap:wrap;gap:6px;}
 .day-row{display:flex;align-items:flex-start;gap:10px;padding:0.5rem 1rem;border-top:1px solid #f3f4f6;font-size:0.85rem;transition:background 0.15s;}
 .day-row:hover{background:#f9fafb;}
 .day-num{min-width:48px;font-weight:700;color:var(--primary);font-size:0.78rem;padding-top:2px;}
@@ -109,6 +109,12 @@ img,table{max-width:100%;}
 .content-item:hover{box-shadow:0 2px 8px rgba(30,27,75,0.08);}
 .content-item.dragging{opacity:0.4;}
 .content-item.drag-over-item{border-top:3px solid var(--linkedin);}
+.interview-q.dragging{opacity:0.4;}
+.interview-q.drag-over-item{border-top:3px solid var(--linkedin);}
+.search-filter-bar{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.7rem;}
+.search-filter-bar i{color:var(--muted);font-size:0.85rem;}
+.search-filter-bar input,.search-filter-bar select{border:none;outline:none;font-size:0.82rem;background:transparent;flex:1;min-width:0;}
+.search-filter-bar select{flex:0 0 auto;max-width:130px;color:var(--muted);}
 .item-handle{color:#c7ccd8;cursor:grab;padding-top:2px;flex-shrink:0;font-size:0.85rem;}
 .item-handle:active{cursor:grabbing;}
 .item-body{flex:1;min-width:0;}
@@ -158,6 +164,48 @@ img,table{max-width:100%;}
 .rte-editor ul,.rte-editor ol{padding-left:1.3rem;margin:4px 0;}
 .item-summary img{max-width:100%;border-radius:8px;margin:6px 0;display:block;}
 .item-summary ul,.item-summary ol{padding-left:1.2rem;margin:4px 0;}
+
+/* ===================== RESUME BUILDER ===================== */
+.resume-edit-section{background:#fff;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden;}
+.resume-edit-section summary{padding:0.6rem 0.8rem;font-weight:700;font-size:0.8rem;cursor:pointer;list-style:none;background:#f9fafb;}
+.resume-edit-section summary::-webkit-details-marker{display:none;}
+.resume-edit-section[open] summary{border-bottom:1px solid var(--border);}
+.resume-edit-section label{font-size:0.68rem;font-weight:600;color:var(--muted);margin-bottom:2px;display:block;}
+.resume-entry-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;}
+.resume-entry-row .flex-1{flex:1;min-width:0;}
+.resume-entry-block{border:1px dashed var(--border);border-radius:8px;padding:0.6rem;margin-bottom:10px;}
+
+/* The resume document itself — deliberately plain (no colour blocks, icons, or tables)
+   so it parses cleanly through ATS software, on screen and in the printed PDF alike. */
+#resume-print-root{display:none;}
+.resume-doc{
+  background:#fff;color:#111827;font-family:'Georgia','Times New Roman',serif;
+  border:1px solid var(--border);border-radius:10px;
+  padding:1.6rem 1.5rem;max-width:800px;margin:0 auto;
+  font-size:0.86rem;line-height:1.5;
+}
+.resume-doc h1{font-size:1.35rem;font-weight:700;margin:0 0 2px;color:#111827;}
+.resume-doc .resume-contact{font-size:0.78rem;color:#4b5563;margin-bottom:0.9rem;}
+.resume-doc h2{font-size:0.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#1f2937;border-bottom:1.5px solid #1f2937;padding-bottom:3px;margin:1rem 0 0.5rem;}
+.resume-doc p{margin:0 0 0.4rem;}
+.resume-doc .resume-skill-line{font-size:0.82rem;margin-bottom:3px;}
+.resume-doc .resume-job,.resume-doc .resume-edu{margin-bottom:0.7rem;}
+.resume-doc .resume-row-head{display:flex;justify-content:space-between;gap:8px;font-size:0.86rem;flex-wrap:wrap;}
+.resume-doc .resume-row-head span{color:#4b5563;font-size:0.76rem;white-space:nowrap;}
+.resume-doc .resume-role{font-style:italic;color:#374151;font-size:0.8rem;margin-bottom:2px;}
+.resume-doc .resume-detail{font-size:0.78rem;color:#4b5563;}
+.resume-doc ul{margin:3px 0 0;padding-left:1.15rem;}
+.resume-doc li{margin-bottom:2px;font-size:0.82rem;}
+@media(max-width:576px){
+  .resume-doc{padding:1.1rem 0.9rem;font-size:0.78rem;}
+  .resume-doc h1{font-size:1.15rem;}
+  .resume-doc h2{font-size:0.76rem;}
+}
+@media print{
+  body.resume-print-mode > *:not(#resume-print-root){display:none!important;}
+  body.resume-print-mode #resume-print-root{display:block!important;border:none!important;box-shadow:none!important;max-width:100%!important;padding:0!important;margin:0!important;}
+  @page{margin:1.4cm;}
+}
 .profile-details summary::-webkit-details-marker{display:none;}
 .profile-details summary{outline:none;}
 .profile-details[open] summary .bi-chevron-down{transform:rotate(180deg);}
@@ -395,22 +443,34 @@ img,table{max-width:100%;}
 
 <!-- ===================== TAB: DOCS HUB (Curated Resources + Community Docs) ===================== -->
 <div id="tab-author" style="display:none">
-  <div class="docshub-header">
-    <div>
-      <h5 class="docshub-title"><i class="bi bi-collection-fill me-2"></i>Docs Hub</h5>
-      <p class="docshub-sub mb-0">Curated resources, plus every PDF, image, link, video and note the community (and you) have added.</p>
-    </div>
-    <button class="btn btn-primary btn-sm docshub-add-btn" onclick="openAddChooser()"><i class="bi bi-plus-lg me-1"></i>Add new content</button>
-  </div>
-  <div id="author-form-slot" class="mb-3"></div>
-  <div class="d-flex gap-2 mb-3 flex-wrap">
+  <div class="d-flex gap-2 mb-2 flex-wrap align-items-center">
+    <button class="btn btn-sm btn-primary" onclick="openAddChooser()"><i class="bi bi-plus-lg me-1"></i>Add new content</button>
     <button class="btn btn-sm btn-outline-primary docshub-subtab active" onclick="setDocsSubtab('community',this)"><i class="bi bi-people-fill me-1"></i>Community Docs</button>
     <button class="btn btn-sm btn-outline-primary docshub-subtab" onclick="setDocsSubtab('resources',this)"><i class="bi bi-bookmark-star-fill me-1"></i>Curated Resources</button>
+  </div>
+  <div class="search-filter-bar mb-3">
+    <i class="bi bi-search"></i>
+    <input type="text" id="docs-search-input" placeholder="Search titles, notes, links..." oninput="filterDocsHub()">
+    <select id="docs-type-filter" onchange="filterDocsHub()">
+      <option value="">All types</option>
+      <option value="PDF">PDF</option>
+      <option value="Image">Image</option>
+      <option value="Link">Link</option>
+      <option value="Video">Video</option>
+      <option value="Paragraph">Paragraph</option>
+      <option value="Bullets">Bullets</option>
+      <option value="Diagram">Diagram</option>
+      <option value="Post">Post</option>
+    </select>
   </div>
   <div id="docs-community-view">
     <div id="author-board" class="author-board"></div>
   </div>
   <div id="docs-resources-view" style="display:none">
+    <div class="search-filter-bar mb-3">
+      <i class="bi bi-search"></i>
+      <input type="text" id="res-search-input" placeholder="Search resources..." oninput="filterResources()">
+    </div>
     <div class="row g-3" id="res-container"></div>
   </div>
 </div>
@@ -439,17 +499,14 @@ img,table{max-width:100%;}
 
 <!-- ===================== TAB: INTERVIEW Q&A ===================== -->
 <div id="tab-interview" style="display:none">
-  <div class="docshub-header">
-    <div>
-      <h5 class="docshub-title"><i class="bi bi-patch-question-fill me-2"></i>Interview Q&amp;A</h5>
-      <p class="docshub-sub mb-0">Tap a question to reveal the answer.</p>
-    </div>
-    <button class="btn btn-primary btn-sm docshub-add-btn" onclick="openQAChooser()"><i class="bi bi-plus-lg me-1"></i>Add question</button>
-  </div>
-  <div id="qa-form-slot" class="mb-3"></div>
-  <div class="d-flex gap-2 mb-3 flex-wrap">
+  <div class="d-flex gap-2 mb-2 flex-wrap align-items-center">
+    <button class="btn btn-sm btn-primary" onclick="openQAChooser()"><i class="bi bi-plus-lg me-1"></i>Add question</button>
     <button class="btn btn-sm btn-outline-primary qa-subtab active" onclick="setQASubtab('builtin',this)"><i class="bi bi-collection me-1"></i>Built-in Topics</button>
     <button class="btn btn-sm btn-outline-primary qa-subtab" onclick="setQASubtab('custom',this)"><i class="bi bi-person-lines-fill me-1"></i>My Questions</button>
+  </div>
+  <div class="search-filter-bar mb-3">
+    <i class="bi bi-search"></i>
+    <input type="text" id="qa-search-input" placeholder="Search questions..." oninput="filterQAList()">
   </div>
   <div id="qa-builtin-view">
     <div id="qa-container"></div>
@@ -464,12 +521,16 @@ img,table{max-width:100%;}
   <div class="d-flex gap-2 mb-3 flex-wrap">
     <button class="btn btn-sm btn-outline-primary profile-subtab active" onclick="setProfileSubtab('overview',this)"><i class="bi bi-person-circle me-1"></i>Overview</button>
     <button class="btn btn-sm btn-outline-primary profile-subtab" onclick="setProfileSubtab('summary',this)"><i class="bi bi-trophy me-1"></i>Timeline &amp; Summary</button>
+    <button class="btn btn-sm btn-outline-primary profile-subtab" onclick="setProfileSubtab('resume',this)"><i class="bi bi-file-earmark-person me-1"></i>Resume</button>
   </div>
   <div id="profile-overview-view">
     <div id="profile-container"></div>
   </div>
   <div id="profile-summary-view" style="display:none">
     <div id="sum-container"></div>
+  </div>
+  <div id="profile-resume-view" style="display:none">
+    <div id="resume-builder-container"></div>
   </div>
 </div>
 
@@ -480,9 +541,31 @@ img,table{max-width:100%;}
   <i class="bi bi-arrow-up-short"></i>
 </button>
 
+<div id="resume-print-root" class="resume-doc"></div>
+
+<div class="modal fade" id="appModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:520px">
+    <div class="modal-content" style="border-radius:16px;border:none;overflow:hidden">
+      <div class="modal-body p-0" id="appModalBody"></div>
+    </div>
+  </div>
+</div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// ===================== GENERIC POPUP MODAL (used by Docs Hub + Interview Q&A add/edit flows) =====================
+let appModalInstance = null;
+function openModal(html){
+  const body = document.getElementById('appModalBody');
+  body.innerHTML = html;
+  if(!appModalInstance) appModalInstance = new bootstrap.Modal(document.getElementById('appModal'));
+  appModalInstance.show();
+}
+function closeModal(){
+  if(appModalInstance) appModalInstance.hide();
+}
+
 // ===================== DATA =====================
 const TOTAL = 175;
 
@@ -750,6 +833,8 @@ const RESOURCES = [
     {type:'Blog',label:'Free',color:'#0891b2',name:'High Scalability Blog',url:'http://highscalability.com'},
   ]},
 ];
+let customResourceLinks = JSON.parse(localStorage.getItem('dotnet_custom_resources') || '[]');
+let editingResourceId = null;
 
 // ===================== COMMUNITY CONTENT DATA =====================
 // Grouped by author. LinkedIn blocks automated access to post bodies, so 'Post' items
@@ -825,7 +910,7 @@ function getAllAuthors(){
     if(ord){
       const map = new Map(a.items.map(it=>[it.id,it]));
       const ordered = ord.map(id=>map.get(id)).filter(Boolean);
-      a.items.forEach(it=>{ if(!ord.includes(it.id)) ordered.push(it); });
+      a.items.forEach(it=>{ if(!ord.includes(it.id)) ordered.unshift(it); });
       a.items = ordered;
     }
   });
@@ -1009,6 +1094,7 @@ function renderAuthorPosts(){
         el.className='content-item';
         el.draggable = true;
         el.dataset.itemId = item.id;
+        el.dataset.type = item.type;
         el.innerHTML = `
           <i class="bi bi-grip-vertical item-handle"></i>
           <div class="item-body">
@@ -1033,14 +1119,61 @@ function renderAuthorPosts(){
 
     attachAuthorDragEvents(card);
   });
+
+  const searchEl = document.getElementById('docs-search-input');
+  if(searchEl && (searchEl.value || document.getElementById('docs-type-filter').value)) filterDocsHub();
+}
+
+// ---- Search + type filter for Docs Hub (Community Docs) ----
+function filterDocsHub(){
+  const term = (document.getElementById('docs-search-input').value||'').trim().toLowerCase();
+  const type = document.getElementById('docs-type-filter').value;
+  document.querySelectorAll('.author-card').forEach(card=>{
+    let anyVisible = false;
+    card.querySelectorAll('.content-item').forEach(row=>{
+      const matchesText = !term || row.textContent.toLowerCase().includes(term);
+      const matchesType = !type || row.dataset.type===type;
+      const show = matchesText && matchesType;
+      row.style.display = show ? '' : 'none';
+      if(show) anyVisible = true;
+    });
+    card.style.display = anyVisible ? '' : 'none';
+  });
+}
+
+// ---- Search filter for Curated Resources ----
+function filterResources(){
+  const term = (document.getElementById('res-search-input').value||'').trim().toLowerCase();
+  document.querySelectorAll('#res-container .res-card').forEach(card=>{
+    let anyVisible = false;
+    card.querySelectorAll('.res-link').forEach(row=>{
+      const match = !term || row.textContent.toLowerCase().includes(term);
+      row.style.display = match ? '' : 'none';
+      if(match) anyVisible = true;
+    });
+    card.parentElement.style.display = anyVisible ? '' : 'none';
+  });
 }
 
 // ---- Step 1 of adding content: ask what they want to upload ----
+// Step 1 (popup): which section is this going into?
 function openAddChooser(){
-  editingItem = null; editingAuthorId = null; pendingMedia = null;
-  const slot = document.getElementById('author-form-slot');
-  slot.innerHTML = `
-    <div class="author-form docshub-form-compact">
+  editingItem = null; editingAuthorId = null; pendingMedia = null; editingResourceId = null;
+  openModal(`
+    <div class="author-form docshub-form-compact mb-0">
+      <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>Where should this go?</h6>
+      <div class="type-chooser-grid" style="grid-template-columns:repeat(2,1fr)">
+        <button type="button" class="type-chooser-btn" onclick="openContentTypeChooser()"><i class="bi bi-people-fill" style="color:#4f46e5"></i><span class="tc-label">Community Docs</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openResourceForm()"><i class="bi bi-bookmark-star-fill" style="color:#d97706"></i><span class="tc-label">Curated Resources</span></button>
+      </div>
+      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+
+// Step 2a (popup): Community Docs — what kind of content?
+function openContentTypeChooser(){
+  openModal(`
+    <div class="author-form docshub-form-compact mb-0">
       <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>What would you like to add?</h6>
       <div class="type-chooser-grid">
         <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'PDF')"><i class="bi bi-file-earmark-pdf-fill" style="color:#dc2626"></i><span class="tc-label">PDF</span></button>
@@ -1048,9 +1181,63 @@ function openAddChooser(){
         <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'Link')"><i class="bi bi-link-45deg" style="color:#0891b2"></i><span class="tc-label">Link</span></button>
         <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'Content')"><i class="bi bi-text-paragraph" style="color:#16a34a"></i><span class="tc-label">Content</span></button>
       </div>
-      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeContentForm()">Cancel</button>
-    </div>`;
-  slot.scrollIntoView({behavior:'smooth', block:'nearest'});
+      <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-link btn-sm text-muted p-0 ps-2" onclick="openAddChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>
+      </div>
+    </div>`);
+}
+
+// Step 2b (popup): Curated Resources — a simple link form
+function openResourceForm(resId){
+  const isEdit = !!resId;
+  editingResourceId = resId || null;
+  const res = isEdit ? getAllResourceLinks().find(r=>r.id===resId) : null;
+  const existingCats = [...new Set([...RESOURCES.map(r=>r.phase), ...customResourceLinks.map(r=>r.category)])];
+  openModal(`
+    <div class="author-form docshub-form-compact mb-0">
+      <h6 class="fw-bold mb-2"><i class="bi ${isEdit?'bi-pencil-square':'bi-bookmark-star-fill'} me-1"></i>${isEdit?'Edit resource':'Add a curated resource'}</h6>
+      <div class="row g-2">
+        <div class="col-12"><label>Category</label><input id="res-cat" class="form-control" list="res-cat-list" placeholder="e.g. Phase 1 — C# Fundamentals" value="${isEdit?res.category:''}"><datalist id="res-cat-list">${existingCats.map(c=>`<option value="${c}">`).join('')}</datalist></div>
+        <div class="col-12"><label>Title <span class="text-danger">*</span></label><input id="res-name" class="form-control" placeholder="e.g. Nick Chapsas — ASP.NET Core Series" value="${isEdit?res.name:''}"></div>
+        <div class="col-12"><label>URL <span class="text-danger">*</span></label><input id="res-url" class="form-control" placeholder="https://..." value="${isEdit?res.url:''}"></div>
+        <div class="col-md-6"><label>Type tag</label><input id="res-type" class="form-control" placeholder="e.g. YouTube, Docs, Course" value="${isEdit?res.type:''}"></div>
+        <div class="col-md-6"><label>Price tag</label><select id="res-label" class="form-select"><option value="Free" ${isEdit&&res.label==='Free'?'selected':''}>Free</option><option value="Paid" ${isEdit&&res.label==='Paid'?'selected':''}>Paid</option></select></div>
+      </div>
+      <div class="d-flex gap-2 mt-2 flex-wrap">
+        <button class="btn btn-primary btn-sm" onclick="submitResourceForm()"><i class="bi bi-check2 me-1"></i>${isEdit?'Save':'Add'}</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()">Cancel</button>
+        ${!isEdit ? `<button class="btn btn-link btn-sm text-muted p-0 ps-2" onclick="openAddChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
+      </div>
+    </div>`);
+}
+function submitResourceForm(){
+  const category = document.getElementById('res-cat').value.trim() || 'My Resources';
+  const name = document.getElementById('res-name').value.trim();
+  const url = document.getElementById('res-url').value.trim();
+  const type = document.getElementById('res-type').value.trim() || 'Link';
+  const label = document.getElementById('res-label').value;
+  if(!name || !url){ alert('Please add a title and URL.'); return; }
+  const colorByType = {YouTube:'#dc2626',Docs:'#059669',Website:'#0891b2',Book:'#7c3aed',Course:'#7c3aed',Practice:'#d97706',GitHub:'#1f2937',Blog:'#0891b2',Tool:'#d97706'};
+  const data = {category, name, url, type, label, color: colorByType[type] || '#0891b2'};
+  if(editingResourceId){
+    const idx = customResourceLinks.findIndex(r=>r.id===editingResourceId);
+    if(idx>-1) customResourceLinks[idx] = {...customResourceLinks[idx], ...data};
+  } else {
+    customResourceLinks.unshift({id:'res-custom-'+Date.now(), ...data});
+  }
+  localStorage.setItem('dotnet_custom_resources', JSON.stringify(customResourceLinks));
+  closeModal();
+  renderResources();
+}
+function deleteResourceLink(id){
+  if(!confirm('Remove this resource?')) return;
+  customResourceLinks = customResourceLinks.filter(r=>r.id!==id);
+  localStorage.setItem('dotnet_custom_resources', JSON.stringify(customResourceLinks));
+  renderResources();
+}
+function getAllResourceLinks(){
+  return customResourceLinks;
 }
 
 function dataUrlToBlob(dataUrl){
@@ -1204,9 +1391,8 @@ function openContentForm(authorId, itemId, category){
 
   const catMeta = {PDF:{icon:'bi-file-earmark-pdf-fill',label:'PDF'},Image:{icon:'bi-image',label:'Image'},Link:{icon:'bi-link-45deg',label:'Link'},Content:{icon:'bi-text-paragraph',label:'Content'}}[category];
 
-  const slot = document.getElementById('author-form-slot');
-  slot.innerHTML = `
-    <div class="author-form docshub-form-compact">
+  openModal(`
+    <div class="author-form docshub-form-compact mb-0">
       <h6 class="fw-bold mb-2"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit content':'Add '+catMeta.label}</h6>
       <div class="row g-2">
         <div class="col-12"><label>Heading / title <span class="text-danger">*</span></label><input id="naf-title" class="form-control" placeholder="e.g. Minimal APIs in .NET 8" value="${isEdit?item.title:''}" oninput="checkTopicOverlap()"><div id="naf-topic-hint"></div></div>
@@ -1221,21 +1407,20 @@ function openContentForm(authorId, itemId, category){
       </div>
       <div class="d-flex gap-2 mt-2 flex-wrap">
         <button class="btn btn-primary btn-sm" onclick="submitContentForm('${category}')"><i class="bi bi-check2 me-1"></i>${isEdit?'Save changes':'Add'}</button>
-        <button class="btn btn-outline-secondary btn-sm" onclick="closeContentForm()">Cancel</button>
-        ${!isEdit ? `<button class="btn btn-link btn-sm text-muted" onclick="openAddChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()">Cancel</button>
+        ${!isEdit ? `<button class="btn btn-link btn-sm text-muted" onclick="openContentTypeChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
       </div>
       <div class="small text-muted mt-2"><i class="bi bi-hdd me-1"></i>Text is saved in your browser's local storage; images/PDFs go in IndexedDB (also local, free, no account) — both stay on this device/browser only.</div>
-    </div>`;
+    </div>`);
   if(category==='Content'){ document.getElementById('naf-type').value = isEdit?item.type:'Paragraph'; renderTypeFields(); }
-  if(isEdit && authorNameVal){ const opt = slot.querySelector('.optional-fields'); const btn = slot.querySelector('.optional-toggle'); if(opt){ opt.classList.add('open'); btn.querySelector('i').className='bi bi-chevron-down'; } }
-  slot.scrollIntoView({behavior:'smooth', block:'nearest'});
+  if(isEdit && authorNameVal){ const opt = document.querySelector('#appModalBody .optional-fields'); const btn = document.querySelector('#appModalBody .optional-toggle'); if(opt){ opt.classList.add('open'); btn.querySelector('i').className='bi bi-chevron-down'; } }
 }
 function toggleOptionalAuthorFields(btn){
   const wrap = btn.nextElementSibling;
   const open = wrap.classList.toggle('open');
   btn.querySelector('i').className = open ? 'bi bi-chevron-down' : 'bi bi-chevron-right';
 }
-function closeContentForm(){ document.getElementById('author-form-slot').innerHTML=''; editingItem=null; pendingMedia=null; }
+function closeContentForm(){ closeModal(); editingItem=null; pendingMedia=null; }
 
 // ===================== RICH TEXT EDITOR (shared by Docs Hub + Interview Q&A) =====================
 // A small contenteditable-based editor: bold/italic/underline, bullet/numbered lists,
@@ -1406,7 +1591,7 @@ async function submitContentForm(category){
   } else {
     const newItem = {id: authorId+'-'+Date.now(), ...itemData};
     if(author){
-      author.items.push(newItem);
+      author.items.unshift(newItem);
       if(customAuthors.some(a=>a.id===authorId)) persistCustomAuthors();
     } else {
       author = {id:authorId, name, role, avatar:name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2), linkedin: itemData.url || '#', items:[newItem]};
@@ -1423,9 +1608,8 @@ function editItem(authorId, itemId){ openContentForm(authorId, itemId); }
 function editAuthorMeta(authorId){
   const author = getAllAuthors().find(a=>a.id===authorId);
   if(!author) return;
-  const slot = document.getElementById('author-form-slot');
-  slot.innerHTML = `
-    <div class="author-form">
+  openModal(`
+    <div class="author-form mb-0">
       <h6 class="fw-bold mb-3"><i class="bi bi-pencil-square me-1"></i>Edit author</h6>
       <div class="row g-2">
         <div class="col-md-6"><label>Name</label><input id="naf-ea-name" class="form-control" value="${author.name}"></div>
@@ -1434,9 +1618,9 @@ function editAuthorMeta(authorId){
       </div>
       <div class="d-flex gap-2 mt-2">
         <button class="btn btn-primary btn-sm" onclick="saveAuthorMeta('${authorId}')"><i class="bi bi-check2 me-1"></i>Save changes</button>
-        <button class="btn btn-outline-secondary btn-sm" onclick="closeContentForm()">Cancel</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()">Cancel</button>
       </div>
-    </div>`;
+    </div>`);
 }
 function saveAuthorMeta(authorId){
   const name = document.getElementById('naf-ea-name').value.trim();
@@ -1724,7 +1908,302 @@ const SUMMARY = {
   ]
 };
 
-// ===================== APP LOGIC =====================
+// ===================== RESUME BUILDER (Profile tab) =====================
+// Seeded from the resume the user uploaded — fully editable part-by-part below.
+const DEFAULT_RESUME = {
+  name: "V M Ajith Babu",
+  title: "Software Engineer",
+  email: "ajithbabuvm@gmail.com",
+  phone: "+91 9626843243",
+  summary: "Dedicated Software Engineer with over 5+ years of experience in .NET technologies. Skilled at developing robust applications using .NET and SQL while focusing on coding standards and security guidelines. Strong object-oriented programming background enables efficient, tailored solutions to user requirements.",
+  skills: [
+    {cat:"Programming Languages", items:"C#, Java, VB.NET, JavaScript"},
+    {cat:"Frameworks & Libraries", items:".NET, Web API, Angular"},
+    {cat:"Database Management", items:"MS SQL, Entity Framework, SQL Query Optimization"},
+    {cat:"Development Processes", items:"DevOps, SCRUM/Agile, CI/CD"},
+    {cat:"Tools & Technologies", items:"Git, TFS (Team Foundation Server), SSRS"}
+  ],
+  education: [
+    {degree:"Master of Computer Application", school:"Anna University", year:"2020", detail:"Graduated with 73.56%, demonstrating a solid understanding of computer applications."},
+    {degree:"B.Sc (Computer Science)", school:"Kamaraj University", year:"2018", detail:"Completed with 58.83%, laying the foundation for a career in software development."}
+  ],
+  experience: [
+    {company:"Eurofins IT Delivery Center", role:"Software Engineer", date:"Jan 2022 – Present", bullets:[
+      "Owned development and maintenance of the eLIMS application used for evaluation and testing of food and soil samples.",
+      "Built key functionalities using VB and .NET for precise test result processing, integrating Angular and SSRS to improve user interaction and system performance.",
+      "Crafted and optimized SQL queries, achieving a 25% improvement in database efficiency for large datasets.",
+      "Collaborated with lab technicians to refine testing processes, reducing manual entry errors by 40%.",
+      "Established CI/CD pipelines using TFS, cutting deployment time by 70%.",
+      "Resolved complex software issues, reducing critical bug reports by 30% and improving system reliability."
+    ]},
+    {company:"20Cube Logistics Pvt. Ltd", role:"Software Developer → Senior Software Engineer", date:"Jun 2021 – Jan 2022", bullets:[
+      "Developed an Android application for warehouse distribution, giving logistics stakeholders real-time visibility and tracking.",
+      "Expanded into C# backend development and Angular to enhance key platform features.",
+      "Engineered C# solutions that increased order processing efficiency by 15% through improved warehouse management and real-time data integration.",
+      "Collaborated on seamless Android/C# integration, improving system performance and user experience.",
+      "Advanced the platform with new technologies for end-to-end visibility and traceability in global logistics operations."
+    ]}
+  ],
+  projects: [
+    {title:"Chat Application (Native App)", tech:"Android, Firebase", date:"Jan 2021 – Jun 2021", bullets:[
+      "Independently developed a real-time Chat Application with private chat, timed messaging, and dynamic status updates."
+    ]},
+    {title:"Food Ordering App (Native App)", tech:"", date:"Jun 2021 – Sep 2021", bullets:[
+      "Built a dual-purpose Food Ordering App with separate apps for end-users to place orders and canteen owners to manage them."
+    ]},
+    {title:"Marriage Invitation Platform", tech:"", date:"Apr 2024 – Jul 2024", bullets:[
+      "Designed and distributed digital marriage invitations covering venue, food menu, visitor arrangements, and site visit scheduling.",
+      "Implemented CRUD-based wedding greeting messages for efficient management of guest messages and details."
+    ]}
+  ],
+  achievements: [
+    {title:"Star Performer Award", org:"Eurofins IT Delivery Center", date:"May 2023", bullets:[
+      "Recognized for improving SQL query performance, delivering 25% quicker processing times in line with organizational goals.",
+      "Honored as the top performer overall."
+    ]}
+  ]
+};
+let resumeData = null;
+try{ resumeData = JSON.parse(localStorage.getItem('dotnet_resume_data')||'null'); }catch(e){}
+if(!resumeData) resumeData = JSON.parse(JSON.stringify(DEFAULT_RESUME));
+
+function saveResumeData(){ localStorage.setItem('dotnet_resume_data', JSON.stringify(resumeData)); }
+function saveAndPreview(){ saveResumeData(); updateResumePreview(); }
+
+function renderResumeBuilder(){
+  const wrap = document.getElementById('resume-builder-container');
+  if(wrap && !wrap.dataset.built){
+    wrap.dataset.built = '1';
+    wrap.innerHTML = `
+      <div class="docshub-header" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
+        <div>
+          <h5 class="docshub-title"><i class="bi bi-file-earmark-person-fill me-2"></i>Resume Builder</h5>
+          <p class="docshub-sub mb-0">Edit any section, match it against a job description, then download.</p>
+        </div>
+      </div>
+
+      <div class="phase-card mb-3" style="padding:0.9rem 1rem">
+        <h6 class="fw-bold mb-2" style="font-size:0.85rem"><i class="bi bi-bullseye me-2 text-primary"></i>ATS Match Check <span class="text-muted fw-normal">(optional)</span></h6>
+        <textarea id="resume-jd-input" class="form-control form-control-sm mb-2" rows="3" placeholder="Paste a job description here to see your keyword match score..."></textarea>
+        <button class="btn btn-primary btn-sm mb-2" onclick="checkATSMatch()"><i class="bi bi-search me-1"></i>Check ATS Match</button>
+        <div id="resume-ats-result"><p class="small text-muted mb-0">Paste a job description above, then tap "Check ATS Match".</p></div>
+      </div>
+
+      <div class="d-flex gap-2 mb-3 flex-wrap">
+        <button class="btn btn-sm btn-primary" onclick="downloadResumePDF()"><i class="bi bi-file-earmark-pdf me-1"></i>Download PDF</button>
+        <button class="btn btn-sm btn-outline-primary" onclick="downloadResumeTxt()"><i class="bi bi-filetype-txt me-1"></i>Download ATS-safe .txt</button>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-lg-6">
+          <h6 class="fw-bold mb-2" style="font-size:0.82rem"><i class="bi bi-pencil-square me-2 text-primary"></i>Edit — part by part</h6>
+          <div id="resume-editor"></div>
+        </div>
+        <div class="col-lg-6">
+          <h6 class="fw-bold mb-2" style="font-size:0.82rem"><i class="bi bi-eye me-2 text-primary"></i>Live preview</h6>
+          <div id="resume-preview" class="resume-doc"></div>
+        </div>
+      </div>
+    `;
+  }
+  renderResumeEditor();
+  updateResumePreview();
+}
+
+function renderResumeEditor(){
+  const c = document.getElementById('resume-editor');
+  if(!c) return;
+  const d = resumeData;
+  c.innerHTML = `
+    <details class="resume-edit-section" open>
+      <summary>Contact &amp; Title</summary>
+      <div class="row g-2 p-2">
+        <div class="col-md-6"><label>Full name</label><input class="form-control form-control-sm" value="${d.name}" oninput="resumeData.name=this.value;saveAndPreview()"></div>
+        <div class="col-md-6"><label>Title / role</label><input class="form-control form-control-sm" value="${d.title||''}" oninput="resumeData.title=this.value;saveAndPreview()"></div>
+        <div class="col-md-6"><label>Email</label><input class="form-control form-control-sm" value="${d.email}" oninput="resumeData.email=this.value;saveAndPreview()"></div>
+        <div class="col-md-6"><label>Phone</label><input class="form-control form-control-sm" value="${d.phone}" oninput="resumeData.phone=this.value;saveAndPreview()"></div>
+      </div>
+    </details>
+
+    <details class="resume-edit-section" open>
+      <summary>Summary</summary>
+      <div class="p-2"><textarea class="form-control form-control-sm" rows="3" oninput="resumeData.summary=this.value;saveAndPreview()">${d.summary}</textarea></div>
+    </details>
+
+    <details class="resume-edit-section">
+      <summary>Skills (${d.skills.length})</summary>
+      <div class="p-2">
+        ${d.skills.map((s,i)=>`<div class="resume-entry-row">
+          <div class="flex-1">
+            <input class="form-control form-control-sm mb-1" placeholder="Category, e.g. Frameworks" value="${s.cat}" oninput="resumeData.skills[${i}].cat=this.value;saveAndPreview()">
+            <input class="form-control form-control-sm" placeholder="Comma-separated skills" value="${s.items}" oninput="resumeData.skills[${i}].items=this.value;saveAndPreview()">
+          </div>
+          <button class="btn btn-sm btn-outline-danger" onclick="resumeData.skills.splice(${i},1);saveResumeData();renderResumeBuilder()" title="Remove"><i class="bi bi-trash"></i></button>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.skills.push({cat:'',items:''});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add skill group</button>
+      </div>
+    </details>
+
+    <details class="resume-edit-section">
+      <summary>Work Experience (${d.experience.length})</summary>
+      <div class="p-2">
+        ${d.experience.map((x,i)=>`<div class="resume-entry-block">
+          <div class="row g-2">
+            <div class="col-md-6"><label>Company</label><input class="form-control form-control-sm" value="${x.company}" oninput="resumeData.experience[${i}].company=this.value;saveAndPreview()"></div>
+            <div class="col-md-6"><label>Role</label><input class="form-control form-control-sm" value="${x.role}" oninput="resumeData.experience[${i}].role=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Dates</label><input class="form-control form-control-sm" placeholder="e.g. Jan 2022 – Present" value="${x.date}" oninput="resumeData.experience[${i}].date=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="4" oninput="resumeData.experience[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${x.bullets.join('\n')}</textarea></div>
+          </div>
+          <button class="btn btn-sm btn-outline-danger mt-1" onclick="resumeData.experience.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove this job</button>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.experience.push({company:'',role:'',date:'',bullets:[]});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add job</button>
+      </div>
+    </details>
+
+    <details class="resume-edit-section">
+      <summary>Projects (${d.projects.length})</summary>
+      <div class="p-2">
+        ${d.projects.map((p,i)=>`<div class="resume-entry-block">
+          <div class="row g-2">
+            <div class="col-md-6"><label>Project title</label><input class="form-control form-control-sm" value="${p.title}" oninput="resumeData.projects[${i}].title=this.value;saveAndPreview()"></div>
+            <div class="col-md-6"><label>Tech stack</label><input class="form-control form-control-sm" value="${p.tech}" oninput="resumeData.projects[${i}].tech=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Dates</label><input class="form-control form-control-sm" value="${p.date}" oninput="resumeData.projects[${i}].date=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="3" oninput="resumeData.projects[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${p.bullets.join('\n')}</textarea></div>
+          </div>
+          <button class="btn btn-sm btn-outline-danger mt-1" onclick="resumeData.projects.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove this project</button>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.projects.push({title:'',tech:'',date:'',bullets:[]});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add project</button>
+      </div>
+    </details>
+
+    <details class="resume-edit-section">
+      <summary>Education (${d.education.length})</summary>
+      <div class="p-2">
+        ${d.education.map((e,i)=>`<div class="resume-entry-block">
+          <div class="row g-2">
+            <div class="col-md-6"><label>Degree</label><input class="form-control form-control-sm" value="${e.degree}" oninput="resumeData.education[${i}].degree=this.value;saveAndPreview()"></div>
+            <div class="col-md-4"><label>School</label><input class="form-control form-control-sm" value="${e.school}" oninput="resumeData.education[${i}].school=this.value;saveAndPreview()"></div>
+            <div class="col-md-2"><label>Year</label><input class="form-control form-control-sm" value="${e.year}" oninput="resumeData.education[${i}].year=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Detail <span class="text-muted fw-normal">(optional)</span></label><input class="form-control form-control-sm" value="${e.detail||''}" oninput="resumeData.education[${i}].detail=this.value;saveAndPreview()"></div>
+          </div>
+          <button class="btn btn-sm btn-outline-danger mt-1" onclick="resumeData.education.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove</button>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.education.push({degree:'',school:'',year:'',detail:''});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add education</button>
+      </div>
+    </details>
+
+    <details class="resume-edit-section">
+      <summary>Achievements (${d.achievements.length})</summary>
+      <div class="p-2">
+        ${d.achievements.map((a,i)=>`<div class="resume-entry-block">
+          <div class="row g-2">
+            <div class="col-md-6"><label>Title</label><input class="form-control form-control-sm" value="${a.title}" oninput="resumeData.achievements[${i}].title=this.value;saveAndPreview()"></div>
+            <div class="col-md-4"><label>Organization</label><input class="form-control form-control-sm" value="${a.org}" oninput="resumeData.achievements[${i}].org=this.value;saveAndPreview()"></div>
+            <div class="col-md-2"><label>Date</label><input class="form-control form-control-sm" value="${a.date}" oninput="resumeData.achievements[${i}].date=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="2" oninput="resumeData.achievements[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${a.bullets.join('\n')}</textarea></div>
+          </div>
+          <button class="btn btn-sm btn-outline-danger mt-1" onclick="resumeData.achievements.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove</button>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.achievements.push({title:'',org:'',date:'',bullets:[]});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add achievement</button>
+      </div>
+    </details>
+
+    <button class="btn btn-sm btn-outline-secondary mt-2" onclick="resetResumeToUploaded()"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset to originally uploaded resume</button>
+  `;
+}
+
+function resetResumeToUploaded(){
+  if(!confirm('Discard your edits and restore the originally uploaded resume?')) return;
+  resumeData = JSON.parse(JSON.stringify(DEFAULT_RESUME));
+  saveResumeData();
+  renderResumeBuilder();
+}
+
+function esc(s){ return (s||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function resumePreviewHTML(){
+  const d = resumeData;
+  return `
+    <h1>${esc(d.name)}</h1>
+    <div class="resume-contact">${d.title?esc(d.title)+' &nbsp;•&nbsp; ':''}${esc(d.email)}${d.phone?' &nbsp;•&nbsp; '+esc(d.phone):''}</div>
+    ${d.summary?`<h2>Summary</h2><p>${esc(d.summary)}</p>`:''}
+    ${d.skills.length?`<h2>Skills</h2>${d.skills.filter(s=>s.cat||s.items).map(s=>`<div class="resume-skill-line"><strong>${esc(s.cat)}:</strong> ${esc(s.items)}</div>`).join('')}`:''}
+    ${d.experience.length?`<h2>Work Experience</h2>${d.experience.filter(x=>x.company).map(x=>`<div class="resume-job"><div class="resume-row-head"><strong>${esc(x.company)}</strong><span>${esc(x.date)}</span></div><div class="resume-role">${esc(x.role)}</div><ul>${x.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}`:''}
+    ${d.projects.length?`<h2>Projects</h2>${d.projects.filter(p=>p.title).map(p=>`<div class="resume-job"><div class="resume-row-head"><strong>${esc(p.title)}</strong><span>${esc(p.date)}</span></div>${p.tech?`<div class="resume-role">${esc(p.tech)}</div>`:''}<ul>${p.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}`:''}
+    ${d.education.length?`<h2>Education</h2>${d.education.filter(e=>e.degree).map(e=>`<div class="resume-edu"><div class="resume-row-head"><strong>${esc(e.degree)}</strong><span>${esc(e.year)}</span></div><div class="resume-role">${esc(e.school)}</div>${e.detail?`<div class="resume-detail">${esc(e.detail)}</div>`:''}</div>`).join('')}`:''}
+    ${d.achievements.length?`<h2>Achievements</h2>${d.achievements.filter(a=>a.title).map(a=>`<div class="resume-job"><div class="resume-row-head"><strong>${esc(a.title)}</strong><span>${esc(a.date)}</span></div>${a.org?`<div class="resume-role">${esc(a.org)}</div>`:''}<ul>${a.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}`:''}
+  `;
+}
+
+function updateResumePreview(){
+  const p = document.getElementById('resume-preview');
+  if(p) p.innerHTML = resumePreviewHTML();
+  updateATSScore();
+}
+
+// ---- Lightweight, client-side ATS keyword match against a pasted job description ----
+const RESUME_STOPWORDS = new Set(['the','and','a','an','to','of','in','on','for','with','is','are','as','at','by','or','be','this','that','from','will','have','has','you','your','we','our','they','their','it','its','who','what','why','how','can','able','including','etc','also','into','across','than','then','such','using','use','used']);
+function resumeExtractKeywords(text){
+  return [...new Set((text||'').toLowerCase().replace(/[^a-z0-9+#.\s]/g,' ').split(/\s+/).filter(w=>w.length>2 && !RESUME_STOPWORDS.has(w)))];
+}
+function resumeToPlainText(){
+  const d = resumeData;
+  return [
+    d.name, d.title, d.summary,
+    d.skills.map(s=>s.cat+' '+s.items).join(' '),
+    d.education.map(e=>e.degree+' '+e.school+' '+(e.detail||'')).join(' '),
+    d.experience.map(x=>x.company+' '+x.role+' '+x.bullets.join(' ')).join(' '),
+    d.projects.map(p=>p.title+' '+p.tech+' '+p.bullets.join(' ')).join(' '),
+    d.achievements.map(a=>a.title+' '+a.org+' '+a.bullets.join(' ')).join(' ')
+  ].join(' ').toLowerCase();
+}
+function updateATSScore(){
+  const jdEl = document.getElementById('resume-jd-input');
+  const box = document.getElementById('resume-ats-result');
+  if(!jdEl || !box) return;
+  const jdText = jdEl.value.trim();
+  if(!jdText){ box.innerHTML = '<p class="small text-muted mb-0">Paste a job description above, then tap "Check ATS Match" to see your keyword score and what\'s missing.</p>'; return; }
+  const jdWords = resumeExtractKeywords(jdText);
+  const resumeText = resumeToPlainText();
+  const matched = jdWords.filter(w=>resumeText.includes(w));
+  const missing = jdWords.filter(w=>!resumeText.includes(w)).slice(0,18);
+  const score = jdWords.length ? Math.round(matched.length/jdWords.length*100) : 0;
+  const color = score>=70?'#16a34a':score>=40?'#d97706':'#dc2626';
+  box.innerHTML = `
+    <div class="d-flex align-items-center gap-3 mb-2">
+      <div style="font-size:1.9rem;font-weight:800;color:${color};line-height:1">${score}%</div>
+      <div class="small text-muted">Keyword match with this job description<br>(${matched.length} of ${jdWords.length} key terms found)</div>
+    </div>
+    ${missing.length ? `<div class="small mb-0"><strong>Consider adding these keywords:</strong><div class="mt-1">${missing.map(w=>`<span class="badge rounded-pill" style="background:#fef3c7;color:#92400e;margin:2px 3px 0 0;font-weight:600">${esc(w)}</span>`).join('')}</div></div>` : `<div class="small text-success mb-0"><i class="bi bi-check-circle me-1"></i>Great keyword coverage for this JD.</div>`}
+  `;
+}
+function checkATSMatch(){ updateATSScore(); }
+
+// ---- Download: PDF via print (isolates just the resume), and a plain-text ATS-safe copy ----
+function downloadResumePDF(){
+  const root = document.getElementById('resume-print-root');
+  if(root) root.innerHTML = resumePreviewHTML();
+  document.body.classList.add('resume-print-mode');
+  window.print();
+}
+window.addEventListener('afterprint', ()=>document.body.classList.remove('resume-print-mode'));
+
+function downloadResumeTxt(){
+  const d = resumeData;
+  let txt = `${d.name}\n${d.email}${d.phone?' | '+d.phone:''}${d.title?'\n'+d.title:''}\n\n`;
+  if(d.summary) txt += `SUMMARY\n${d.summary}\n\n`;
+  if(d.skills.length){ txt += 'SKILLS\n'; d.skills.forEach(s=>{ if(s.cat||s.items) txt += `${s.cat}: ${s.items}\n`; }); txt += '\n'; }
+  if(d.experience.length){ txt += 'WORK EXPERIENCE\n'; d.experience.forEach(x=>{ if(!x.company) return; txt += `${x.company} — ${x.role} (${x.date})\n`; x.bullets.forEach(b=>txt+=`- ${b}\n`); txt += '\n'; }); }
+  if(d.projects.length){ txt += 'PROJECTS\n'; d.projects.forEach(p=>{ if(!p.title) return; txt += `${p.title}${p.tech?' — '+p.tech:''} (${p.date})\n`; p.bullets.forEach(b=>txt+=`- ${b}\n`); txt += '\n'; }); }
+  if(d.education.length){ txt += 'EDUCATION\n'; d.education.forEach(e=>{ if(!e.degree) return; txt += `${e.degree}, ${e.school} (${e.year})\n`; if(e.detail) txt += `${e.detail}\n`; }); txt += '\n'; }
+  if(d.achievements.length){ txt += 'ACHIEVEMENTS\n'; d.achievements.forEach(a=>{ if(!a.title) return; txt += `${a.title} — ${a.org} (${a.date})\n`; a.bullets.forEach(b=>txt+=`- ${b}\n`); }); }
+  const blob = new Blob([txt], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = (d.name||'resume').trim().replace(/\s+/g,'_') + '_ATS.txt';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+}
 let done = new Set(JSON.parse(localStorage.getItem('dotnet_done2') || '[]'));
 let filter = 'all';
 let searchTerm = '';
@@ -1787,6 +2266,8 @@ function setProfileSubtab(which, btn){
   btn.classList.add('active');
   document.getElementById('profile-overview-view').style.display = which==='overview' ? '' : 'none';
   document.getElementById('profile-summary-view').style.display = which==='summary' ? '' : 'none';
+  document.getElementById('profile-resume-view').style.display = which==='resume' ? '' : 'none';
+  if(which==='resume') renderResumeBuilder();
 }
 function setQASubtab(which, btn){
   document.querySelectorAll('.qa-subtab').forEach(b=>b.classList.remove('active'));
@@ -2187,7 +2668,12 @@ function togglePhase(id){
 
 function renderResources(){
   const c=document.getElementById('res-container'); c.innerHTML='';
+  const customByCat = {};
+  customResourceLinks.forEach(r=>{ (customByCat[r.category] = customByCat[r.category]||[]).push(r); });
+
   RESOURCES.forEach(r=>{
+    const extra = customByCat[r.phase] || [];
+    delete customByCat[r.phase];
     const col=document.createElement('div'); col.className='col-12 col-md-6';
     col.innerHTML=`<div class="res-card" style="border-top:3px solid ${r.color}">
       <h6 style="color:${r.color}">${r.phase}</h6>
@@ -2197,9 +2683,39 @@ function renderResources(){
         <span class="res-type" style="background:${i.label==='Free'?'#dcfce7':'#ede9fe'};color:${i.label==='Free'?'#16a34a':'#7c3aed'}">${i.label}</span>
         <i class="bi bi-box-arrow-up-right" style="font-size:0.7rem;color:var(--muted)"></i>
       </a>`).join('')}
+      ${extra.map(i=>`<div class="res-link" style="align-items:center">
+        <a href="${i.url}" target="_blank" class="d-flex align-items-center gap-2" style="flex:1;min-width:0;color:inherit;text-decoration:none">
+          <span class="res-type" style="background:${i.color}22;color:${i.color}">${i.type}</span>
+          <span style="flex:1">${i.name}</span>
+          <span class="res-type" style="background:${i.label==='Free'?'#dcfce7':'#ede9fe'};color:${i.label==='Free'?'#16a34a':'#7c3aed'}">${i.label}</span>
+        </a>
+        <i class="bi bi-pencil text-primary" style="font-size:0.72rem;cursor:pointer" onclick="event.preventDefault();openResourceForm('${i.id}')"></i>
+        <i class="bi bi-trash text-danger" style="font-size:0.72rem;cursor:pointer" onclick="event.preventDefault();deleteResourceLink('${i.id}')"></i>
+      </div>`).join('')}
     </div>`;
     c.appendChild(col);
   });
+
+  // Any custom categories that don't match a built-in phase get their own card.
+  Object.keys(customByCat).forEach(catName=>{
+    const items = customByCat[catName];
+    const col=document.createElement('div'); col.className='col-12 col-md-6';
+    col.innerHTML=`<div class="res-card" style="border-top:3px solid #16a34a">
+      <h6 style="color:#16a34a">${catName}</h6>
+      ${items.map(i=>`<div class="res-link" style="align-items:center">
+        <a href="${i.url}" target="_blank" class="d-flex align-items-center gap-2" style="flex:1;min-width:0;color:inherit;text-decoration:none">
+          <span class="res-type" style="background:${i.color}22;color:${i.color}">${i.type}</span>
+          <span style="flex:1">${i.name}</span>
+          <span class="res-type" style="background:${i.label==='Free'?'#dcfce7':'#ede9fe'};color:${i.label==='Free'?'#16a34a':'#7c3aed'}">${i.label}</span>
+        </a>
+        <i class="bi bi-pencil text-primary" style="font-size:0.72rem;cursor:pointer" onclick="event.preventDefault();openResourceForm('${i.id}')"></i>
+        <i class="bi bi-trash text-danger" style="font-size:0.72rem;cursor:pointer" onclick="event.preventDefault();deleteResourceLink('${i.id}')"></i>
+      </div>`).join('')}
+    </div>`;
+    c.appendChild(col);
+  });
+  const rsEl = document.getElementById('res-search-input');
+  if(rsEl && rsEl.value) filterResources();
 }
 
 function renderProjects(){
@@ -2519,8 +3035,53 @@ function toggleQALongText(p){
 }
 
 // Builds one category card's HTML (used by both the Built-in and My Questions views).
+// ---- Drag & drop: reorder questions within a category (persisted, mirrors Docs Hub) ----
+let qaCatOrders = JSON.parse(localStorage.getItem('dotnet_qa_cat_orders') || '{}');
+function saveQACatOrder(catName, ids){ qaCatOrders[catName] = ids; localStorage.setItem('dotnet_qa_cat_orders', JSON.stringify(qaCatOrders)); }
+function applyQAOrder(catName, qs){
+  const ord = qaCatOrders[catName];
+  if(!ord) return qs;
+  const map = new Map(qs.map(q=>[q.id,q]));
+  const ordered = ord.map(id=>map.get(id)).filter(Boolean);
+  qs.forEach(q=>{ if(!ord.includes(q.id)) ordered.unshift(q); }); // newly added / unordered items float to the top
+  return ordered;
+}
+let draggedQAId = null, draggedQACat = null;
+function attachQADragEvents(el, catName){
+  el.addEventListener('dragstart', e=>{ draggedQAId = el.dataset.itemId; draggedQACat = catName; e.stopPropagation(); el.classList.add('dragging'); });
+  el.addEventListener('dragend', ()=>{ el.classList.remove('dragging'); document.querySelectorAll('.interview-q').forEach(i=>i.classList.remove('drag-over-item')); });
+  el.addEventListener('dragover', e=>{ e.preventDefault(); e.stopPropagation(); if(draggedQACat===catName && draggedQAId!==el.dataset.itemId) el.classList.add('drag-over-item'); });
+  el.addEventListener('dragleave', ()=> el.classList.remove('drag-over-item'));
+  el.addEventListener('drop', e=>{
+    e.preventDefault(); e.stopPropagation(); el.classList.remove('drag-over-item');
+    if(draggedQACat!==catName || draggedQAId===el.dataset.itemId) return;
+    const rows = [...el.parentElement.querySelectorAll(':scope > .interview-q')];
+    const ids = rows.map(r=>r.dataset.itemId);
+    const fromIdx = ids.indexOf(draggedQAId);
+    const toIdx = ids.indexOf(el.dataset.itemId);
+    ids.splice(toIdx, 0, ids.splice(fromIdx,1)[0]);
+    saveQACatOrder(catName, ids);
+    renderInterview();
+  });
+}
+
+// ---- Search filter (works on whichever Built-in/My Questions view is visible) ----
+function filterQAList(){
+  const term = (document.getElementById('qa-search-input').value||'').trim().toLowerCase();
+  document.querySelectorAll('#qa-container .phase-card, #qa-custom-container .phase-card').forEach(card=>{
+    let anyVisible = false;
+    card.querySelectorAll('.interview-q').forEach(row=>{
+      const match = !term || row.textContent.toLowerCase().includes(term);
+      row.style.display = match ? '' : 'none';
+      if(match) anyVisible = true;
+    });
+    card.style.display = anyVisible ? '' : 'none';
+  });
+}
+
 function qaCategoryCardHTML(catName, qs, color, qiStart){
   let qi = qiStart;
+  qs = applyQAOrder(catName, qs);
   return {qi: qi + qs.length, html: `<div class="phase-card mb-3">
       <div class="phase-header" style="background:${color}15;border-bottom:2px solid ${color}">
         <span class="fw-bold" style="color:${color}">${catName}</span>
@@ -2530,9 +3091,9 @@ function qaCategoryCardHTML(catName, qs, color, qiStart){
         ${qs.map(q=>{
           const id='qa-'+(qi++);
           const related = findRelatedContent(q.q);
-          return `<div class="interview-q" style="cursor:pointer;border-color:${color};position:relative">
-            <div onclick="toggleQA('${id}','${q.id}',this)" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-              <span class="d-flex align-items-center gap-2">${q.type?`<span class="item-badge" style="background:${(q.badgeColor||TYPE_COLOR[q.type])}18;color:${q.badgeColor||TYPE_COLOR[q.type]}"><i class="bi ${TYPE_ICON[q.type]||'bi-file-text'} me-1"></i>${q.type}</span>`:''}<span>${q.q}</span></span>
+          return `<div class="interview-q" draggable="true" data-item-id="${q.id}" data-cat="${catName}" style="cursor:pointer;border-color:${color};position:relative">
+            <div onclick="toggleQA('${id}','${q.id}',this)" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+              <span class="d-flex align-items-center gap-2"><i class="bi bi-grip-vertical" style="color:#c7ccd8;cursor:grab" title="Drag to reorder"></i>${q.type?`<span class="item-badge" style="background:${(q.badgeColor||TYPE_COLOR[q.type])}18;color:${q.badgeColor||TYPE_COLOR[q.type]}"><i class="bi ${TYPE_ICON[q.type]||'bi-file-text'} me-1"></i>${q.type}</span>`:''}<span>${q.q}</span></span>
               <span class="d-flex align-items-center gap-2">
                 <i class="bi bi-pencil text-primary" style="font-size:0.8rem" onclick="event.stopPropagation();editQAItem('${q.id}')"></i>
                 <i class="bi bi-trash text-danger" style="font-size:0.8rem" onclick="event.stopPropagation();deleteQAItem('${q.id}')"></i>
@@ -2555,19 +3116,18 @@ function renderInterview(){
   const builtinIds = new Set();
   QA_DATA.forEach((cat,ci)=> cat.qs.forEach((qq,qi)=> builtinIds.add('qa-seed-'+ci+'-'+qi)));
 
-  const builtinItems = allItems.filter(i=>builtinIds.has(i.id));
-  const customItems = allItems.filter(i=>!builtinIds.has(i.id));
+  const builtinItems = allItems.filter(i=>builtinIds.has(i.id) || i.section==='builtin');
+  const customItems = allItems.filter(i=>!builtinIds.has(i.id) && i.section!=='builtin');
 
   // Built-in Topics — grouped by the original hardcoded categories (C# Core, ASP.NET Core, etc.)
   const bc = document.getElementById('qa-container'); bc.innerHTML='';
-  bc.innerHTML=`<div class="alert" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;font-size:0.78rem;color:#0c4a6e;margin-bottom:0.9rem;padding:0.6rem 0.8rem">
-    <i class="bi bi-patch-question-fill me-2"></i>Tap a question to reveal the answer. Editable and deletable, like everything else.
-  </div>`;
   let qi=0;
-  QA_DATA.forEach(cc=>{
-    const qs = builtinItems.filter(i=>i.cat===cc.cat);
+  const builtinCats = [...new Set([...QA_DATA.map(cc=>cc.cat), ...builtinItems.map(i=>i.cat)])];
+  builtinCats.forEach(catName=>{
+    const qs = builtinItems.filter(i=>i.cat===catName);
     if(qs.length===0) return;
-    const res = qaCategoryCardHTML(cc.cat, qs, cc.color, qi); qi = res.qi;
+    const color = catColorMap[catName] || '#4f46e5';
+    const res = qaCategoryCardHTML(catName, qs, color, qi); qi = res.qi;
     bc.innerHTML += res.html;
   });
   if(builtinItems.length===0) bc.innerHTML += `<p class="small text-muted text-center py-3">No built-in topics left — they've all been removed.</p>`;
@@ -2586,6 +3146,10 @@ function renderInterview(){
       cc2.innerHTML += res.html;
     });
   }
+
+  document.querySelectorAll('#qa-container .interview-q, #qa-custom-container .interview-q').forEach(el=> attachQADragEvents(el, el.dataset.cat));
+  const searchEl = document.getElementById('qa-search-input');
+  if(searchEl && searchEl.value) filterQAList();
 }
 
 function deleteQAItem(id){
@@ -2607,11 +3171,24 @@ function qaCategoryForType(type){
 }
 
 // ---- Step 1: ask what kind of answer to add — compact chooser, same options as Docs Hub ----
+let pendingQADestination = 'custom';
 function openQAChooser(){
   editingQAItem = null; pendingQAMedia = null;
-  const slot = document.getElementById('qa-form-slot');
-  slot.innerHTML = `
-    <div class="author-form qa-form-compact">
+  openModal(`
+    <div class="author-form qa-form-compact mb-0">
+      <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>Where should this go?</h6>
+      <div class="type-chooser-grid" style="grid-template-columns:repeat(2,1fr)">
+        <button type="button" class="type-chooser-btn" onclick="openQATypeChooser('builtin')"><i class="bi bi-collection" style="color:#4f46e5"></i><span class="tc-label">Built-in Topics</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openQATypeChooser('custom')"><i class="bi bi-person-lines-fill" style="color:#16a34a"></i><span class="tc-label">My Questions</span></button>
+      </div>
+      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+
+function openQATypeChooser(destination){
+  pendingQADestination = destination;
+  openModal(`
+    <div class="author-form qa-form-compact mb-0">
       <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>Add a question</h6>
       <div class="type-chooser-grid">
         <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'PDF')"><i class="bi bi-file-earmark-pdf-fill" style="color:#dc2626"></i><span class="tc-label">PDF</span></button>
@@ -2619,9 +3196,11 @@ function openQAChooser(){
         <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'Link')"><i class="bi bi-link-45deg" style="color:#0891b2"></i><span class="tc-label">Link</span></button>
         <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'Content')"><i class="bi bi-text-paragraph" style="color:#16a34a"></i><span class="tc-label">Text</span></button>
       </div>
-      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeQAForm()">Cancel</button>
-    </div>`;
-  slot.scrollIntoView({behavior:'smooth', block:'nearest'});
+      <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-link btn-sm text-muted p-0 ps-2" onclick="openQAChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>
+      </div>
+    </div>`);
 }
 
 function openQAForm(itemId, category){
@@ -2650,9 +3229,8 @@ function openQAForm(itemId, category){
   }
 
   const catMeta = {PDF:{icon:'bi-file-earmark-pdf-fill',label:'PDF'},Image:{icon:'bi-image',label:'Image'},Link:{icon:'bi-link-45deg',label:'Link'},Content:{icon:'bi-text-paragraph',label:'Text'}}[category];
-  const slot = document.getElementById('qa-form-slot');
-  slot.innerHTML = `
-    <div class="author-form qa-form-compact">
+  openModal(`
+    <div class="author-form qa-form-compact mb-0">
       <h6 class="fw-bold mb-2"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit question':catMeta.label+' answer'}</h6>
       <div class="row g-2">
         <div class="col-md-6"><label>Category</label><input id="qa-cat" class="form-control" list="qa-cat-list" placeholder="e.g. C# Core" value="${isEdit?item.cat:''}"><datalist id="qa-cat-list">${existingCats.map(cn=>`<option value="${cn}">`).join('')}</datalist></div>
@@ -2661,13 +3239,12 @@ function openQAForm(itemId, category){
       </div>
       <div class="d-flex gap-2 mt-2 flex-wrap">
         <button class="btn btn-primary btn-sm" onclick="submitQAForm('${category}')"><i class="bi bi-check2 me-1"></i>${isEdit?'Save':'Add'}</button>
-        <button class="btn btn-outline-secondary btn-sm" onclick="closeQAForm()">Cancel</button>
-        ${!isEdit ? `<button class="btn btn-link btn-sm text-muted p-0 ps-2" onclick="openQAChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()">Cancel</button>
+        ${!isEdit ? `<button class="btn btn-link btn-sm text-muted p-0 ps-2" onclick="openQATypeChooser(pendingQADestination)"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
       </div>
-    </div>`;
-  slot.scrollIntoView({behavior:'smooth', block:'nearest'});
+    </div>`);
 }
-function closeQAForm(){ document.getElementById('qa-form-slot').innerHTML=''; editingQAItem=null; pendingQAMedia=null; }
+function closeQAForm(){ closeModal(); editingQAItem=null; pendingQAMedia=null; }
 function handleQAMediaFile(e){
   const file = e.target.files[0]; if(!file) return;
   const reader = new FileReader();
@@ -2722,7 +3299,7 @@ async function submitQAForm(category){
       localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
     }
   } else {
-    customQA.push({id:'qa-custom-'+Date.now(), ...data});
+    customQA.unshift({id:'qa-custom-'+Date.now(), section: pendingQADestination, ...data});
     localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
   }
   closeQAForm();
@@ -3123,7 +3700,7 @@ function renderProfile(){
   c.innerHTML += `<div style="padding:0">` + TROUBLESHOOTING.map((t,i)=>{
     const id = 'profile-ts-'+i;
     return `<div class="interview-q" style="cursor:pointer;border-color:#d97706">
-      <div onclick="toggleProfileItem('${id}',this)" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <div onclick="toggleProfileItem('${id}',this)" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
         <span>${t.q}</span>
         <i class="bi bi-chevron-down" style="font-size:0.75rem;flex-shrink:0;color:#d97706"></i>
       </div>
