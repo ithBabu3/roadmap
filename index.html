@@ -179,6 +179,10 @@ img,table{max-width:100%;}
 /* ===================== RESUME BUILDER ===================== */
 .resume-edit-section{background:#fff;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden;}
 .resume-edit-section summary{padding:0.6rem 0.8rem;font-weight:700;font-size:0.8rem;cursor:pointer;list-style:none;background:#f9fafb;}
+.resume-section-reorder{display:inline-flex;flex-direction:column;margin-right:8px;vertical-align:middle;line-height:0.7;}
+.resume-section-reorder i{font-size:0.62rem;color:var(--primary);cursor:pointer;padding:1px 3px;}
+.resume-section-reorder i.disabled{color:#d1d5db;cursor:default;pointer-events:none;}
+.resume-entry-btns{display:flex;gap:6px;}
 .resume-edit-section summary::-webkit-details-marker{display:none;}
 .resume-edit-section[open] summary{border-bottom:1px solid var(--border);}
 .resume-edit-section label{font-size:0.68rem;font-weight:600;color:var(--muted);margin-bottom:2px;display:block;}
@@ -1934,13 +1938,13 @@ const SUMMARY = {
 // Seeded from the resume the user uploaded — fully editable part-by-part below.
 const DEFAULT_RESUME = {
   name: "V M Ajith Babu",
-  title: "Software Engineer",
+  title: "Senior Software Engineer",
   email: "ajithbabuvm@gmail.com",
   phone: "+91 9626843243",
   summary: "Dedicated Software Engineer with over 5+ years of experience in .NET technologies. Skilled at developing robust applications using .NET and SQL while focusing on coding standards and security guidelines. Strong object-oriented programming background enables efficient, tailored solutions to user requirements.",
   skills: [
     {cat:"Programming Languages", items:"C#, Java, VB.NET, JavaScript"},
-    {cat:"Frameworks & Libraries", items:".NET, Web API, Angular"},
+    {cat:"Frameworks & Libraries", items:".NET, Angular"},
     {cat:"Database Management", items:"MS SQL, Entity Framework, SQL Query Optimization"},
     {cat:"Development Processes", items:"DevOps, SCRUM/Agile, CI/CD"},
     {cat:"Tools & Technologies", items:"Git, TFS (Team Foundation Server), SSRS"}
@@ -1993,10 +1997,34 @@ const DEFAULT_RESUME = {
 let resumeData = null;
 try{ resumeData = JSON.parse(localStorage.getItem('dotnet_resume_data')||'null'); }catch(e){}
 if(!resumeData) resumeData = JSON.parse(JSON.stringify(DEFAULT_RESUME));
-// Migrate resumes saved before certifications/languages/customSections existed.
+// Migrate resumes saved before certifications/languages/customSections/sectionOrder existed.
 if(!resumeData.certifications) resumeData.certifications = [];
 if(!resumeData.languages) resumeData.languages = [];
 if(!resumeData.customSections) resumeData.customSections = [];
+if(!resumeData.sectionOrder) resumeData.sectionOrder = ['summary','skills','experience','projects','education','achievements','certifications','languages','customSections'];
+
+const RESUME_SECTION_LABELS = {summary:'Summary', skills:'Skills', experience:'Work Experience', projects:'Projects', education:'Education', achievements:'Achievements', certifications:'Certifications', languages:'Languages', customSections:'Custom Sections'};
+function moveResumeSection(key, dir){
+  const arr = resumeData.sectionOrder;
+  const idx = arr.indexOf(key);
+  const newIdx = idx + dir;
+  if(idx<0 || newIdx<0 || newIdx>=arr.length) return;
+  [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+  saveResumeData();
+  renderResumeEditor();
+  updateResumePreview();
+}
+function resumeSectionSummary(key, count, extraLabel){
+  const idx = resumeData.sectionOrder.indexOf(key);
+  const last = resumeData.sectionOrder.length - 1;
+  return `<summary>
+    <span class="resume-section-reorder">
+      <i class="bi bi-caret-up-fill ${idx<=0?'disabled':''}" onclick="event.preventDefault();moveResumeSection('${key}',-1)" title="Move section up"></i>
+      <i class="bi bi-caret-down-fill ${idx>=last?'disabled':''}" onclick="event.preventDefault();moveResumeSection('${key}',1)" title="Move section down"></i>
+    </span>
+    ${RESUME_SECTION_LABELS[key]}${count!==undefined?` (${count})`:''} ${extraLabel?`<span class="text-muted fw-normal" style="font-size:0.68rem">${extraLabel}</span>`:''}
+  </summary>`;
+}
 
 // ---- Named resume versions, so you can keep a tailored copy per job application ----
 let resumeVersions = JSON.parse(localStorage.getItem('dotnet_resume_versions') || '[]'); // [{id,name,data,savedAt}]
@@ -2090,6 +2118,7 @@ function switchResumeVersion(id){
   if(!resumeData.certifications) resumeData.certifications = [];
   if(!resumeData.languages) resumeData.languages = [];
   if(!resumeData.customSections) resumeData.customSections = [];
+  if(!resumeData.sectionOrder) resumeData.sectionOrder = ['summary','skills','experience','projects','education','achievements','certifications','languages','customSections'];
   activeResumeVersionId = id;
   localStorage.setItem('dotnet_resume_active_version', activeResumeVersionId);
   saveResumeData();
@@ -2111,38 +2140,32 @@ function renderResumeEditor(){
   const c = document.getElementById('resume-editor');
   if(!c) return;
   const d = resumeData;
-  c.innerHTML = `
-    <details class="resume-edit-section" open>
-      <summary>Contact &amp; Title</summary>
-      <div class="row g-2 p-2">
-        <div class="col-md-6"><label>Full name</label><input class="form-control form-control-sm" value="${d.name}" oninput="resumeData.name=this.value;saveAndPreview()"></div>
-        <div class="col-md-6"><label>Title / role</label><input class="form-control form-control-sm" value="${d.title||''}" oninput="resumeData.title=this.value;saveAndPreview()"></div>
-        <div class="col-md-6"><label>Email</label><input class="form-control form-control-sm" value="${d.email}" oninput="resumeData.email=this.value;saveAndPreview()"></div>
-        <div class="col-md-6"><label>Phone</label><input class="form-control form-control-sm" value="${d.phone}" oninput="resumeData.phone=this.value;saveAndPreview()"></div>
-      </div>
-    </details>
 
-    <details class="resume-edit-section" open>
-      <summary>Summary</summary>
+  const sectionHTML = {
+    summary: `<details class="resume-edit-section" open>
+      ${resumeSectionSummary('summary')}
       <div class="p-2"><textarea class="form-control form-control-sm" rows="3" oninput="resumeData.summary=this.value;saveAndPreview()">${d.summary}</textarea></div>
-    </details>
+    </details>`,
 
-    <details class="resume-edit-section">
-      <summary>Skills (${d.skills.length})</summary>
+    skills: `<details class="resume-edit-section">
+      ${resumeSectionSummary('skills', d.skills.length)}
       <div class="p-2">
         ${d.skills.map((s,i)=>`<div class="resume-entry-row">
           <div class="flex-1">
             <input class="form-control form-control-sm mb-1" placeholder="Category, e.g. Frameworks" value="${s.cat}" oninput="resumeData.skills[${i}].cat=this.value;saveAndPreview()">
             <input class="form-control form-control-sm" placeholder="Comma-separated skills" value="${s.items}" oninput="resumeData.skills[${i}].items=this.value;saveAndPreview()">
           </div>
-          <button class="btn btn-sm btn-outline-danger" onclick="resumeData.skills.splice(${i},1);saveResumeData();renderResumeBuilder()" title="Remove"><i class="bi bi-trash"></i></button>
+          <div class="resume-entry-btns">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.skills.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.skills[${i}])));saveResumeData();renderResumeBuilder()" title="Duplicate"><i class="bi bi-copy"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.skills.splice(${i},1);saveResumeData();renderResumeBuilder()" title="Remove"><i class="bi bi-trash"></i></button>
+          </div>
         </div>`).join('')}
         <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.skills.push({cat:'',items:''});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add skill group</button>
       </div>
-    </details>
+    </details>`,
 
-    <details class="resume-edit-section">
-      <summary>Work Experience (${d.experience.length})</summary>
+    experience: `<details class="resume-edit-section">
+      ${resumeSectionSummary('experience', d.experience.length)}
       <div class="p-2">
         ${d.experience.map((x,i)=>`<div class="resume-entry-block">
           <div class="row g-2">
@@ -2151,14 +2174,17 @@ function renderResumeEditor(){
             <div class="col-12"><label>Dates</label><input class="form-control form-control-sm" placeholder="e.g. Jan 2022 – Present" value="${x.date}" oninput="resumeData.experience[${i}].date=this.value;saveAndPreview()"></div>
             <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="4" oninput="resumeData.experience[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${x.bullets.join('\n')}</textarea></div>
           </div>
-          <button class="btn btn-sm btn-outline-danger mt-1" onclick="resumeData.experience.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove this job</button>
+          <div class="resume-entry-btns mt-1">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.experience.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.experience[${i}])));saveResumeData();renderResumeBuilder()"><i class="bi bi-copy me-1"></i>Duplicate</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.experience.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove this job</button>
+          </div>
         </div>`).join('')}
         <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.experience.push({company:'',role:'',date:'',bullets:[]});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add job</button>
       </div>
-    </details>
+    </details>`,
 
-    <details class="resume-edit-section">
-      <summary>Projects (${d.projects.length})</summary>
+    projects: `<details class="resume-edit-section">
+      ${resumeSectionSummary('projects', d.projects.length)}
       <div class="p-2">
         ${d.projects.map((p,i)=>`<div class="resume-entry-block">
           <div class="row g-2">
@@ -2167,14 +2193,17 @@ function renderResumeEditor(){
             <div class="col-12"><label>Dates</label><input class="form-control form-control-sm" value="${p.date}" oninput="resumeData.projects[${i}].date=this.value;saveAndPreview()"></div>
             <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="3" oninput="resumeData.projects[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${p.bullets.join('\n')}</textarea></div>
           </div>
-          <button class="btn btn-sm btn-outline-danger mt-1" onclick="resumeData.projects.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove this project</button>
+          <div class="resume-entry-btns mt-1">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.projects.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.projects[${i}])));saveResumeData();renderResumeBuilder()"><i class="bi bi-copy me-1"></i>Duplicate</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.projects.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove this project</button>
+          </div>
         </div>`).join('')}
         <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.projects.push({title:'',tech:'',date:'',bullets:[]});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add project</button>
       </div>
-    </details>
+    </details>`,
 
-    <details class="resume-edit-section">
-      <summary>Education (${d.education.length})</summary>
+    education: `<details class="resume-edit-section">
+      ${resumeSectionSummary('education', d.education.length)}
       <div class="p-2">
         ${d.education.map((e,i)=>`<div class="resume-entry-block">
           <div class="row g-2">
@@ -2183,14 +2212,17 @@ function renderResumeEditor(){
             <div class="col-md-2"><label>Year</label><input class="form-control form-control-sm" value="${e.year}" oninput="resumeData.education[${i}].year=this.value;saveAndPreview()"></div>
             <div class="col-12"><label>Detail <span class="text-muted fw-normal">(optional)</span></label><input class="form-control form-control-sm" value="${e.detail||''}" oninput="resumeData.education[${i}].detail=this.value;saveAndPreview()"></div>
           </div>
-          <button class="btn btn-sm btn-outline-danger mt-1" onclick="resumeData.education.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove</button>
+          <div class="resume-entry-btns mt-1">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.education.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.education[${i}])));saveResumeData();renderResumeBuilder()"><i class="bi bi-copy me-1"></i>Duplicate</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.education.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove</button>
+          </div>
         </div>`).join('')}
         <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.education.push({degree:'',school:'',year:'',detail:''});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add education</button>
       </div>
-    </details>
+    </details>`,
 
-    <details class="resume-edit-section">
-      <summary>Achievements (${d.achievements.length})</summary>
+    achievements: `<details class="resume-edit-section">
+      ${resumeSectionSummary('achievements', d.achievements.length)}
       <div class="p-2">
         ${d.achievements.map((a,i)=>`<div class="resume-entry-block">
           <div class="row g-2">
@@ -2199,14 +2231,17 @@ function renderResumeEditor(){
             <div class="col-md-2"><label>Date</label><input class="form-control form-control-sm" value="${a.date}" oninput="resumeData.achievements[${i}].date=this.value;saveAndPreview()"></div>
             <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="2" oninput="resumeData.achievements[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${a.bullets.join('\n')}</textarea></div>
           </div>
-          <button class="btn btn-sm btn-outline-danger mt-1" onclick="resumeData.achievements.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove</button>
+          <div class="resume-entry-btns mt-1">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.achievements.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.achievements[${i}])));saveResumeData();renderResumeBuilder()"><i class="bi bi-copy me-1"></i>Duplicate</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.achievements.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove</button>
+          </div>
         </div>`).join('')}
         <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.achievements.push({title:'',org:'',date:'',bullets:[]});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add achievement</button>
       </div>
-    </details>
+    </details>`,
 
-    <details class="resume-edit-section">
-      <summary>Certifications (${d.certifications.length})</summary>
+    certifications: `<details class="resume-edit-section">
+      ${resumeSectionSummary('certifications', d.certifications.length)}
       <div class="p-2">
         ${d.certifications.map((cert,i)=>`<div class="resume-entry-block">
           <div class="row g-2">
@@ -2215,42 +2250,63 @@ function renderResumeEditor(){
             <div class="col-md-2"><label>Date</label><input class="form-control form-control-sm" placeholder="e.g. 2024" value="${cert.date}" oninput="resumeData.certifications[${i}].date=this.value;saveAndPreview()"></div>
             <div class="col-12"><label>Credential URL <span class="text-muted fw-normal">(optional)</span></label><input class="form-control form-control-sm" placeholder="https://..." value="${cert.url||''}" oninput="resumeData.certifications[${i}].url=this.value;saveAndPreview()"></div>
           </div>
-          <button class="btn btn-sm btn-outline-danger mt-1" onclick="resumeData.certifications.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove</button>
+          <div class="resume-entry-btns mt-1">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.certifications.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.certifications[${i}])));saveResumeData();renderResumeBuilder()"><i class="bi bi-copy me-1"></i>Duplicate</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.certifications.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove</button>
+          </div>
         </div>`).join('')}
         <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.certifications.push({name:'',issuer:'',date:'',url:''});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add certification</button>
       </div>
-    </details>
+    </details>`,
 
-    <details class="resume-edit-section">
-      <summary>Languages (${d.languages.length})</summary>
+    languages: `<details class="resume-edit-section">
+      ${resumeSectionSummary('languages', d.languages.length)}
       <div class="p-2">
         ${d.languages.map((lang,i)=>`<div class="resume-entry-row">
           <div class="flex-1">
             <input class="form-control form-control-sm mb-1" placeholder="Language, e.g. Spanish" value="${lang.name}" oninput="resumeData.languages[${i}].name=this.value;saveAndPreview()">
             <input class="form-control form-control-sm" placeholder="Proficiency, e.g. Conversational" value="${lang.level}" oninput="resumeData.languages[${i}].level=this.value;saveAndPreview()">
           </div>
-          <button class="btn btn-sm btn-outline-danger" onclick="resumeData.languages.splice(${i},1);saveResumeData();renderResumeBuilder()" title="Remove"><i class="bi bi-trash"></i></button>
+          <div class="resume-entry-btns">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.languages.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.languages[${i}])));saveResumeData();renderResumeBuilder()" title="Duplicate"><i class="bi bi-copy"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.languages.splice(${i},1);saveResumeData();renderResumeBuilder()" title="Remove"><i class="bi bi-trash"></i></button>
+          </div>
         </div>`).join('')}
         <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.languages.push({name:'',level:''});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add language</button>
       </div>
-    </details>
+    </details>`,
 
-    <details class="resume-edit-section">
-      <summary>Custom Sections (${d.customSections.length}) <span class="text-muted fw-normal" style="font-size:0.68rem">— Volunteering, Publications, Awards, Hobbies, anything</span></summary>
+    customSections: `<details class="resume-edit-section">
+      ${resumeSectionSummary('customSections', d.customSections.length, '— Volunteering, Publications, Awards, Hobbies, anything')}
       <div class="p-2">
         ${d.customSections.map((sec,i)=>`<div class="resume-entry-block">
           <div class="row g-2">
             <div class="col-12"><label>Section title</label><input class="form-control form-control-sm" placeholder="e.g. Volunteer Experience" value="${sec.title}" oninput="resumeData.customSections[${i}].title=this.value;saveAndPreview()"></div>
             <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="3" oninput="resumeData.customSections[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${(sec.bullets||[]).join('\n')}</textarea></div>
           </div>
-          <button class="btn btn-sm btn-outline-danger mt-1" onclick="resumeData.customSections.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove section</button>
+          <div class="resume-entry-btns mt-1">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.customSections.splice(${i}+1,0,{...JSON.parse(JSON.stringify(resumeData.customSections[${i}])),id:'sec-'+Date.now()});saveResumeData();renderResumeBuilder()"><i class="bi bi-copy me-1"></i>Duplicate</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.customSections.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove section</button>
+          </div>
         </div>`).join('')}
         <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.customSections.push({id:'sec-'+Date.now(),title:'',bullets:[]});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add a new section</button>
       </div>
-    </details>
+    </details>`
+  };
 
-    <button class="btn btn-sm btn-outline-secondary mt-2" onclick="resetResumeToUploaded()"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset to originally uploaded resume</button>
-  `;
+  const contactHTML = `<details class="resume-edit-section" open>
+      <summary>Contact &amp; Title</summary>
+      <div class="row g-2 p-2">
+        <div class="col-md-6"><label>Full name</label><input class="form-control form-control-sm" value="${d.name}" oninput="resumeData.name=this.value;saveAndPreview()"></div>
+        <div class="col-md-6"><label>Title / role</label><input class="form-control form-control-sm" value="${d.title||''}" oninput="resumeData.title=this.value;saveAndPreview()"></div>
+        <div class="col-md-6"><label>Email</label><input class="form-control form-control-sm" value="${d.email}" oninput="resumeData.email=this.value;saveAndPreview()"></div>
+        <div class="col-md-6"><label>Phone</label><input class="form-control form-control-sm" value="${d.phone}" oninput="resumeData.phone=this.value;saveAndPreview()"></div>
+      </div>
+    </details>`;
+
+  c.innerHTML = contactHTML
+    + resumeData.sectionOrder.map(key => sectionHTML[key] || '').join('')
+    + `<button class="btn btn-sm btn-outline-secondary mt-2" onclick="resetResumeToUploaded()"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset to originally uploaded resume</button>`;
 }
 
 function resetResumeToUploaded(){
@@ -2264,18 +2320,21 @@ function esc(s){ return (s||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>
 
 function resumePreviewHTML(){
   const d = resumeData;
+  const sectionRenderers = {
+    summary: () => d.summary ? `<h2>Summary</h2><p>${esc(d.summary)}</p>` : '',
+    skills: () => d.skills.length ? `<h2>Skills</h2>${d.skills.filter(s=>s.cat||s.items).map(s=>`<div class="resume-skill-line"><strong>${esc(s.cat)}:</strong> ${esc(s.items)}</div>`).join('')}` : '',
+    experience: () => d.experience.length ? `<h2>Work Experience</h2>${d.experience.filter(x=>x.company).map(x=>`<div class="resume-job"><div class="resume-row-head"><strong>${esc(x.company)}</strong><span>${esc(x.date)}</span></div><div class="resume-role">${esc(x.role)}</div><ul>${x.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}` : '',
+    projects: () => d.projects.length ? `<h2>Projects</h2>${d.projects.filter(p=>p.title).map(p=>`<div class="resume-job"><div class="resume-row-head"><strong>${esc(p.title)}</strong><span>${esc(p.date)}</span></div>${p.tech?`<div class="resume-role">${esc(p.tech)}</div>`:''}<ul>${p.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}` : '',
+    education: () => d.education.length ? `<h2>Education</h2>${d.education.filter(e=>e.degree).map(e=>`<div class="resume-edu"><div class="resume-row-head"><strong>${esc(e.degree)}</strong><span>${esc(e.year)}</span></div><div class="resume-role">${esc(e.school)}</div>${e.detail?`<div class="resume-detail">${esc(e.detail)}</div>`:''}</div>`).join('')}` : '',
+    achievements: () => d.achievements.length ? `<h2>Achievements</h2>${d.achievements.filter(a=>a.title).map(a=>`<div class="resume-job"><div class="resume-row-head"><strong>${esc(a.title)}</strong><span>${esc(a.date)}</span></div>${a.org?`<div class="resume-role">${esc(a.org)}</div>`:''}<ul>${a.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}` : '',
+    certifications: () => d.certifications.length ? `<h2>Certifications</h2>${d.certifications.filter(cert=>cert.name).map(cert=>`<div class="resume-edu"><div class="resume-row-head"><strong>${esc(cert.name)}</strong><span>${esc(cert.date)}</span></div><div class="resume-role">${esc(cert.issuer)}</div>${cert.url?`<div class="resume-detail">${esc(cert.url)}</div>`:''}</div>`).join('')}` : '',
+    languages: () => d.languages.length ? `<h2>Languages</h2>${d.languages.filter(l=>l.name).map(l=>`<div class="resume-skill-line"><strong>${esc(l.name)}:</strong> ${esc(l.level)}</div>`).join('')}` : '',
+    customSections: () => (d.customSections||[]).filter(sec=>sec.title).map(sec=>`<h2>${esc(sec.title)}</h2><ul>${(sec.bullets||[]).map(b=>`<li>${esc(b)}</li>`).join('')}</ul>`).join('')
+  };
   return `
     <h1>${esc(d.name)}</h1>
     <div class="resume-contact">${d.title?esc(d.title)+' &nbsp;•&nbsp; ':''}${esc(d.email)}${d.phone?' &nbsp;•&nbsp; '+esc(d.phone):''}</div>
-    ${d.summary?`<h2>Summary</h2><p>${esc(d.summary)}</p>`:''}
-    ${d.skills.length?`<h2>Skills</h2>${d.skills.filter(s=>s.cat||s.items).map(s=>`<div class="resume-skill-line"><strong>${esc(s.cat)}:</strong> ${esc(s.items)}</div>`).join('')}`:''}
-    ${d.experience.length?`<h2>Work Experience</h2>${d.experience.filter(x=>x.company).map(x=>`<div class="resume-job"><div class="resume-row-head"><strong>${esc(x.company)}</strong><span>${esc(x.date)}</span></div><div class="resume-role">${esc(x.role)}</div><ul>${x.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}`:''}
-    ${d.projects.length?`<h2>Projects</h2>${d.projects.filter(p=>p.title).map(p=>`<div class="resume-job"><div class="resume-row-head"><strong>${esc(p.title)}</strong><span>${esc(p.date)}</span></div>${p.tech?`<div class="resume-role">${esc(p.tech)}</div>`:''}<ul>${p.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}`:''}
-    ${d.education.length?`<h2>Education</h2>${d.education.filter(e=>e.degree).map(e=>`<div class="resume-edu"><div class="resume-row-head"><strong>${esc(e.degree)}</strong><span>${esc(e.year)}</span></div><div class="resume-role">${esc(e.school)}</div>${e.detail?`<div class="resume-detail">${esc(e.detail)}</div>`:''}</div>`).join('')}`:''}
-    ${d.achievements.length?`<h2>Achievements</h2>${d.achievements.filter(a=>a.title).map(a=>`<div class="resume-job"><div class="resume-row-head"><strong>${esc(a.title)}</strong><span>${esc(a.date)}</span></div>${a.org?`<div class="resume-role">${esc(a.org)}</div>`:''}<ul>${a.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}`:''}
-    ${d.certifications.length?`<h2>Certifications</h2>${d.certifications.filter(cert=>cert.name).map(cert=>`<div class="resume-edu"><div class="resume-row-head"><strong>${esc(cert.name)}</strong><span>${esc(cert.date)}</span></div><div class="resume-role">${esc(cert.issuer)}</div>${cert.url?`<div class="resume-detail">${esc(cert.url)}</div>`:''}</div>`).join('')}`:''}
-    ${d.languages.length?`<h2>Languages</h2>${d.languages.filter(l=>l.name).map(l=>`<div class="resume-skill-line"><strong>${esc(l.name)}:</strong> ${esc(l.level)}</div>`).join('')}`:''}
-    ${(d.customSections||[]).filter(sec=>sec.title).map(sec=>`<h2>${esc(sec.title)}</h2><ul>${(sec.bullets||[]).map(b=>`<li>${esc(b)}</li>`).join('')}</ul>`).join('')}
+    ${resumeData.sectionOrder.map(key => sectionRenderers[key] ? sectionRenderers[key]() : '').join('')}
   `;
 }
 
@@ -3639,9 +3698,6 @@ function initGoogleAuth(){
     scope: DRIVE_SCOPE,
     callback: (resp)=>{
       if(resp.error){
-        // Only surface an error badge if the user actually clicked "Sign in" — the
-        // automatic background attempt on every page load fails silently and quietly
-        // by design (it's just trying to resume a previous session, not required).
         if(explicitSignInInProgress) updateSyncBadge('error','Sign-in failed');
         explicitSignInInProgress = false;
         renderSyncBanner();
@@ -3652,9 +3708,11 @@ function initGoogleAuth(){
       onAuthSuccess();
     },
   });
-  // Quietly try to resume a previous session in the background — never blocks the app,
-  // never shows an error if it doesn't work. Sign-in stays entirely optional either way.
-  tokenClient.requestAccessToken({prompt:''});
+  // Deliberately NOT auto-requesting a token here. Google's "silent" resume
+  // (prompt:'') isn't actually guaranteed silent — in browsers/in-app webviews that
+  // restrict third-party storage it falls back to showing the account picker anyway,
+  // which is exactly the surprise "asking to sign in again" prompt on every reopen.
+  // Sign-in now only ever happens when the person explicitly taps "Sign in".
 }
 function signInWithGoogle(){
   if(!tokenClient){ alert('Still loading Google Sign-In — try again in a second.'); return; }
