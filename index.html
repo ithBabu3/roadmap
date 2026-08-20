@@ -19,9 +19,16 @@ img,table{max-width:100%;}
 .progress-bar-main{height:10px;border-radius:10px;background:#ddd6fe;}
 .progress-bar-main .fill{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--primary),#818cf8);transition:width 0.5s;}
 .stat-box{border-radius:12px;padding:1rem;text-align:center;}
+.stat-box-click{cursor:pointer;transition:transform .15s,box-shadow .15s;}
+.stat-box-click:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(30,27,75,0.12);}
+.stat-box-click:active{transform:translateY(0);}
 .stat-box .num{font-size:1.8rem;font-weight:700;line-height:1;}
 .stat-box .lbl{font-size:0.72rem;color:var(--muted);margin-top:4px;}
 .stat-box .lbl-sub{font-size:0.62rem;color:var(--muted);opacity:0.8;margin-top:2px;}
+/* Defensive: keep card content from ever forcing horizontal scroll on narrow phones,
+   regardless of how long a name/URL/label inside it happens to be. */
+.phase-card,.author-form,.stat-box,.res-card,.author-card,.content-item,.interview-q{max-width:100%;overflow-wrap:anywhere;}
+.phase-card input,.author-form input,.phase-card select,.author-form select{max-width:100%;}
 #scroll-top-btn{
   position:fixed;
   right:16px;
@@ -111,6 +118,10 @@ img,table{max-width:100%;}
 .content-item.drag-over-item{border-top:3px solid var(--linkedin);}
 .interview-q.dragging{opacity:0.4;}
 .interview-q.drag-over-item{border-top:3px solid var(--linkedin);}
+.phase-card.dragging{opacity:0.4;}
+.phase-card.drag-over-item{outline:3px solid var(--linkedin);outline-offset:-2px;}
+.res-card.dragging{opacity:0.4;}
+.res-card.drag-over-item{outline:3px solid var(--linkedin);outline-offset:-2px;}
 .search-filter-bar{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:0.45rem 0.7rem;}
 .search-filter-bar i{color:var(--muted);font-size:0.85rem;}
 .search-filter-bar input,.search-filter-bar select{border:none;outline:none;font-size:0.82rem;background:transparent;flex:1;min-width:0;}
@@ -394,12 +405,23 @@ img,table{max-width:100%;}
   <button class="btn btn-sm btn-outline-primary quick-note-toggle" onclick="toggleQuickNoteForm()"><i class="bi bi-plus-lg me-1"></i>Quick add note</button>
   <div class="quick-note-form" id="quick-note-form">
     <select id="quick-note-day"><option value="">Choose a day...</option></select>
-    <div class="note-type-toggle">
-      <button type="button" class="note-type-btn active" id="quick-note-type-para" onclick="setQuickNoteType('paragraph')"><i class="bi bi-text-paragraph me-1"></i>Paragraph</button>
-      <button type="button" class="note-type-btn" id="quick-note-type-bul" onclick="setQuickNoteType('bullets')"><i class="bi bi-list-ul me-1"></i>Bullets</button>
+    <div class="mb-2">
+      <div class="rte-toolbar">
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('quick-note-text','bold')" title="Bold"><i class="bi bi-type-bold"></i></button>
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('quick-note-text','italic')" title="Italic"><i class="bi bi-type-italic"></i></button>
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('quick-note-text','underline')" title="Underline"><i class="bi bi-type-underline"></i></button>
+        <span class="rte-sep"></span>
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('quick-note-text','insertUnorderedList')" title="Bullet points"><i class="bi bi-list-ul"></i></button>
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('quick-note-text','insertOrderedList')" title="Numbered list"><i class="bi bi-list-ol"></i></button>
+        <span class="rte-sep"></span>
+        <label class="rte-color-btn" title="Highlight colour" onmousedown="event.preventDefault()"><i class="bi bi-brush"></i><input type="color" value="#fff59d" onchange="rteHighlight('quick-note-text', this.value)" onclick="document.getElementById('quick-note-text').focus()"></label>
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="document.getElementById('quick-note-text-img').click()" title="Insert image"><i class="bi bi-image"></i></button>
+        <input type="file" id="quick-note-text-img" accept="image/*" style="display:none" onchange="rteInsertImage('quick-note-text', event)">
+        <span class="rte-sep"></span>
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('quick-note-text','removeFormat')" title="Clear formatting"><i class="bi bi-eraser"></i></button>
+      </div>
+      <div id="quick-note-text" class="rte-editor" contenteditable="true" data-placeholder="What did you learn or struggle with?"></div>
     </div>
-    <input type="hidden" id="quick-note-notetype" value="paragraph">
-    <textarea id="quick-note-text" rows="3" placeholder="What did you learn or struggle with?"></textarea>
     <div class="note-attach-row">
       <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('quick-note-img-input').click()"><i class="bi bi-paperclip me-1"></i>Attach image</button>
       <input type="file" id="quick-note-img-input" accept="image/*" style="display:none" onchange="handleNoteImage(event,'quick')">
@@ -418,10 +440,10 @@ img,table{max-width:100%;}
 
 <!-- Stats -->
 <div class="row g-2 mb-3">
-  <div class="col-6 col-md-3"><div class="stat-box" style="background:#ede9fe"><div class="num" style="color:#4f46e5" id="stat-done">0</div><div class="lbl">Days Done</div></div></div>
-  <div class="col-6 col-md-3"><div class="stat-box" style="background:#dcfce7"><div class="num" style="color:#16a34a" id="stat-left">175</div><div class="lbl">Days Left</div><div class="lbl-sub" id="stat-left-cal"></div></div></div>
-  <div class="col-6 col-md-3"><div class="stat-box" style="background:#fef3c7"><div class="num" style="color:#d97706" id="stat-pct">0%</div><div class="lbl">Complete</div></div></div>
-  <div class="col-6 col-md-3"><div class="stat-box" style="background:#fee2e2"><div class="num" style="color:#dc2626" id="stat-streak">0🔥</div><div class="lbl">Day Streak</div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-box stat-box-click" onclick="showStatDetail('done')" style="background:#ede9fe"><div class="num" style="color:#4f46e5" id="stat-done">0</div><div class="lbl">Days Done</div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-box stat-box-click" onclick="showStatDetail('left')" style="background:#dcfce7"><div class="num" style="color:#16a34a" id="stat-left">175</div><div class="lbl">Tasks Left</div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-box stat-box-click" onclick="showStatDetail('pct')" style="background:#fef3c7"><div class="num" style="color:#d97706" id="stat-pct">0%</div><div class="lbl">Complete</div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-box stat-box-click" onclick="showStatDetail('target')" style="background:#e0e7ff"><div class="num" style="color:#4338ca" id="stat-target-days">–</div><div class="lbl">Days Left (Target)</div></div></div>
 </div>
 
 <div id="sync-reminder-banner" style="display:none"></div>
@@ -1961,11 +1983,24 @@ const DEFAULT_RESUME = {
       "Recognized for improving SQL query performance, delivering 25% quicker processing times in line with organizational goals.",
       "Honored as the top performer overall."
     ]}
-  ]
+  ],
+  certifications: [],
+  languages: [
+    {name:"English", level:"Professional working proficiency"}
+  ],
+  customSections: [] // [{id, title, bullets:[]}] — freeform sections the user names themselves (Volunteering, Publications, Awards, Hobbies, anything)
 };
 let resumeData = null;
 try{ resumeData = JSON.parse(localStorage.getItem('dotnet_resume_data')||'null'); }catch(e){}
 if(!resumeData) resumeData = JSON.parse(JSON.stringify(DEFAULT_RESUME));
+// Migrate resumes saved before certifications/languages/customSections existed.
+if(!resumeData.certifications) resumeData.certifications = [];
+if(!resumeData.languages) resumeData.languages = [];
+if(!resumeData.customSections) resumeData.customSections = [];
+
+// ---- Named resume versions, so you can keep a tailored copy per job application ----
+let resumeVersions = JSON.parse(localStorage.getItem('dotnet_resume_versions') || '[]'); // [{id,name,data,savedAt}]
+let activeResumeVersionId = localStorage.getItem('dotnet_resume_active_version') || null;
 
 function saveResumeData(){ localStorage.setItem('dotnet_resume_data', JSON.stringify(resumeData)); }
 function saveAndPreview(){ saveResumeData(); updateResumePreview(); }
@@ -1979,6 +2014,16 @@ function renderResumeBuilder(){
         <div>
           <h5 class="docshub-title"><i class="bi bi-file-earmark-person-fill me-2"></i>Resume Builder</h5>
           <p class="docshub-sub mb-0">Edit any section, match it against a job description, then download.</p>
+        </div>
+      </div>
+
+      <div class="phase-card mb-3" style="padding:0.9rem 1rem">
+        <h6 class="fw-bold mb-1" style="font-size:0.85rem"><i class="bi bi-collection me-2 text-primary"></i>Tailored versions <span class="text-muted fw-normal">(optional)</span></h6>
+        <p class="small text-muted mb-2">Keep a separate saved copy per job — e.g. "Backend-focused", "Full-stack" — and switch between them any time.</p>
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+          <select id="resume-version-select" class="form-select form-select-sm" style="max-width:220px" onchange="switchResumeVersion(this.value)"></select>
+          <button class="btn btn-sm btn-outline-primary" onclick="saveResumeVersion()"><i class="bi bi-save me-1"></i>Save as version</button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteResumeVersion()"><i class="bi bi-trash me-1"></i>Delete version</button>
         </div>
       </div>
 
@@ -2006,8 +2051,60 @@ function renderResumeBuilder(){
       </div>
     `;
   }
+  renderResumeVersionSelect();
   renderResumeEditor();
   updateResumePreview();
+}
+
+// ---- Tailored resume versions: save/switch/delete named snapshots of resumeData ----
+function renderResumeVersionSelect(){
+  const sel = document.getElementById('resume-version-select');
+  if(!sel) return;
+  sel.innerHTML = `<option value="">Untitled (current)</option>` + resumeVersions.map(v=>`<option value="${v.id}" ${v.id===activeResumeVersionId?'selected':''}>${esc(v.name)}</option>`).join('');
+  if(!activeResumeVersionId) sel.value = '';
+}
+function saveResumeVersion(){
+  const defaultName = activeResumeVersionId ? (resumeVersions.find(v=>v.id===activeResumeVersionId)?.name || '') : '';
+  const name = prompt('Name this version (e.g. "Backend-focused", "Startup application"):', defaultName);
+  if(!name) return;
+  const existing = resumeVersions.find(v=>v.name.toLowerCase()===name.toLowerCase());
+  if(existing){
+    existing.data = JSON.parse(JSON.stringify(resumeData));
+    existing.savedAt = Date.now();
+    activeResumeVersionId = existing.id;
+  } else {
+    const v = {id:'ver-'+Date.now(), name, data: JSON.parse(JSON.stringify(resumeData)), savedAt: Date.now()};
+    resumeVersions.push(v);
+    activeResumeVersionId = v.id;
+  }
+  localStorage.setItem('dotnet_resume_versions', JSON.stringify(resumeVersions));
+  localStorage.setItem('dotnet_resume_active_version', activeResumeVersionId);
+  renderResumeVersionSelect();
+  alert('Saved as "'+name+'".');
+}
+function switchResumeVersion(id){
+  if(!id){ activeResumeVersionId = null; localStorage.removeItem('dotnet_resume_active_version'); return; }
+  const v = resumeVersions.find(x=>x.id===id);
+  if(!v) return;
+  resumeData = JSON.parse(JSON.stringify(v.data));
+  if(!resumeData.certifications) resumeData.certifications = [];
+  if(!resumeData.languages) resumeData.languages = [];
+  if(!resumeData.customSections) resumeData.customSections = [];
+  activeResumeVersionId = id;
+  localStorage.setItem('dotnet_resume_active_version', activeResumeVersionId);
+  saveResumeData();
+  renderResumeEditor();
+  updateResumePreview();
+}
+function deleteResumeVersion(){
+  if(!activeResumeVersionId){ alert('Nothing to delete — you\'re on the untitled current copy.'); return; }
+  const v = resumeVersions.find(x=>x.id===activeResumeVersionId);
+  if(!v || !confirm('Delete the saved version "'+v.name+'"? This only removes the saved snapshot, not your current edits.')) return;
+  resumeVersions = resumeVersions.filter(x=>x.id!==activeResumeVersionId);
+  localStorage.setItem('dotnet_resume_versions', JSON.stringify(resumeVersions));
+  activeResumeVersionId = null;
+  localStorage.removeItem('dotnet_resume_active_version');
+  renderResumeVersionSelect();
 }
 
 function renderResumeEditor(){
@@ -2108,6 +2205,50 @@ function renderResumeEditor(){
       </div>
     </details>
 
+    <details class="resume-edit-section">
+      <summary>Certifications (${d.certifications.length})</summary>
+      <div class="p-2">
+        ${d.certifications.map((cert,i)=>`<div class="resume-entry-block">
+          <div class="row g-2">
+            <div class="col-md-6"><label>Certification name</label><input class="form-control form-control-sm" placeholder="e.g. AWS Certified Developer" value="${cert.name}" oninput="resumeData.certifications[${i}].name=this.value;saveAndPreview()"></div>
+            <div class="col-md-4"><label>Issuer</label><input class="form-control form-control-sm" placeholder="e.g. Amazon Web Services" value="${cert.issuer}" oninput="resumeData.certifications[${i}].issuer=this.value;saveAndPreview()"></div>
+            <div class="col-md-2"><label>Date</label><input class="form-control form-control-sm" placeholder="e.g. 2024" value="${cert.date}" oninput="resumeData.certifications[${i}].date=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Credential URL <span class="text-muted fw-normal">(optional)</span></label><input class="form-control form-control-sm" placeholder="https://..." value="${cert.url||''}" oninput="resumeData.certifications[${i}].url=this.value;saveAndPreview()"></div>
+          </div>
+          <button class="btn btn-sm btn-outline-danger mt-1" onclick="resumeData.certifications.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove</button>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.certifications.push({name:'',issuer:'',date:'',url:''});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add certification</button>
+      </div>
+    </details>
+
+    <details class="resume-edit-section">
+      <summary>Languages (${d.languages.length})</summary>
+      <div class="p-2">
+        ${d.languages.map((lang,i)=>`<div class="resume-entry-row">
+          <div class="flex-1">
+            <input class="form-control form-control-sm mb-1" placeholder="Language, e.g. Spanish" value="${lang.name}" oninput="resumeData.languages[${i}].name=this.value;saveAndPreview()">
+            <input class="form-control form-control-sm" placeholder="Proficiency, e.g. Conversational" value="${lang.level}" oninput="resumeData.languages[${i}].level=this.value;saveAndPreview()">
+          </div>
+          <button class="btn btn-sm btn-outline-danger" onclick="resumeData.languages.splice(${i},1);saveResumeData();renderResumeBuilder()" title="Remove"><i class="bi bi-trash"></i></button>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.languages.push({name:'',level:''});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add language</button>
+      </div>
+    </details>
+
+    <details class="resume-edit-section">
+      <summary>Custom Sections (${d.customSections.length}) <span class="text-muted fw-normal" style="font-size:0.68rem">— Volunteering, Publications, Awards, Hobbies, anything</span></summary>
+      <div class="p-2">
+        ${d.customSections.map((sec,i)=>`<div class="resume-entry-block">
+          <div class="row g-2">
+            <div class="col-12"><label>Section title</label><input class="form-control form-control-sm" placeholder="e.g. Volunteer Experience" value="${sec.title}" oninput="resumeData.customSections[${i}].title=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="3" oninput="resumeData.customSections[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${(sec.bullets||[]).join('\n')}</textarea></div>
+          </div>
+          <button class="btn btn-sm btn-outline-danger mt-1" onclick="resumeData.customSections.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove section</button>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.customSections.push({id:'sec-'+Date.now(),title:'',bullets:[]});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add a new section</button>
+      </div>
+    </details>
+
     <button class="btn btn-sm btn-outline-secondary mt-2" onclick="resetResumeToUploaded()"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset to originally uploaded resume</button>
   `;
 }
@@ -2132,6 +2273,9 @@ function resumePreviewHTML(){
     ${d.projects.length?`<h2>Projects</h2>${d.projects.filter(p=>p.title).map(p=>`<div class="resume-job"><div class="resume-row-head"><strong>${esc(p.title)}</strong><span>${esc(p.date)}</span></div>${p.tech?`<div class="resume-role">${esc(p.tech)}</div>`:''}<ul>${p.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}`:''}
     ${d.education.length?`<h2>Education</h2>${d.education.filter(e=>e.degree).map(e=>`<div class="resume-edu"><div class="resume-row-head"><strong>${esc(e.degree)}</strong><span>${esc(e.year)}</span></div><div class="resume-role">${esc(e.school)}</div>${e.detail?`<div class="resume-detail">${esc(e.detail)}</div>`:''}</div>`).join('')}`:''}
     ${d.achievements.length?`<h2>Achievements</h2>${d.achievements.filter(a=>a.title).map(a=>`<div class="resume-job"><div class="resume-row-head"><strong>${esc(a.title)}</strong><span>${esc(a.date)}</span></div>${a.org?`<div class="resume-role">${esc(a.org)}</div>`:''}<ul>${a.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}`:''}
+    ${d.certifications.length?`<h2>Certifications</h2>${d.certifications.filter(cert=>cert.name).map(cert=>`<div class="resume-edu"><div class="resume-row-head"><strong>${esc(cert.name)}</strong><span>${esc(cert.date)}</span></div><div class="resume-role">${esc(cert.issuer)}</div>${cert.url?`<div class="resume-detail">${esc(cert.url)}</div>`:''}</div>`).join('')}`:''}
+    ${d.languages.length?`<h2>Languages</h2>${d.languages.filter(l=>l.name).map(l=>`<div class="resume-skill-line"><strong>${esc(l.name)}:</strong> ${esc(l.level)}</div>`).join('')}`:''}
+    ${(d.customSections||[]).filter(sec=>sec.title).map(sec=>`<h2>${esc(sec.title)}</h2><ul>${(sec.bullets||[]).map(b=>`<li>${esc(b)}</li>`).join('')}</ul>`).join('')}
   `;
 }
 
@@ -2154,7 +2298,10 @@ function resumeToPlainText(){
     d.education.map(e=>e.degree+' '+e.school+' '+(e.detail||'')).join(' '),
     d.experience.map(x=>x.company+' '+x.role+' '+x.bullets.join(' ')).join(' '),
     d.projects.map(p=>p.title+' '+p.tech+' '+p.bullets.join(' ')).join(' '),
-    d.achievements.map(a=>a.title+' '+a.org+' '+a.bullets.join(' ')).join(' ')
+    d.achievements.map(a=>a.title+' '+a.org+' '+a.bullets.join(' ')).join(' '),
+    (d.certifications||[]).map(cert=>cert.name+' '+cert.issuer).join(' '),
+    (d.languages||[]).map(l=>l.name+' '+l.level).join(' '),
+    (d.customSections||[]).map(sec=>sec.title+' '+(sec.bullets||[]).join(' ')).join(' ')
   ].join(' ').toLowerCase();
 }
 function updateATSScore(){
@@ -2196,7 +2343,15 @@ function downloadResumeTxt(){
   if(d.experience.length){ txt += 'WORK EXPERIENCE\n'; d.experience.forEach(x=>{ if(!x.company) return; txt += `${x.company} — ${x.role} (${x.date})\n`; x.bullets.forEach(b=>txt+=`- ${b}\n`); txt += '\n'; }); }
   if(d.projects.length){ txt += 'PROJECTS\n'; d.projects.forEach(p=>{ if(!p.title) return; txt += `${p.title}${p.tech?' — '+p.tech:''} (${p.date})\n`; p.bullets.forEach(b=>txt+=`- ${b}\n`); txt += '\n'; }); }
   if(d.education.length){ txt += 'EDUCATION\n'; d.education.forEach(e=>{ if(!e.degree) return; txt += `${e.degree}, ${e.school} (${e.year})\n`; if(e.detail) txt += `${e.detail}\n`; }); txt += '\n'; }
-  if(d.achievements.length){ txt += 'ACHIEVEMENTS\n'; d.achievements.forEach(a=>{ if(!a.title) return; txt += `${a.title} — ${a.org} (${a.date})\n`; a.bullets.forEach(b=>txt+=`- ${b}\n`); }); }
+  if(d.achievements.length){ txt += 'ACHIEVEMENTS\n'; d.achievements.forEach(a=>{ if(!a.title) return; txt += `${a.title} — ${a.org} (${a.date})\n`; a.bullets.forEach(b=>txt+=`- ${b}\n`); }); txt += '\n'; }
+  if(d.certifications.length){ txt += 'CERTIFICATIONS\n'; d.certifications.forEach(cert=>{ if(!cert.name) return; txt += `${cert.name} — ${cert.issuer} (${cert.date})${cert.url?' — '+cert.url:''}\n`; }); txt += '\n'; }
+  if(d.languages.length){ txt += 'LANGUAGES\n'; d.languages.forEach(l=>{ if(!l.name) return; txt += `${l.name}: ${l.level}\n`; }); txt += '\n'; }
+  (d.customSections||[]).forEach(sec=>{
+    if(!sec.title) return;
+    txt += `${sec.title.toUpperCase()}\n`;
+    (sec.bullets||[]).forEach(b=>txt+=`- ${b}\n`);
+    txt += '\n';
+  });
   const blob = new Blob([txt], {type:'text/plain'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -2222,17 +2377,57 @@ function updateStats(){
   document.getElementById('main-prog').style.width=pct+'%';
   document.getElementById('prog-label').textContent=d+' / '+TOTAL+' days';
   updateCalendarCaption();
-  let streak=0; for(let i=TOTAL;i>=1;i--){ if(done.has(i)) streak++; else break; }
-  document.getElementById('stat-streak').textContent=streak+'🔥';
 }
 
-// Small caption under the "Days Left" box showing the actual calendar countdown
-// (start date → target date), separate from the task-count number above it.
+// Keeps the "Days Left (Target)" stat box in sync with start date → target date.
 function updateCalendarCaption(){
-  const el = document.getElementById('stat-left-cal');
+  const el = document.getElementById('stat-target-days');
   if(!el) return;
   const t = getTimelineInfo();
-  el.textContent = t.overdue ? 'past target date' : `${t.remainingDays} cal. days to target`;
+  el.textContent = t.overdue ? '0' : t.remainingDays;
+}
+
+// Tapping any stat box opens a popup with the underlying data behind that number.
+function showStatDetail(which){
+  const d = done.size, l = TOTAL-d, pct = Math.round(d/TOTAL*100);
+  const t = getTimelineInfo();
+  let html = '';
+  if(which==='done'){
+    const doneDays = [...done].sort((a,b)=>a-b);
+    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-check2-circle me-2 text-primary"></i>${d} Days Done</h6>
+      <div style="max-height:340px;overflow-y:auto">
+        ${doneDays.length ? doneDays.map(n=>`<div class="small py-1" style="border-bottom:1px solid #f3f4f6">Day ${n} — ${findDayTopic(n)||''}</div>`).join('') : '<p class="small text-muted">No days marked complete yet.</p>'}
+      </div>
+      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
+  } else if(which==='left'){
+    const leftDays = [];
+    PHASES.forEach(phase=> phase.weeks.forEach(w=> w.days.forEach(dd=>{ if(!done.has(dd.n)) leftDays.push(dd); })));
+    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-hourglass-split me-2 text-primary"></i>${l} Tasks Left</h6>
+      <div style="max-height:340px;overflow-y:auto">
+        ${leftDays.length ? leftDays.map(dd=>`<div class="small py-1" style="border-bottom:1px solid #f3f4f6">Day ${dd.n} — ${dd.topic}</div>`).join('') : '<p class="small text-muted">All caught up!</p>'}
+      </div>
+      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
+  } else if(which==='pct'){
+    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-pie-chart me-2 text-primary"></i>${pct}% Complete</h6>
+      <div class="progress mb-2" style="height:14px;border-radius:8px"><div class="progress-bar" role="progressbar" style="width:${pct}%;background:var(--primary)"></div></div>
+      <p class="small text-muted mb-0">${d} of ${TOTAL} roadmap days completed. Current pace: <strong>${t.currentPace}</strong> days/week · needed to finish on time: <strong>${t.requiredPace}</strong> days/week.</p>
+      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
+  } else if(which==='target'){
+    const startStr = new Date(t.startStr+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    const endStr = t.target.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-flag me-2 text-primary"></i>${t.overdue?'Past target date':t.remainingDays+' Days Left'}</h6>
+      <table class="table table-sm mb-2" style="font-size:0.82rem">
+        <tbody>
+          <tr><td class="text-muted">Start date</td><td>${startStr}</td></tr>
+          <tr><td class="text-muted">Target end date</td><td>${endStr}</td></tr>
+          <tr><td class="text-muted">Days elapsed</td><td>${t.elapsedDays}</td></tr>
+          <tr><td class="text-muted">Days remaining</td><td>${t.overdue?'0 (overdue)':t.remainingDays}</td></tr>
+        </tbody>
+      </table>
+      <p class="small text-muted mb-0">Change your start date any time from Profile → Timeline &amp; Summary.</p>
+      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
+  }
+  openModal(html);
 }
 
 function showTab(tab, btn){
@@ -2285,15 +2480,7 @@ function toggleNoteBox(n){
   const box = document.getElementById('note-box-'+n);
   if(!box) return;
   box.style.display = box.style.display==='block' ? 'none' : 'block';
-  if(box.style.display==='block') document.getElementById('note-text-'+n).focus();
-}
-function setNoteType(n, type){
-  document.getElementById('note-notetype-'+n).value = type;
-  const paraBtn = document.getElementById('note-type-para-'+n), bulBtn = document.getElementById('note-type-bul-'+n);
-  if(paraBtn) paraBtn.classList.toggle('active', type==='paragraph');
-  if(bulBtn) bulBtn.classList.toggle('active', type==='bullets');
-  const ta = document.getElementById('note-text-'+n);
-  if(ta) ta.placeholder = type==='bullets' ? 'One point per line...' : 'Write freely...';
+  if(box.style.display==='block'){ const ed = document.getElementById('note-text-'+n); if(ed) ed.focus(); }
 }
 function handleNoteImage(e, n){
   const file = e.target.files[0]; if(!file) return;
@@ -2306,8 +2493,7 @@ function handleNoteImage(e, n){
   reader.readAsDataURL(file);
 }
 async function saveNote(n){
-  const type = document.getElementById('note-notetype-'+n).value || 'paragraph';
-  const raw = document.getElementById('note-text-'+n).value.trim();
+  const raw = rteGetHTML('note-text-'+n);
   const old = dayNotes[n];
   let mediaKey = old?.mediaKey, mediaName = old?.mediaName;
   if(pendingNoteImages[n]){
@@ -2318,10 +2504,7 @@ async function saveNote(n){
     delete pendingNoteImages[n];
   }
   if(raw || mediaKey){
-    const entry = {type, updatedAt: Date.now(), mediaKey, mediaName};
-    if(type==='bullets') entry.points = raw.split('\n').map(s=>s.trim()).filter(Boolean);
-    else entry.text = raw;
-    dayNotes[n] = entry;
+    dayNotes[n] = {type:'rich', text: raw, updatedAt: Date.now(), mediaKey, mediaName};
   } else {
     if(old?.mediaKey) idbDelete(old.mediaKey);
     delete dayNotes[n];
@@ -2367,7 +2550,7 @@ function renderAllNotes(searchTerm){
     const collapsed = noteCollapsed[key] !== undefined ? noteCollapsed[key] : isLong;
     const bodyHtml = e.type==='bullets'
       ? `<ul class="note-bullets note-text">${(e.points||[]).map(p=>`<li>${p}</li>`).join('')}</ul>`
-      : `<p class="note-text" style="margin:0">${e.text||''}</p>`;
+      : `<div class="note-text">${e.text||''}</div>`;
     return `<div class="note-card">
       <div class="note-meta" style="cursor:pointer" onclick="toggleNoteFold('${key}')">
         <span><i class="bi bi-chevron-${collapsed?'right':'down'} me-1" style="font-size:0.62rem"></i><i class="bi bi-calendar3 me-1"></i>Day ${e.n} — ${e.topic}</span>
@@ -2412,16 +2595,9 @@ function toggleQuickNoteForm(){
   const form = document.getElementById('quick-note-form');
   form.style.display = form.style.display==='block' ? 'none' : 'block';
 }
-function setQuickNoteType(type){
-  document.getElementById('quick-note-notetype').value = type;
-  document.getElementById('quick-note-type-para').classList.toggle('active', type==='paragraph');
-  document.getElementById('quick-note-type-bul').classList.toggle('active', type==='bullets');
-  document.getElementById('quick-note-text').placeholder = type==='bullets' ? 'One point per line...' : 'What did you learn or struggle with?';
-}
 async function quickAddNote(){
   const n = document.getElementById('quick-note-day').value;
-  const type = document.getElementById('quick-note-notetype').value || 'paragraph';
-  const raw = document.getElementById('quick-note-text').value.trim();
+  const raw = rteGetHTML('quick-note-text');
   if(!n || (!raw && !pendingNoteImages['quick'])){ alert('Pick a day and write something (or attach an image) first.'); return; }
   let mediaKey, mediaName;
   if(pendingNoteImages['quick']){
@@ -2430,12 +2606,9 @@ async function quickAddNote(){
     mediaName = pendingNoteImages['quick'].name;
     delete pendingNoteImages['quick'];
   }
-  const entry = {type, updatedAt: Date.now(), mediaKey, mediaName};
-  if(type==='bullets') entry.points = raw.split('\n').map(s=>s.trim()).filter(Boolean);
-  else entry.text = raw;
-  dayNotes[n] = entry;
+  dayNotes[n] = {type:'rich', text: raw, updatedAt: Date.now(), mediaKey, mediaName};
   localStorage.setItem('dotnet_day_notes', JSON.stringify(dayNotes));
-  document.getElementById('quick-note-text').value='';
+  document.getElementById('quick-note-text').innerHTML='';
   document.getElementById('quick-note-day').value='';
   const imgNameEl = document.getElementById('quick-note-img-name'); if(imgNameEl) imgNameEl.textContent='';
   document.getElementById('quick-note-form').style.display='none';
@@ -2637,12 +2810,7 @@ function renderWeek(w,color){
       </div>
       <button class="day-note-btn ${dayNotes[d.n]?'has-note':''}" onclick="toggleNoteBox(${d.n})" title="Add/view note"><i class="bi bi-sticky${dayNotes[d.n]?'-fill':''}"></i></button>
       <div class="day-note-box" id="note-box-${d.n}" style="width:100%">
-        <div class="note-type-toggle">
-          <button type="button" class="note-type-btn ${(!dayNotes[d.n]||dayNotes[d.n].type!=='bullets')?'active':''}" id="note-type-para-${d.n}" onclick="setNoteType(${d.n},'paragraph')"><i class="bi bi-text-paragraph me-1"></i>Paragraph</button>
-          <button type="button" class="note-type-btn ${(dayNotes[d.n]&&dayNotes[d.n].type==='bullets')?'active':''}" id="note-type-bul-${d.n}" onclick="setNoteType(${d.n},'bullets')"><i class="bi bi-list-ul me-1"></i>Bullets</button>
-        </div>
-        <input type="hidden" id="note-notetype-${d.n}" value="${dayNotes[d.n]?dayNotes[d.n].type||'paragraph':'paragraph'}">
-        <textarea id="note-text-${d.n}" rows="3" placeholder="${dayNotes[d.n]&&dayNotes[d.n].type==='bullets'?'One point per line...':'What did you learn or struggle with on Day '+d.n+'?'}">${dayNotes[d.n] ? (dayNotes[d.n].type==='bullets' ? (dayNotes[d.n].points||[]).join('\n') : dayNotes[d.n].text||'') : ''}</textarea>
+        ${rteEditorHTML('note-text-'+d.n, 'What did you learn or struggle with on Day '+d.n+'?', dayNotes[d.n] ? (dayNotes[d.n].type==='bullets' ? '<ul>'+(dayNotes[d.n].points||[]).map(p=>`<li>${p}</li>`).join('')+'</ul>' : (dayNotes[d.n].text||'')) : '')}
         <div class="note-attach-row">
           <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('note-img-input-${d.n}').click()"><i class="bi bi-paperclip me-1"></i>Attach image</button>
           <input type="file" id="note-img-input-${d.n}" accept="image/*" style="display:none" onchange="handleNoteImage(event,${d.n})">
@@ -2666,17 +2834,42 @@ function togglePhase(id){
   chev.style.transform=hidden?'':'rotate(-90deg)';
 }
 
+let resCatOrder = JSON.parse(localStorage.getItem('dotnet_res_cat_order') || 'null');
+function saveResCatOrder(names){ resCatOrder = names; localStorage.setItem('dotnet_res_cat_order', JSON.stringify(names)); }
+let draggedResCat = null;
+function attachResCardDragEvents(col, catName){
+  const card = col.querySelector('.res-card');
+  const handle = card.querySelector('h6');
+  handle.style.cursor = 'grab';
+  handle.setAttribute('draggable','true');
+  handle.addEventListener('dragstart', e=>{ draggedResCat = catName; e.stopPropagation(); card.classList.add('dragging'); });
+  handle.addEventListener('dragend', ()=>{ card.classList.remove('dragging'); document.querySelectorAll('.res-card').forEach(c=>c.classList.remove('drag-over-item')); });
+  col.addEventListener('dragover', e=>{ e.preventDefault(); e.stopPropagation(); if(draggedResCat && draggedResCat!==catName) card.classList.add('drag-over-item'); });
+  col.addEventListener('dragleave', ()=> card.classList.remove('drag-over-item'));
+  col.addEventListener('drop', e=>{
+    e.preventDefault(); e.stopPropagation(); card.classList.remove('drag-over-item');
+    if(!draggedResCat || draggedResCat===catName) return;
+    const names = [...document.querySelectorAll('#res-container > div')].map(x=>x.dataset.catName);
+    const fromIdx = names.indexOf(draggedResCat), toIdx = names.indexOf(catName);
+    names.splice(toIdx, 0, names.splice(fromIdx,1)[0]);
+    saveResCatOrder(names);
+    renderResources();
+  });
+}
+
 function renderResources(){
   const c=document.getElementById('res-container'); c.innerHTML='';
   const customByCat = {};
   customResourceLinks.forEach(r=>{ (customByCat[r.category] = customByCat[r.category]||[]).push(r); });
 
+  const cards = []; // {catName, node}
+
   RESOURCES.forEach(r=>{
     const extra = customByCat[r.phase] || [];
     delete customByCat[r.phase];
-    const col=document.createElement('div'); col.className='col-12 col-md-6';
+    const col=document.createElement('div'); col.className='col-12 col-md-6'; col.dataset.catName=r.phase;
     col.innerHTML=`<div class="res-card" style="border-top:3px solid ${r.color}">
-      <h6 style="color:${r.color}">${r.phase}</h6>
+      <h6 style="color:${r.color}"><i class="bi bi-grip-vertical me-1" style="color:${r.color}66"></i>${r.phase}</h6>
       ${r.items.map(i=>`<a class="res-link" href="${i.url}" target="_blank">
         <span class="res-type" style="background:${i.color}22;color:${i.color}">${i.type}</span>
         <span style="flex:1">${i.name}</span>
@@ -2693,15 +2886,15 @@ function renderResources(){
         <i class="bi bi-trash text-danger" style="font-size:0.72rem;cursor:pointer" onclick="event.preventDefault();deleteResourceLink('${i.id}')"></i>
       </div>`).join('')}
     </div>`;
-    c.appendChild(col);
+    cards.push({catName:r.phase, col});
   });
 
   // Any custom categories that don't match a built-in phase get their own card.
   Object.keys(customByCat).forEach(catName=>{
     const items = customByCat[catName];
-    const col=document.createElement('div'); col.className='col-12 col-md-6';
+    const col=document.createElement('div'); col.className='col-12 col-md-6'; col.dataset.catName=catName;
     col.innerHTML=`<div class="res-card" style="border-top:3px solid #16a34a">
-      <h6 style="color:#16a34a">${catName}</h6>
+      <h6 style="color:#16a34a"><i class="bi bi-grip-vertical me-1" style="color:#16a34a66"></i>${catName}</h6>
       ${items.map(i=>`<div class="res-link" style="align-items:center">
         <a href="${i.url}" target="_blank" class="d-flex align-items-center gap-2" style="flex:1;min-width:0;color:inherit;text-decoration:none">
           <span class="res-type" style="background:${i.color}22;color:${i.color}">${i.type}</span>
@@ -2712,8 +2905,18 @@ function renderResources(){
         <i class="bi bi-trash text-danger" style="font-size:0.72rem;cursor:pointer" onclick="event.preventDefault();deleteResourceLink('${i.id}')"></i>
       </div>`).join('')}
     </div>`;
-    c.appendChild(col);
+    cards.push({catName, col});
   });
+
+  // Apply saved order (unordered/new categories fall to the end).
+  let ordered = cards;
+  if(resCatOrder){
+    const map = new Map(cards.map(x=>[x.catName,x]));
+    ordered = resCatOrder.map(n=>map.get(n)).filter(Boolean);
+    cards.forEach(x=>{ if(!resCatOrder.includes(x.catName)) ordered.push(x); });
+  }
+  ordered.forEach(x=>{ c.appendChild(x.col); attachResCardDragEvents(x.col, x.catName); });
+
   const rsEl = document.getElementById('res-search-input');
   if(rsEl && rsEl.value) filterResources();
 }
@@ -3082,9 +3285,9 @@ function filterQAList(){
 function qaCategoryCardHTML(catName, qs, color, qiStart){
   let qi = qiStart;
   qs = applyQAOrder(catName, qs);
-  return {qi: qi + qs.length, html: `<div class="phase-card mb-3">
-      <div class="phase-header" style="background:${color}15;border-bottom:2px solid ${color}">
-        <span class="fw-bold" style="color:${color}">${catName}</span>
+  return {qi: qi + qs.length, html: `<div class="phase-card mb-3" data-cat-name="${catName}">
+      <div class="phase-header" draggable="true" style="background:${color}15;border-bottom:2px solid ${color};cursor:grab">
+        <span class="fw-bold d-flex align-items-center gap-2" style="color:${color}"><i class="bi bi-grip-vertical" style="color:${color}66" title="Drag to reorder this whole category"></i>${catName}</span>
         <span class="phase-badge" style="background:${color};color:white">${qs.length} Questions</span>
       </div>
       <div style="padding:0.6rem">
@@ -3110,6 +3313,35 @@ function qaCategoryCardHTML(catName, qs, color, qiStart){
     </div>`};
 }
 
+// ---- Drag & drop: reorder entire category sections (Built-in Topics / My Questions, tracked separately) ----
+let qaCatOrder = JSON.parse(localStorage.getItem('dotnet_qa_cat_order') || '{}'); // {builtin:[catName,...], custom:[catName,...]}
+function applyCatOrder(viewKey, cats){
+  const ord = qaCatOrder[viewKey];
+  if(!ord) return cats;
+  const set = new Set(cats);
+  const ordered = ord.filter(c=>set.has(c));
+  cats.forEach(c=>{ if(!ordered.includes(c)) ordered.push(c); });
+  return ordered;
+}
+function saveCatOrder(viewKey, cats){ qaCatOrder[viewKey]=cats; localStorage.setItem('dotnet_qa_cat_order', JSON.stringify(qaCatOrder)); }
+let draggedQACatName = null, draggedQACatView = null;
+function attachQACategoryDragEvents(el, viewKey){
+  const handle = el.querySelector('.phase-header');
+  handle.addEventListener('dragstart', e=>{ draggedQACatName = el.dataset.catName; draggedQACatView = viewKey; e.stopPropagation(); el.classList.add('dragging'); });
+  handle.addEventListener('dragend', ()=>{ el.classList.remove('dragging'); document.querySelectorAll('.phase-card').forEach(c=>c.classList.remove('drag-over-item')); });
+  el.addEventListener('dragover', e=>{ e.preventDefault(); e.stopPropagation(); if(draggedQACatView===viewKey && draggedQACatName!==el.dataset.catName) el.classList.add('drag-over-item'); });
+  el.addEventListener('dragleave', ()=> el.classList.remove('drag-over-item'));
+  el.addEventListener('drop', e=>{
+    e.preventDefault(); e.stopPropagation(); el.classList.remove('drag-over-item');
+    if(draggedQACatView!==viewKey || draggedQACatName===el.dataset.catName) return;
+    const names = [...el.parentElement.querySelectorAll(':scope > .phase-card')].map(c=>c.dataset.catName);
+    const fromIdx = names.indexOf(draggedQACatName), toIdx = names.indexOf(el.dataset.catName);
+    names.splice(toIdx, 0, names.splice(fromIdx,1)[0]);
+    saveCatOrder(viewKey, names);
+    renderInterview();
+  });
+}
+
 function renderInterview(){
   const allItems = getAllQAItems();
   const catColorMap = {}; QA_DATA.forEach(cc=> catColorMap[cc.cat]=cc.color);
@@ -3122,7 +3354,8 @@ function renderInterview(){
   // Built-in Topics — grouped by the original hardcoded categories (C# Core, ASP.NET Core, etc.)
   const bc = document.getElementById('qa-container'); bc.innerHTML='';
   let qi=0;
-  const builtinCats = [...new Set([...QA_DATA.map(cc=>cc.cat), ...builtinItems.map(i=>i.cat)])];
+  let builtinCats = [...new Set([...QA_DATA.map(cc=>cc.cat), ...builtinItems.map(i=>i.cat)])];
+  builtinCats = applyCatOrder('builtin', builtinCats.filter(cn=>builtinItems.some(i=>i.cat===cn)));
   builtinCats.forEach(catName=>{
     const qs = builtinItems.filter(i=>i.cat===catName);
     if(qs.length===0) return;
@@ -3137,7 +3370,8 @@ function renderInterview(){
   if(customItems.length===0){
     cc2.innerHTML = `<p class="small text-muted text-center py-3"><i class="bi bi-info-circle me-1"></i>No custom questions yet — tap "Add question" above to add one.</p>`;
   } else {
-    const customCats = [...new Set(customItems.map(i=>i.cat))];
+    let customCats = [...new Set(customItems.map(i=>i.cat))];
+    customCats = applyCatOrder('custom', customCats);
     let qi2=0;
     customCats.forEach(catName=>{
       const qs = customItems.filter(i=>i.cat===catName);
@@ -3147,6 +3381,8 @@ function renderInterview(){
     });
   }
 
+  document.querySelectorAll('#qa-container > .phase-card').forEach(el=> attachQACategoryDragEvents(el, 'builtin'));
+  document.querySelectorAll('#qa-custom-container > .phase-card').forEach(el=> attachQACategoryDragEvents(el, 'custom'));
   document.querySelectorAll('#qa-container .interview-q, #qa-custom-container .interview-q').forEach(el=> attachQADragEvents(el, el.dataset.cat));
   const searchEl = document.getElementById('qa-search-input');
   if(searchEl && searchEl.value) filterQAList();
@@ -3382,7 +3618,7 @@ let explicitSignInInProgress = false;
 function renderSyncBanner(){
   const el = document.getElementById('sync-reminder-banner');
   if(!el) return;
-  const dismissed = sessionStorage.getItem('dotnet_sync_banner_dismissed');
+  const dismissed = localStorage.getItem('dotnet_sync_banner_dismissed');
   if(driveAccessToken || dismissed){ el.style.display='none'; el.innerHTML=''; return; }
   el.style.display='block';
   el.innerHTML = `<div class="sync-banner">
@@ -3393,7 +3629,7 @@ function renderSyncBanner(){
   </div>`;
 }
 function dismissSyncBanner(){
-  sessionStorage.setItem('dotnet_sync_banner_dismissed','1');
+  localStorage.setItem('dotnet_sync_banner_dismissed','1');
   renderSyncBanner();
 }
 
@@ -3640,6 +3876,51 @@ function renderTimelineCard(){
   </div>`;
 }
 
+// ===================== BACKUP / RESTORE (export & import everything as one JSON file) =====================
+const BACKUP_KEYS = [
+  'dotnet_adv_collapsed','dotnet_adv_custom','dotnet_adv_deleted','dotnet_adv_order','dotnet_adv_overrides',
+  'dotnet_author_collapsed','dotnet_author_order','dotnet_author_overrides','dotnet_custom_authors',
+  'dotnet_custom_phase_done','dotnet_custom_phases','dotnet_custom_qa','dotnet_custom_resources',
+  'dotnet_day_notes','dotnet_deleted_items','dotnet_display_name','dotnet_done2','dotnet_item_collapsed',
+  'dotnet_item_expanded','dotnet_item_orders','dotnet_item_overrides','dotnet_note_collapsed',
+  'dotnet_qa_cat_order','dotnet_qa_cat_orders','dotnet_qa_deleted','dotnet_qa_overrides',
+  'dotnet_res_cat_order','dotnet_resume_data','dotnet_start_date'
+];
+function exportBackup(){
+  const data = {};
+  BACKUP_KEYS.forEach(k=>{ const v = localStorage.getItem(k); if(v!==null) data[k]=v; });
+  const payload = {app:'dotnet-tracker', exportedAt: new Date().toISOString(), data};
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'dotnet-tracker-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+}
+function triggerImportBackup(){ document.getElementById('backup-import-input').click(); }
+function importBackup(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    let payload;
+    try{ payload = JSON.parse(reader.result); }catch(err){ alert('That file is not a valid backup (invalid JSON).'); return; }
+    if(!payload || !payload.data){ alert('That file is not a valid backup — expected a dotnet-tracker export.'); return; }
+    if(!confirm('This will replace your current data (progress, notes, Docs Hub, Q&A, resume, etc.) on this device with the backup. Continue?')) return;
+    BACKUP_KEYS.forEach(k=>{
+      if(payload.data[k]!==undefined) localStorage.setItem(k, payload.data[k]);
+      else localStorage.removeItem(k);
+    });
+    alert('Backup restored. Reloading...');
+    location.reload();
+  };
+  reader.readAsText(file);
+}
+function getLocalStorageSizeKB(){
+  let total = 0;
+  BACKUP_KEYS.forEach(k=>{ const v = localStorage.getItem(k); if(v) total += v.length; });
+  return (total/1024).toFixed(1);
+}
+
 function renderProfile(){
   const c = document.getElementById('profile-container'); c.innerHTML='';
 
@@ -3655,9 +3936,9 @@ function renderProfile(){
 
   // Name + Sync — one compact card instead of two
   c.innerHTML += `<div class="phase-card mb-3" style="padding:1rem">
-    <div class="d-flex align-items-center gap-2 mb-2">
-      <label class="mb-0 small fw-bold text-muted" style="min-width:70px"><i class="bi bi-person-badge me-1"></i>Name</label>
-      <input id="display-name-input" class="form-control form-control-sm" placeholder="e.g. Sandip" value="${displayName}">
+    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+      <label class="mb-0 small fw-bold text-muted" style="flex:0 0 auto"><i class="bi bi-person-badge me-1"></i>Name</label>
+      <input id="display-name-input" class="form-control form-control-sm" style="flex:1 1 120px;min-width:0" placeholder="e.g. Sandip" value="${displayName}">
       <button class="btn btn-sm btn-primary flex-shrink-0" onclick="saveDisplayName()">Save</button>
     </div>
     <hr class="my-2">
@@ -3678,6 +3959,17 @@ function renderProfile(){
       <div class="col-6 col-md-3"><div class="stat-box" style="background:#fffbeb;padding:0.7rem"><div class="num" style="color:#d97706;font-size:1.2rem">${notesCount}</div><div class="lbl">Notes</div></div></div>
       <div class="col-6 col-md-3"><div class="stat-box" style="background:#f0f9ff;padding:0.7rem"><div class="num" style="color:#0891b2;font-size:1.2rem">${customContentCount}</div><div class="lbl">Docs Hub Items</div></div></div>
       <div class="col-6 col-md-3"><div class="stat-box" style="background:#fef2f2;padding:0.7rem"><div class="num" style="color:#dc2626;font-size:1.2rem">${customQACount}</div><div class="lbl">Q&amp;A Items</div></div></div>
+    </div>
+  </div>`;
+
+  // Backup & restore — a real safety net since everything lives in this browser's storage
+  c.innerHTML += `<div class="phase-card mb-3" style="padding:1rem">
+    <h6 class="fw-bold mb-1" style="font-size:0.85rem"><i class="bi bi-shield-check me-2 text-primary"></i>Backup &amp; Restore</h6>
+    <p class="small text-muted mb-2">Everything above lives only in this browser (~${getLocalStorageSizeKB()} KB). Download a backup so clearing your browser or switching devices doesn't lose it.</p>
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-sm btn-primary" onclick="exportBackup()"><i class="bi bi-download me-1"></i>Download backup</button>
+      <button class="btn btn-sm btn-outline-primary" onclick="triggerImportBackup()"><i class="bi bi-upload me-1"></i>Restore from backup</button>
+      <input type="file" id="backup-import-input" accept="application/json" style="display:none" onchange="importBackup(event)">
     </div>
   </div>`;
 
