@@ -250,6 +250,8 @@ img,table{max-width:100%;}
 .subtab-pill .del-section:hover{opacity:1;color:#fecaca;}
 .subtab-pill.add-pill{background:#fff;border:1.5px dashed var(--border);color:var(--muted);}
 .subtab-pill.add-pill:hover{border-color:var(--primary);color:var(--primary);}
+.subtab-pill.dragging{opacity:0.4;}
+.subtab-pill.drag-over-item{outline:2px solid var(--linkedin);outline-offset:1px;}
 .profile-subtab{border-radius:20px;font-weight:600;font-size:0.8rem;}
 .qa-subtab{border-radius:20px;font-weight:600;font-size:0.8rem;}
 .author-form .form-control,.author-form .form-select{font-size:0.84rem;margin-bottom:10px;}
@@ -455,9 +457,9 @@ img,table{max-width:100%;}
 
 <!-- Stats -->
 <div class="row g-2 mb-3">
-  <div class="col-6 col-md-3"><div class="stat-box stat-box-click" onclick="showStatDetail('done')" style="background:#ede9fe"><div class="num" style="color:#4f46e5" id="stat-done">0</div><div class="lbl">Days Done</div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-box stat-box-click" onclick="showStatDetail('elapsed')" style="background:#ede9fe"><div class="num" style="color:#4f46e5" id="stat-elapsed">0</div><div class="lbl">Days Elapsed</div></div></div>
   <div class="col-6 col-md-3"><div class="stat-box stat-box-click" onclick="showStatDetail('left')" style="background:#dcfce7"><div class="num" style="color:#16a34a" id="stat-left">175</div><div class="lbl">Tasks Left</div></div></div>
-  <div class="col-6 col-md-3"><div class="stat-box stat-box-click" onclick="showStatDetail('pct')" style="background:#fef3c7"><div class="num" style="color:#d97706" id="stat-pct">0%</div><div class="lbl">Complete</div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-box stat-box-click" onclick="showStatDetail('enddate')" style="background:#fef3c7"><div class="num" style="color:#d97706;font-size:1.15rem" id="stat-enddate">–</div><div class="lbl">Target End Date</div></div></div>
   <div class="col-6 col-md-3"><div class="stat-box stat-box-click" onclick="showStatDetail('target')" style="background:#e0e7ff"><div class="num" style="color:#4338ca" id="stat-target-days">–</div><div class="lbl">Days Left (Target)</div></div></div>
 </div>
 
@@ -923,6 +925,32 @@ let docsSections = JSON.parse(localStorage.getItem('dotnet_docs_sections') || 'n
 let activeDocsSection = localStorage.getItem('dotnet_active_docs_section') || 'community';
 function saveDocsSections(){ localStorage.setItem('dotnet_docs_sections', JSON.stringify(docsSections)); }
 function slugify(str){ return str.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || ('section-'+Date.now()); }
+
+// Shared drag-to-reorder for the scrollable sub-tab rows (Docs Hub + Interview Q&A).
+// `sectionsArr` is mutated in place via splice, so no return value is needed — both
+// callers pass their own live array (docsSections / qaSections) plus how to save + redraw it.
+let draggedSubtabKey = null;
+function attachSubtabDragEvents(containerId, sectionsArr, saveFn, rerenderFn){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  container.querySelectorAll('.subtab-pill[data-key]').forEach(pill=>{
+    pill.addEventListener('dragstart', ()=>{ draggedSubtabKey = pill.dataset.key; pill.classList.add('dragging'); });
+    pill.addEventListener('dragend', ()=>{ pill.classList.remove('dragging'); container.querySelectorAll('.subtab-pill').forEach(p=>p.classList.remove('drag-over-item')); });
+    pill.addEventListener('dragover', e=>{ e.preventDefault(); if(draggedSubtabKey && draggedSubtabKey!==pill.dataset.key) pill.classList.add('drag-over-item'); });
+    pill.addEventListener('dragleave', ()=> pill.classList.remove('drag-over-item'));
+    pill.addEventListener('drop', e=>{
+      e.preventDefault(); pill.classList.remove('drag-over-item');
+      if(!draggedSubtabKey || draggedSubtabKey===pill.dataset.key) return;
+      const fromIdx = sectionsArr.findIndex(s=>s.key===draggedSubtabKey);
+      const toIdx = sectionsArr.findIndex(s=>s.key===pill.dataset.key);
+      if(fromIdx<0 || toIdx<0) return;
+      const [moved] = sectionsArr.splice(fromIdx,1);
+      sectionsArr.splice(toIdx,0,moved);
+      saveFn();
+      rerenderFn();
+    });
+  });
+}
 let pendingMedia = null; // {dataUrl, name, mime} staged from file input before save
 
 // ---- IndexedDB (free, local, no server — used only for images/PDFs which can be large) ----
@@ -1177,11 +1205,13 @@ function renderDocsSubtabs(){
   const el = document.getElementById('docs-subtabs');
   if(!el) return;
   el.innerHTML = docsSections.map(s=>`
-    <button class="subtab-pill ${s.key===activeDocsSection?'active':''}" onclick="setDocsSubtab('${s.key}')">
+    <button class="subtab-pill ${s.key===activeDocsSection?'active':''}" data-key="${s.key}" draggable="true" onclick="setDocsSubtab('${s.key}')">
+      <i class="bi bi-grip-vertical" style="opacity:0.4;font-size:0.7rem"></i>
       <i class="bi ${s.icon}"></i>${s.label}
       ${!s.builtin ? `<i class="bi bi-x-circle del-section" onclick="event.stopPropagation();deleteDocsSection('${s.key}')" title="Delete this section"></i>` : ''}
     </button>`).join('')
     + `<button class="subtab-pill add-pill" onclick="promptNewDocsSection()"><i class="bi bi-plus-lg"></i>New tab</button>`;
+  attachSubtabDragEvents('docs-subtabs', docsSections, saveDocsSections, renderDocsSubtabs);
 }
 function setDocsSubtab(key){
   activeDocsSection = key;
@@ -2512,20 +2542,22 @@ function resetAll(){ if(confirm('Reset all progress?')){ done.clear(); save(); r
 
 function updateStats(){
   const d=done.size, l=TOTAL-d, pct=Math.round(d/TOTAL*100);
-  document.getElementById('stat-done').textContent=d;
   document.getElementById('stat-left').textContent=l;
-  document.getElementById('stat-pct').textContent=pct+'%';
   document.getElementById('main-prog').style.width=pct+'%';
   document.getElementById('prog-label').textContent=d+' / '+TOTAL+' days';
   updateCalendarCaption();
 }
 
-// Keeps the "Days Left (Target)" stat box in sync with start date → target date.
+// Keeps the calendar-based stat boxes (Days Elapsed, Target End Date, Days Left) in sync
+// with the start date → target date, independent of task-completion counts.
 function updateCalendarCaption(){
-  const el = document.getElementById('stat-target-days');
-  if(!el) return;
   const t = getTimelineInfo();
-  el.textContent = t.overdue ? '0' : t.remainingDays;
+  const elapsedEl = document.getElementById('stat-elapsed');
+  const endDateEl = document.getElementById('stat-enddate');
+  const targetEl = document.getElementById('stat-target-days');
+  if(elapsedEl) elapsedEl.textContent = t.elapsedDays;
+  if(endDateEl) endDateEl.textContent = t.target.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  if(targetEl) targetEl.textContent = t.overdue ? '0' : t.remainingDays;
 }
 
 // Tapping any stat box opens a popup with the underlying data behind that number.
@@ -2533,12 +2565,11 @@ function showStatDetail(which){
   const d = done.size, l = TOTAL-d, pct = Math.round(d/TOTAL*100);
   const t = getTimelineInfo();
   let html = '';
-  if(which==='done'){
-    const doneDays = [...done].sort((a,b)=>a-b);
-    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-check2-circle me-2 text-primary"></i>${d} Days Done</h6>
-      <div style="max-height:340px;overflow-y:auto">
-        ${doneDays.length ? doneDays.map(n=>`<div class="small py-1" style="border-bottom:1px solid #f3f4f6">Day ${n} — ${findDayTopic(n)||''}</div>`).join('') : '<p class="small text-muted">No days marked complete yet.</p>'}
-      </div>
+  if(which==='elapsed'){
+    const startStr = new Date(t.startStr+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-calendar3 me-2 text-primary"></i>${t.elapsedDays} Days Elapsed</h6>
+      <p class="small text-muted mb-2">Since you started on <strong>${startStr}</strong>.</p>
+      <p class="small mb-0">You've completed <strong>${d}</strong> of ${TOTAL} roadmap days so far — current pace: <strong>${t.currentPace}</strong> days/week.</p>
       <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
   } else if(which==='left'){
     const leftDays = [];
@@ -2548,10 +2579,13 @@ function showStatDetail(which){
         ${leftDays.length ? leftDays.map(dd=>`<div class="small py-1" style="border-bottom:1px solid #f3f4f6">Day ${dd.n} — ${dd.topic}</div>`).join('') : '<p class="small text-muted">All caught up!</p>'}
       </div>
       <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
-  } else if(which==='pct'){
-    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-pie-chart me-2 text-primary"></i>${pct}% Complete</h6>
-      <div class="progress mb-2" style="height:14px;border-radius:8px"><div class="progress-bar" role="progressbar" style="width:${pct}%;background:var(--primary)"></div></div>
-      <p class="small text-muted mb-0">${d} of ${TOTAL} roadmap days completed. Current pace: <strong>${t.currentPace}</strong> days/week · needed to finish on time: <strong>${t.requiredPace}</strong> days/week.</p>
+  } else if(which==='enddate'){
+    const endStr = t.target.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-flag-fill me-2 text-primary"></i>Target: ${endStr}</h6>
+      <p class="small mb-0" style="color:${t.overdue?'#dc2626':'var(--muted)'}">
+        ${t.overdue ? "You're past this date — consider setting a new start date, or just keep going at your own pace." :
+          `That's <strong>${t.remainingDays} days</strong> away. To finish on time you need about <strong>${t.requiredPace} days/week</strong>.`}
+      </p>
       <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
   } else if(which==='target'){
     const startStr = new Date(t.startStr+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
@@ -3522,11 +3556,13 @@ function renderQASubtabs(){
   const el = document.getElementById('qa-subtabs');
   if(!el) return;
   el.innerHTML = qaSections.map(s=>`
-    <button class="subtab-pill ${s.key===activeQASection?'active':''}" onclick="setQASubtab('${s.key}')">
+    <button class="subtab-pill ${s.key===activeQASection?'active':''}" data-key="${s.key}" draggable="true" onclick="setQASubtab('${s.key}')">
+      <i class="bi bi-grip-vertical" style="opacity:0.4;font-size:0.7rem"></i>
       <i class="bi ${s.icon}"></i>${s.label}
       ${!s.builtin ? `<i class="bi bi-x-circle del-section" onclick="event.stopPropagation();deleteQASection('${s.key}')" title="Delete this tab"></i>` : ''}
     </button>`).join('')
     + `<button class="subtab-pill add-pill" onclick="promptNewQASection()"><i class="bi bi-plus-lg"></i>New tab</button>`;
+  attachSubtabDragEvents('qa-subtabs', qaSections, saveQASections, renderQASubtabs);
 }
 function setQASubtab(key){
   activeQASection = key;
