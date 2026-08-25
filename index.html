@@ -239,6 +239,17 @@ img,table{max-width:100%;}
 .docshub-add-btn:hover{background:#f3f2ff;color:var(--primary);}
 .adv-header .docshub-add-btn{color:#b45309;}
 .docshub-subtab{border-radius:20px;font-weight:600;font-size:0.8rem;}
+/* Dynamic, scrollable sub-tab row for Docs Hub / Interview Q&A — supports any number of
+   user-created sections without wrapping awkwardly on mobile. */
+.subtab-scroll-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
+.subtab-scroll-row::-webkit-scrollbar{display:none;}
+.subtab-pill{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;border-radius:20px;font-weight:600;font-size:0.8rem;padding:6px 14px;border:1px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.subtab-pill:hover{border-color:var(--primary);color:var(--primary);}
+.subtab-pill.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.subtab-pill .del-section{opacity:0.6;font-size:0.7rem;margin-left:2px;}
+.subtab-pill .del-section:hover{opacity:1;color:#fecaca;}
+.subtab-pill.add-pill{background:#fff;border:1.5px dashed var(--border);color:var(--muted);}
+.subtab-pill.add-pill:hover{border-color:var(--primary);color:var(--primary);}
 .profile-subtab{border-radius:20px;font-weight:600;font-size:0.8rem;}
 .qa-subtab{border-radius:20px;font-weight:600;font-size:0.8rem;}
 .author-form .form-control,.author-form .form-select{font-size:0.84rem;margin-bottom:10px;}
@@ -471,9 +482,8 @@ img,table{max-width:100%;}
 <div id="tab-author" style="display:none">
   <div class="d-flex gap-2 mb-2 flex-wrap align-items-center">
     <button class="btn btn-sm btn-primary" onclick="openAddChooser()"><i class="bi bi-plus-lg me-1"></i>Add new content</button>
-    <button class="btn btn-sm btn-outline-primary docshub-subtab active" onclick="setDocsSubtab('community',this)"><i class="bi bi-people-fill me-1"></i>Community Docs</button>
-    <button class="btn btn-sm btn-outline-primary docshub-subtab" onclick="setDocsSubtab('resources',this)"><i class="bi bi-bookmark-star-fill me-1"></i>Curated Resources</button>
   </div>
+  <div class="subtab-scroll-row mb-2" id="docs-subtabs"></div>
   <div class="search-filter-bar mb-3">
     <i class="bi bi-search"></i>
     <input type="text" id="docs-search-input" placeholder="Search titles, notes, links..." oninput="filterDocsHub()">
@@ -527,19 +537,13 @@ img,table{max-width:100%;}
 <div id="tab-interview" style="display:none">
   <div class="d-flex gap-2 mb-2 flex-wrap align-items-center">
     <button class="btn btn-sm btn-primary" onclick="openQAChooser()"><i class="bi bi-plus-lg me-1"></i>Add question</button>
-    <button class="btn btn-sm btn-outline-primary qa-subtab active" onclick="setQASubtab('builtin',this)"><i class="bi bi-collection me-1"></i>Built-in Topics</button>
-    <button class="btn btn-sm btn-outline-primary qa-subtab" onclick="setQASubtab('custom',this)"><i class="bi bi-person-lines-fill me-1"></i>My Questions</button>
   </div>
+  <div class="subtab-scroll-row mb-2" id="qa-subtabs"></div>
   <div class="search-filter-bar mb-3">
     <i class="bi bi-search"></i>
     <input type="text" id="qa-search-input" placeholder="Search questions..." oninput="filterQAList()">
   </div>
-  <div id="qa-builtin-view">
-    <div id="qa-container"></div>
-  </div>
-  <div id="qa-custom-view" style="display:none">
-    <div id="qa-custom-container"></div>
-  </div>
+  <div id="qa-items-container"></div>
 </div>
 
 <!-- ===================== TAB: PROFILE (incl. Timeline & Summary) ===================== -->
@@ -909,6 +913,16 @@ let deletedItemIds = new Set(JSON.parse(localStorage.getItem('dotnet_deleted_ite
 let authorOverrides = JSON.parse(localStorage.getItem('dotnet_author_overrides') || '{}'); // persisted edits to built-in author profile (name/role/link)
 let editingItem = null; // {authorId, itemId} or null when adding new
 let editingAuthorId = null; // author id being edited (name/role), or null
+
+// ---- Docs Hub: dynamic, scrollable sub-tabs (Community Docs / Curated Resources are built-in;
+// any number of custom ones can be created right from the "Add new content" flow) ----
+let docsSections = JSON.parse(localStorage.getItem('dotnet_docs_sections') || 'null') || [
+  {key:'community', label:'Community Docs', icon:'bi-people-fill', builtin:true},
+  {key:'resources', label:'Curated Resources', icon:'bi-bookmark-star-fill', builtin:true}
+];
+let activeDocsSection = localStorage.getItem('dotnet_active_docs_section') || 'community';
+function saveDocsSections(){ localStorage.setItem('dotnet_docs_sections', JSON.stringify(docsSections)); }
+function slugify(str){ return str.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || ('section-'+Date.now()); }
 let pendingMedia = null; // {dataUrl, name, mime} staged from file input before save
 
 // ---- IndexedDB (free, local, no server — used only for images/PDFs which can be large) ----
@@ -1078,18 +1092,22 @@ async function downloadStoredMedia(itemId){
 }
 
 function renderAuthorPosts(){
+  renderDocsSubtabs();
   const board = document.getElementById('author-board'); board.innerHTML='';
   const authors = getAllAuthors();
 
   authors.forEach(author=>{
+    const sectionItems = author.items.filter(it=>(it.section||'community')===activeDocsSection);
+    if(sectionItems.length===0) return;
+
     const card = document.createElement('div');
     card.className='author-card';
     card.dataset.authorId = author.id;
 
     const collapsed = !!authorCollapsed[author.id];
     const shown = expandedCount[author.id] || ITEM_PAGE_SIZE;
-    const visibleItems = author.items.slice(0, shown);
-    const hasMore = author.items.length > shown;
+    const visibleItems = sectionItems.slice(0, shown);
+    const hasMore = sectionItems.length > shown;
     const isCustom = customAuthors.some(a=>a.id===author.id);
 
     card.innerHTML = `
@@ -1098,7 +1116,7 @@ function renderAuthorPosts(){
         <i class="bi bi-grip-vertical drag-handle"></i>
         <div class="author-avatar">${author.avatar}</div>
         <div class="author-meta">
-          <p class="name">${author.name} ${!collapsed?'':`<span style="font-weight:400;opacity:.8">· ${author.items.length} item${author.items.length!==1?'s':''}</span>`}</p>
+          <p class="name">${author.name} ${!collapsed?'':`<span style="font-weight:400;opacity:.8">· ${sectionItems.length} item${sectionItems.length!==1?'s':''}</span>`}</p>
           <p class="role">${author.role}</p>
         </div>
         <a class="author-link" href="${author.linkedin}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>Profile</a>
@@ -1108,7 +1126,7 @@ function renderAuthorPosts(){
         </div>
       </div>
       ${collapsed ? '' : `<div class="item-list" data-author-id="${author.id}"></div>
-      ${hasMore ? `<div class="d-flex pb-3"><button class="btn btn-sm btn-outline-secondary show-more-btn mx-auto" onclick="showMoreItems('${author.id}')"><i class="bi bi-chevron-down me-1"></i>Show ${author.items.length - shown} more</button></div>` : ''}`}
+      ${hasMore ? `<div class="d-flex pb-3"><button class="btn btn-sm btn-outline-secondary show-more-btn mx-auto" onclick="showMoreItems('${author.id}')"><i class="bi bi-chevron-down me-1"></i>Show ${sectionItems.length - shown} more</button></div>` : ''}`}
     `;
     board.appendChild(card);
 
@@ -1146,8 +1164,55 @@ function renderAuthorPosts(){
     attachAuthorDragEvents(card);
   });
 
+  if(board.children.length===0){
+    board.innerHTML = `<p class="small text-muted text-center py-4"><i class="bi bi-inbox me-1"></i>Nothing in this section yet — tap "Add new content" above to add something here.</p>`;
+  }
+
   const searchEl = document.getElementById('docs-search-input');
   if(searchEl && (searchEl.value || document.getElementById('docs-type-filter').value)) filterDocsHub();
+}
+
+// ---- Dynamic, scrollable Docs Hub sub-tabs ----
+function renderDocsSubtabs(){
+  const el = document.getElementById('docs-subtabs');
+  if(!el) return;
+  el.innerHTML = docsSections.map(s=>`
+    <button class="subtab-pill ${s.key===activeDocsSection?'active':''}" onclick="setDocsSubtab('${s.key}')">
+      <i class="bi ${s.icon}"></i>${s.label}
+      ${!s.builtin ? `<i class="bi bi-x-circle del-section" onclick="event.stopPropagation();deleteDocsSection('${s.key}')" title="Delete this section"></i>` : ''}
+    </button>`).join('')
+    + `<button class="subtab-pill add-pill" onclick="promptNewDocsSection()"><i class="bi bi-plus-lg"></i>New tab</button>`;
+}
+function setDocsSubtab(key){
+  activeDocsSection = key;
+  localStorage.setItem('dotnet_active_docs_section', key);
+  document.getElementById('docs-community-view').style.display = key==='resources' ? 'none' : '';
+  document.getElementById('docs-resources-view').style.display = key==='resources' ? '' : 'none';
+  if(key==='resources') renderResources(); else renderAuthorPosts();
+}
+function promptNewDocsSection(){
+  const name = prompt('Name your new tab (e.g. "Certifications", "Cheat Sheets"):');
+  if(!name) return;
+  const key = slugify(name);
+  if(docsSections.some(s=>s.key===key)){ setDocsSubtab(key); return; }
+  docsSections.push({key, label:name, icon:'bi-folder2', builtin:false});
+  saveDocsSections();
+  setDocsSubtab(key);
+}
+function deleteDocsSection(key){
+  const sec = docsSections.find(s=>s.key===key);
+  if(!sec) return;
+  if(!confirm(`Delete the "${sec.label}" tab? Any items already in it will move back to Community Docs.`)) return;
+  customAuthors.forEach(author=> author.items.forEach(it=>{ if((it.section||'community')===key) it.section='community'; }));
+  persistCustomAuthors();
+  CONTENT_AUTHORS.forEach(author=> author.items.forEach(it=>{
+    const current = itemOverrides[it.id] ? {...it, ...itemOverrides[it.id]} : it;
+    if((current.section||'community')===key) itemOverrides[it.id] = {...(itemOverrides[it.id]||{}), section:'community'};
+  }));
+  localStorage.setItem('dotnet_item_overrides', JSON.stringify(itemOverrides));
+  docsSections = docsSections.filter(s=>s.key!==key);
+  saveDocsSections();
+  setDocsSubtab('community');
 }
 
 // ---- Search + type filter for Docs Hub (Community Docs) ----
@@ -1183,21 +1248,33 @@ function filterResources(){
 
 // ---- Step 1 of adding content: ask what they want to upload ----
 // Step 1 (popup): which section is this going into?
+let pendingDocsSection = 'community';
 function openAddChooser(){
   editingItem = null; editingAuthorId = null; pendingMedia = null; editingResourceId = null;
   openModal(`
     <div class="author-form docshub-form-compact mb-0">
       <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>Where should this go?</h6>
       <div class="type-chooser-grid" style="grid-template-columns:repeat(2,1fr)">
-        <button type="button" class="type-chooser-btn" onclick="openContentTypeChooser()"><i class="bi bi-people-fill" style="color:#4f46e5"></i><span class="tc-label">Community Docs</span></button>
-        <button type="button" class="type-chooser-btn" onclick="openResourceForm()"><i class="bi bi-bookmark-star-fill" style="color:#d97706"></i><span class="tc-label">Curated Resources</span></button>
+        ${docsSections.map(s=>`<button type="button" class="type-chooser-btn" onclick="${s.key==='resources'?`openResourceForm()`:`openContentTypeChooser('${s.key}')`}"><i class="bi ${s.icon}" style="color:${s.key==='resources'?'#d97706':'#4f46e5'}"></i><span class="tc-label">${s.label}</span></button>`).join('')}
       </div>
+      <button type="button" class="type-chooser-btn mt-2" style="border-style:dashed;width:100%" onclick="promptNewSectionThenAdd()"><i class="bi bi-plus-lg" style="color:#16a34a"></i><span class="tc-label">Create a new tab</span></button>
       <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Cancel</button>
     </div>`);
 }
+function promptNewSectionThenAdd(){
+  const name = prompt('Name your new tab (e.g. "Certifications", "Cheat Sheets"):');
+  if(!name) return;
+  const key = slugify(name);
+  if(!docsSections.some(s=>s.key===key)){
+    docsSections.push({key, label:name, icon:'bi-folder2', builtin:false});
+    saveDocsSections();
+  }
+  openContentTypeChooser(key);
+}
 
-// Step 2a (popup): Community Docs — what kind of content?
-function openContentTypeChooser(){
+// Step 2a (popup): Community Docs (or any custom tab) — what kind of content?
+function openContentTypeChooser(sectionKey){
+  pendingDocsSection = sectionKey || pendingDocsSection || 'community';
   openModal(`
     <div class="author-form docshub-form-compact mb-0">
       <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>What would you like to add?</h6>
@@ -1584,6 +1661,7 @@ async function submitContentForm(category){
   let author = authors.find(a=>a.id===authorId);
 
   let itemData = {type, title, badgeColor: TYPE_COLOR[type]};
+  if(!editingItem) itemData.section = pendingDocsSection || 'community';
   itemData.summary = rteGetHTML('naf-summary');
   if(type==='Paragraph') itemData.summary = rteGetHTML('naf-para');
   if(type==='PDF') itemData.summary = rteGetHTML('naf-para');
@@ -1626,7 +1704,11 @@ async function submitContentForm(category){
     }
   }
   closeContentForm();
-  renderAuthorPosts();
+  if(!editingItem && activeDocsSection !== (itemData.section||'community')){
+    setDocsSubtab(itemData.section||'community');
+  } else {
+    renderAuthorPosts();
+  }
 }
 
 function editItem(authorId, itemId){ openContentForm(authorId, itemId); }
@@ -2494,17 +2576,14 @@ function showTab(tab, btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+tab).style.display='';
   btn.classList.add('active');
-  if(tab==='author'){ renderAuthorPosts(); renderResources(); }
+  if(tab==='author'){
+    document.getElementById('docs-community-view').style.display = activeDocsSection==='resources' ? 'none' : '';
+    document.getElementById('docs-resources-view').style.display = activeDocsSection==='resources' ? '' : 'none';
+    if(activeDocsSection==='resources') renderResources(); else renderAuthorPosts();
+  }
   if(tab==='projects'){ renderProjects(); renderStructure(); renderAdvanced(); }
   if(tab==='interview') renderInterview();
   if(tab==='profile'){ renderProfile(); renderSummary(); }
-}
-
-function setDocsSubtab(which, btn){
-  document.querySelectorAll('.docshub-subtab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('docs-community-view').style.display = which==='community' ? '' : 'none';
-  document.getElementById('docs-resources-view').style.display = which==='resources' ? '' : 'none';
 }
 
 function setProjSubtab(which, btn){
@@ -2522,12 +2601,6 @@ function setProfileSubtab(which, btn){
   document.getElementById('profile-summary-view').style.display = which==='summary' ? '' : 'none';
   document.getElementById('profile-resume-view').style.display = which==='resume' ? '' : 'none';
   if(which==='resume') renderResumeBuilder();
-}
-function setQASubtab(which, btn){
-  document.querySelectorAll('.qa-subtab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('qa-builtin-view').style.display = which==='builtin' ? '' : 'none';
-  document.getElementById('qa-custom-view').style.display = which==='custom' ? '' : 'none';
 }
 
 // ===================== DAY NOTES =====================
@@ -3244,6 +3317,15 @@ let qaDeleted = new Set(JSON.parse(localStorage.getItem('dotnet_qa_deleted') || 
 let editingQAItem = null; // id being edited, or null when adding
 let pendingQAMedia = null;
 
+// ---- Interview Q&A: dynamic, scrollable sub-tabs (Built-in Topics / My Questions are built-in;
+// any number of custom ones can be created right from the "Add question" flow) ----
+let qaSections = JSON.parse(localStorage.getItem('dotnet_qa_sections') || 'null') || [
+  {key:'builtin', label:'Built-in Topics', icon:'bi-collection', builtin:true},
+  {key:'custom', label:'My Questions', icon:'bi-person-lines-fill', builtin:true}
+];
+let activeQASection = localStorage.getItem('dotnet_active_qa_section') || 'builtin';
+function saveQASections(){ localStorage.setItem('dotnet_qa_sections', JSON.stringify(qaSections)); }
+
 // Hardcoded QA_DATA questions get stable ids and flow through the same
 // override/delete pattern as Docs Hub + Advanced+ seed items, so they're
 // editable and deletable too — not just custom-added ones.
@@ -3327,10 +3409,10 @@ function attachQADragEvents(el, catName){
   });
 }
 
-// ---- Search filter (works on whichever Built-in/My Questions view is visible) ----
+// ---- Search filter (works within whichever section tab is currently active) ----
 function filterQAList(){
   const term = (document.getElementById('qa-search-input').value||'').trim().toLowerCase();
-  document.querySelectorAll('#qa-container .phase-card, #qa-custom-container .phase-card').forEach(card=>{
+  document.querySelectorAll('#qa-items-container .phase-card').forEach(card=>{
     let anyVisible = false;
     card.querySelectorAll('.interview-q').forEach(row=>{
       const match = !term || row.textContent.toLowerCase().includes(term);
@@ -3402,49 +3484,74 @@ function attachQACategoryDragEvents(el, viewKey){
 }
 
 function renderInterview(){
+  renderQASubtabs();
   const allItems = getAllQAItems();
   const catColorMap = {}; QA_DATA.forEach(cc=> catColorMap[cc.cat]=cc.color);
   const builtinIds = new Set();
   QA_DATA.forEach((cat,ci)=> cat.qs.forEach((qq,qi)=> builtinIds.add('qa-seed-'+ci+'-'+qi)));
 
-  const builtinItems = allItems.filter(i=>builtinIds.has(i.id) || i.section==='builtin');
-  const customItems = allItems.filter(i=>!builtinIds.has(i.id) && i.section!=='builtin');
-
-  // Built-in Topics — grouped by the original hardcoded categories (C# Core, ASP.NET Core, etc.)
-  const bc = document.getElementById('qa-container'); bc.innerHTML='';
-  let qi=0;
-  let builtinCats = [...new Set([...QA_DATA.map(cc=>cc.cat), ...builtinItems.map(i=>i.cat)])];
-  builtinCats = applyCatOrder('builtin', builtinCats.filter(cn=>builtinItems.some(i=>i.cat===cn)));
-  builtinCats.forEach(catName=>{
-    const qs = builtinItems.filter(i=>i.cat===catName);
-    if(qs.length===0) return;
-    const color = catColorMap[catName] || '#4f46e5';
-    const res = qaCategoryCardHTML(catName, qs, color, qi); qi = res.qi;
-    bc.innerHTML += res.html;
+  const sectionItems = allItems.filter(i=>{
+    const sec = i.section || (builtinIds.has(i.id) ? 'builtin' : 'custom');
+    return sec === activeQASection;
   });
-  if(builtinItems.length===0) bc.innerHTML += `<p class="small text-muted text-center py-3">No built-in topics left — they've all been removed.</p>`;
 
-  // My Questions — anything newly added via "Add question", in its own tab
-  const cc2 = document.getElementById('qa-custom-container'); cc2.innerHTML='';
-  if(customItems.length===0){
-    cc2.innerHTML = `<p class="small text-muted text-center py-3"><i class="bi bi-info-circle me-1"></i>No custom questions yet — tap "Add question" above to add one.</p>`;
+  const c = document.getElementById('qa-items-container'); c.innerHTML='';
+  if(sectionItems.length===0){
+    c.innerHTML = `<p class="small text-muted text-center py-3"><i class="bi bi-info-circle me-1"></i>Nothing in this tab yet — tap "Add question" above to add one here.</p>`;
   } else {
-    let customCats = [...new Set(customItems.map(i=>i.cat))];
-    customCats = applyCatOrder('custom', customCats);
-    let qi2=0;
-    customCats.forEach(catName=>{
-      const qs = customItems.filter(i=>i.cat===catName);
-      const color = catColorMap[catName] || '#16a34a';
-      const res = qaCategoryCardHTML(catName, qs, color, qi2); qi2 = res.qi;
-      cc2.innerHTML += res.html;
+    let cats = [...new Set(sectionItems.map(i=>i.cat))];
+    cats = applyCatOrder(activeQASection, cats);
+    let qi=0;
+    cats.forEach(catName=>{
+      const qs = sectionItems.filter(i=>i.cat===catName);
+      if(qs.length===0) return;
+      const color = catColorMap[catName] || (activeQASection==='builtin' ? '#4f46e5' : '#16a34a');
+      const res = qaCategoryCardHTML(catName, qs, color, qi); qi = res.qi;
+      c.innerHTML += res.html;
     });
   }
 
-  document.querySelectorAll('#qa-container > .phase-card').forEach(el=> attachQACategoryDragEvents(el, 'builtin'));
-  document.querySelectorAll('#qa-custom-container > .phase-card').forEach(el=> attachQACategoryDragEvents(el, 'custom'));
-  document.querySelectorAll('#qa-container .interview-q, #qa-custom-container .interview-q').forEach(el=> attachQADragEvents(el, el.dataset.cat));
+  document.querySelectorAll('#qa-items-container > .phase-card').forEach(el=> attachQACategoryDragEvents(el, activeQASection));
+  document.querySelectorAll('#qa-items-container .interview-q').forEach(el=> attachQADragEvents(el, el.dataset.cat));
   const searchEl = document.getElementById('qa-search-input');
   if(searchEl && searchEl.value) filterQAList();
+}
+
+// ---- Dynamic, scrollable Interview Q&A sub-tabs ----
+function renderQASubtabs(){
+  const el = document.getElementById('qa-subtabs');
+  if(!el) return;
+  el.innerHTML = qaSections.map(s=>`
+    <button class="subtab-pill ${s.key===activeQASection?'active':''}" onclick="setQASubtab('${s.key}')">
+      <i class="bi ${s.icon}"></i>${s.label}
+      ${!s.builtin ? `<i class="bi bi-x-circle del-section" onclick="event.stopPropagation();deleteQASection('${s.key}')" title="Delete this tab"></i>` : ''}
+    </button>`).join('')
+    + `<button class="subtab-pill add-pill" onclick="promptNewQASection()"><i class="bi bi-plus-lg"></i>New tab</button>`;
+}
+function setQASubtab(key){
+  activeQASection = key;
+  localStorage.setItem('dotnet_active_qa_section', key);
+  renderInterview();
+}
+function promptNewQASection(){
+  const name = prompt('Name your new tab (e.g. "Behavioral Questions", "System Design"):');
+  if(!name) return;
+  const key = slugify(name);
+  if(!qaSections.some(s=>s.key===key)){
+    qaSections.push({key, label:name, icon:'bi-folder2', builtin:false});
+    saveQASections();
+  }
+  setQASubtab(key);
+}
+function deleteQASection(key){
+  const sec = qaSections.find(s=>s.key===key);
+  if(!sec) return;
+  if(!confirm(`Delete the "${sec.label}" tab? Any questions in it will move back to My Questions.`)) return;
+  customQA.forEach(q=>{ if((q.section||'custom')===key) q.section='custom'; });
+  localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
+  qaSections = qaSections.filter(s=>s.key!==key);
+  saveQASections();
+  setQASubtab('custom');
 }
 
 function deleteQAItem(id){
@@ -3473,11 +3580,21 @@ function openQAChooser(){
     <div class="author-form qa-form-compact mb-0">
       <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>Where should this go?</h6>
       <div class="type-chooser-grid" style="grid-template-columns:repeat(2,1fr)">
-        <button type="button" class="type-chooser-btn" onclick="openQATypeChooser('builtin')"><i class="bi bi-collection" style="color:#4f46e5"></i><span class="tc-label">Built-in Topics</span></button>
-        <button type="button" class="type-chooser-btn" onclick="openQATypeChooser('custom')"><i class="bi bi-person-lines-fill" style="color:#16a34a"></i><span class="tc-label">My Questions</span></button>
+        ${qaSections.map(s=>`<button type="button" class="type-chooser-btn" onclick="openQATypeChooser('${s.key}')"><i class="bi ${s.icon}" style="color:${s.builtin?'#4f46e5':'#16a34a'}"></i><span class="tc-label">${s.label}</span></button>`).join('')}
       </div>
+      <button type="button" class="type-chooser-btn mt-2" style="border-style:dashed;width:100%" onclick="promptNewQASectionThenAdd()"><i class="bi bi-plus-lg" style="color:#16a34a"></i><span class="tc-label">Create a new tab</span></button>
       <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Cancel</button>
     </div>`);
+}
+function promptNewQASectionThenAdd(){
+  const name = prompt('Name your new tab (e.g. "Behavioral Questions", "System Design"):');
+  if(!name) return;
+  const key = slugify(name);
+  if(!qaSections.some(s=>s.key===key)){
+    qaSections.push({key, label:name, icon:'bi-folder2', builtin:false});
+    saveQASections();
+  }
+  openQATypeChooser(key);
 }
 
 function openQATypeChooser(destination){
@@ -3598,7 +3715,11 @@ async function submitQAForm(category){
     localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
   }
   closeQAForm();
-  renderInterview();
+  if(activeQASection !== pendingQADestination){
+    setQASubtab(pendingQADestination);
+  } else {
+    renderInterview();
+  }
 }
 
 function toggleQA(id, itemId, el){
@@ -4084,6 +4205,7 @@ function scrollToTop(){
   window.addEventListener('resize', updateVisibility, {passive:true});
   updateVisibility();
 })();
+
 
 // Init
 document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
