@@ -241,7 +241,7 @@ img,table{max-width:100%;}
 .docshub-subtab{border-radius:20px;font-weight:600;font-size:0.8rem;}
 /* Dynamic, scrollable sub-tab row for Docs Hub / Interview Q&A — supports any number of
    user-created sections without wrapping awkwardly on mobile. */
-.subtab-scroll-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
+.subtab-scroll-row{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px;width:100%;max-width:100%;min-width:0;}
 .subtab-scroll-row::-webkit-scrollbar{display:none;}
 .subtab-pill{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;border-radius:20px;font-weight:600;font-size:0.8rem;padding:6px 14px;border:1px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s;}
 .subtab-pill:hover{border-color:var(--primary);color:var(--primary);}
