@@ -2,3 +2,7 @@ node_modules/
 .firebase/
 firebase-debug.log
 .DS_Store
+serviceAccountKey.json
+.env
+.env.*
+node_modules/
