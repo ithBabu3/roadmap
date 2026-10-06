@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sign in — .NET Full Stack Roadmap</title>
+<script>try{var t=localStorage.getItem('dn_theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
+<link href="css/app.css" rel="stylesheet">
+<link href="css/login.css" rel="stylesheet">
+<link href="css/royal.css" rel="stylesheet">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<meta name="theme-color" content="#4f46e5">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+</head>
+<body class="login-page">
+<div class="auth-shell">
+
+  <aside class="auth-brand">
+    <div class="brand-top">
+      <span class="brand-logo"><i class="bi bi-gem"></i></span>
+      <b>.NET Roadmap</b>
+    </div>
+    <div class="brand-copy">
+      <span class="eyebrow"><i class="bi bi-stars"></i> 175-day plan</span>
+      <h2>Become a job-ready <em>.NET + Angular</em> developer.</h2>
+      <p>One place for your daily plan, notes, resources, projects and interview prep — synced everywhere.</p>
+      <ul class="feature-list">
+        <li><i class="bi bi-calendar2-check"></i><div><b>Daily roadmap</b><span>Streaks, goals and an "up next" focus.</span></div></li>
+        <li><i class="bi bi-collection"></i><div><b>Docs Hub &amp; resources</b><span>Save PDFs, videos, links and your own notes.</span></div></li>
+        <li><i class="bi bi-patch-question"></i><div><b>Interview Q&amp;A</b><span>Practice questions grouped by topic.</span></div></li>
+        <li><i class="bi bi-cloud-check"></i><div><b>Cloud sync &amp; offline</b><span>Install it as an app, pick up on any device.</span></div></li>
+      </ul>
+    </div>
+    <div class="brand-foot">
+      <div class="mini-card"><div class="mc-ring"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" class="a"/><circle cx="22" cy="22" r="18" class="b"/></svg><b>62%</b></div><div><strong>Keep the streak going</strong><span>🔥 12-day streak</span></div></div>
+    </div>
+  </aside>
+
+  <main class="auth-pane">
+    <button type="button" class="theme-fab" id="theme-btn" aria-label="Toggle theme"><i class="bi bi-moon-stars"></i></button>
+    <div class="login-card">
+      <div class="login-logo"><i class="bi bi-gem"></i></div>
+      <h1 id="auth-title">Welcome back</h1>
+      <p class="login-sub" id="auth-sub">Sign in to load your progress from anywhere.</p>
+      <div id="cfg-warning" class="alert alert-warning small" style="display:none">Firebase isn't configured yet — fill in <code>js/firebase-config.js</code>.</div>
+      <div class="login-tabs">
+        <button type="button" id="tab-login" class="tab-btn active">Sign in</button>
+        <button type="button" id="tab-signup" class="tab-btn">Create account</button>
+      </div>
+      <form id="auth-form" novalidate>
+        <label class="form-label" for="username">Username</label>
+        <div class="field mb-3"><i class="bi bi-person"></i>
+          <input id="username" class="form-control" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="e.g. sandip" required>
+        </div>
+        <label class="form-label" for="password">Password</label>
+        <div class="field mb-2"><i class="bi bi-lock"></i>
+          <input id="password" type="password" class="form-control" autocomplete="current-password" placeholder="8+ characters with a number" required>
+          <button type="button" id="toggle-pw" class="pw-eye" tabindex="-1" aria-label="Show password"><i class="bi bi-eye"></i></button>
+        </div>
+        <div id="strength" class="pw-meter" style="display:none"><i></i><i></i><i></i><i></i><span id="strength-label"></span></div>
+        <div id="confirm-wrap" style="display:none">
+          <label class="form-label" for="confirm">Confirm password</label>
+          <div class="field mb-3"><i class="bi bi-shield-lock"></i>
+            <input id="confirm" type="password" class="form-control" autocomplete="new-password" placeholder="Re-enter your password" required>
+          </div>
+        </div>
+        <div id="error" class="alert alert-danger small py-2" style="display:none" role="alert"></div>
+        <button id="submit-btn" class="btn btn-primary w-100 btn-lg" type="submit"><span id="submit-text">Sign in</span><i class="bi bi-arrow-right ms-2"></i></button>
+      </form>
+      <p class="login-foot"><i class="bi bi-shield-check me-1"></i>No email needed and nothing to verify. Your data is stored in Firebase.</p>
+    </div>
+  </main>
+</div>
+<script>
+  // tiny page-local helpers: theme toggle + copy that follows the active tab
+  (function(){
+    var root=document.documentElement, b=document.getElementById('theme-btn');
+    function paint(){ b.firstElementChild.className='bi '+(root.getAttribute('data-theme')==='dark'?'bi-sun':'bi-moon-stars'); }
+    b.onclick=function(){ var n=root.getAttribute('data-theme')==='dark'?'light':'dark'; root.setAttribute('data-theme',n); try{localStorage.setItem('dn_theme',n);}catch(e){} paint(); };
+    paint();
+    function copy(m){ document.getElementById('auth-title').textContent=m?'Create your account':'Welcome back';
+      document.getElementById('auth-sub').textContent=m?'Pick a username and password — it takes 10 seconds.':'Sign in to load your progress from anywhere.'; }
+    document.getElementById('tab-login').addEventListener('click',function(){copy(false)});
+    document.getElementById('tab-signup').addEventListener('click',function(){copy(true)});
+  })();
+</script>
+<script type="module" src="js/login.js"></script>
+</body>
+</html>

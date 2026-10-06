@@ -1,0 +1,3548 @@
+// ===================== GENERIC POPUP MODAL (used by Docs Hub + Interview Q&A add/edit flows) =====================
+let appModalInstance = null;
+function openModal(html){
+  const body = document.getElementById('appModalBody');
+  body.innerHTML = html;
+  if(!appModalInstance) appModalInstance = new bootstrap.Modal(document.getElementById('appModal'));
+  appModalInstance.show();
+}
+function closeModal(){
+  if(appModalInstance) appModalInstance.hide();
+}
+
+// ===================== DATA =====================
+const TOTAL = 175;
+
+const PHASES = [
+  {id:'p1',title:'Phase 1 — C# Fundamentals',color:'#4f46e5',bg:'#ede9fe',weeks:[
+    {week:'Week 1',title:'C# Basics',deadline:'Day 7',res:['Kudvenkat C# YouTube','W3Schools C#','dotnet.microsoft.com'],days:[
+      {n:1,topic:'Setup & First App',desc:'Install Visual Studio 2022, .NET 8 SDK, create Console App, understand solution/project structure'},
+      {n:2,topic:'Variables & Data Types',desc:'int, string, bool, double, decimal, var, const, readonly — value vs reference types, boxing/unboxing'},
+      {n:3,topic:'Operators & Conditions',desc:'if/else, switch expressions, ternary, null coalescing (??), null conditional (?.)'},
+      {n:4,topic:'Loops',desc:'for, while, do-while, foreach, break, continue, nested loops'},
+      {n:5,topic:'Methods & Functions',desc:'Parameters, return types, optional params, named args, out/ref/in, method overloading'},
+      {n:6,topic:'Arrays & Strings',desc:'1D/2D arrays, string methods, StringBuilder, string interpolation, verbatim strings'},
+      {n:7,topic:'Revision + 10 Problems',desc:'FizzBuzz, palindrome, factorial, fibonacci, prime check, reverse string, anagram, matrix, sorting'},
+    ]},
+    {week:'Week 2',title:'OOP in C#',deadline:'Day 14',res:['Kudvenkat OOP series','Tim Corey YouTube','C# in Depth book'],days:[
+      {n:8,topic:'Classes & Objects',desc:'Class definition, object creation, constructors (default, parameterized, copy), destructor, this keyword'},
+      {n:9,topic:'Encapsulation',desc:'Properties, auto-properties, getters/setters, access modifiers (public, private, protected, internal, protected internal)'},
+      {n:10,topic:'Inheritance',desc:'Base/derived class, base keyword, constructor chaining, method hiding (new keyword)'},
+      {n:11,topic:'Polymorphism',desc:'Virtual/override, method overriding vs overloading, runtime polymorphism'},
+      {n:12,topic:'Abstract & Interface',desc:'Abstract class vs interface, when to use which, explicit interface implementation, multiple interfaces'},
+      {n:13,topic:'Static, Sealed & Partial',desc:'Static class, static members, sealed class/method, partial class, record types'},
+      {n:14,topic:'Mini Project — Bank System',desc:'Bank Account with Savings/Current accounts — OOP, inheritance, encapsulation, interface'},
+    ]},
+    {week:'Week 3',title:'Advanced C#',deadline:'Day 21',res:['Nick Chapsas YouTube','C# Advanced Topics Udemy','Microsoft Learn C#'],days:[
+      {n:15,topic:'Collections',desc:'List<T>, Dictionary<K,V>, Queue, Stack, HashSet, SortedList, LinkedList, ConcurrentDictionary'},
+      {n:16,topic:'Generics',desc:'Generic classes, generic methods, constraints (where T:), covariance/contravariance'},
+      {n:17,topic:'Exception Handling',desc:'try/catch/finally, custom exceptions, exception filters (when), best practices, AggregateException'},
+      {n:18,topic:'Delegates & Events',desc:'Action, Func, Predicate, custom delegates, multicast, events, EventHandler<T>'},
+      {n:19,topic:'LINQ',desc:'Where, Select, SelectMany, OrderBy, GroupBy, Join, First/FirstOrDefault, Any, All, Count, Aggregate, ToList, ToDictionary'},
+      {n:20,topic:'Async / Await',desc:'Task, async/await, Task.Run, Task.WhenAll, Task.WhenAny, CancellationToken, ConfigureAwait, ValueTask'},
+      {n:21,topic:'Mini Project — Student Console App',desc:'Student Management using Collections, LINQ, Exception Handling, File I/O (JSON serialization)'},
+    ]},
+  ]},
+  {id:'p2',title:'Phase 2 — ASP.NET Core Web API',color:'#0891b2',bg:'#e0f7fa',weeks:[
+    {week:'Week 4',title:'Web API Basics',deadline:'Day 28',res:['Nick Chapsas ASP.NET','Microsoft Learn ASP.NET','REST API Design guide'],days:[
+      {n:22,topic:'REST API Concepts',desc:'HTTP methods (GET/POST/PUT/PATCH/DELETE), status codes, REST principles, idempotency, statelessness'},
+      {n:23,topic:'First Web API Project',desc:'Create project, understand Program.cs (minimal hosting), launchSettings.json, appsettings.json, middleware order'},
+      {n:24,topic:'Controllers & Routes',desc:'ApiController attribute, Route/HttpGet/HttpPost/HttpPut/HttpDelete attributes, route parameters, query strings'},
+      {n:25,topic:'Model Binding & Validation',desc:'FromBody, FromQuery, FromRoute, FromHeader, FromForm, ModelState, DataAnnotations'},
+      {n:26,topic:'DTOs & AutoMapper',desc:'Data Transfer Objects why/how, AutoMapper setup, mapping profiles, flattening/projection'},
+      {n:27,topic:'Postman + Swagger',desc:'Setup Swagger/OpenAPI (Swashbuckle), test all endpoints, document APIs with XML comments'},
+      {n:28,topic:'Mini Project — Product CRUD API',desc:'Full Product CRUD with DTOs, validation, Swagger docs, proper HTTP status codes'},
+    ]},
+    {week:'Week 5',title:'DI, Middleware & Filters',deadline:'Day 35',res:['Microsoft DI Docs','Serilog docs','Tim Corey DI series'],days:[
+      {n:29,topic:'Dependency Injection Deep Dive',desc:'AddSingleton vs AddScoped vs AddTransient — lifetimes, when to use each, service locator anti-pattern'},
+      {n:30,topic:'Service Layer Pattern',desc:'Create IProductService, ProductService, inject into controllers, separation of concerns'},
+      {n:31,topic:'Middleware Pipeline',desc:'Request/response pipeline, built-in middleware, custom middleware, IMiddleware vs convention-based, short-circuit'},
+      {n:32,topic:'Filters',desc:'IActionFilter, IExceptionFilter, IAuthorizationFilter, IResultFilter — order of execution, global vs controller vs action'},
+      {n:33,topic:'Configuration & Options Pattern',desc:'appsettings.json, environment-specific configs, IOptions<T>, IOptionsSnapshot<T>, IOptionsMonitor<T>, secrets'},
+      {n:34,topic:'Logging with Serilog',desc:'ILogger<T>, Serilog setup, sinks (Console, File, Seq), structured logging, log levels, enrichers'},
+      {n:35,topic:'Practice',desc:'Add DI service layer, custom middleware for request logging, global exception filter to Product API'},
+    ]},
+    {week:'Week 6',title:'Entity Framework Core',deadline:'Day 42',res:['EF Core Docs','IAmTimCorey EF YouTube','Julie Lerman Pluralsight'],days:[
+      {n:36,topic:'EF Core Basics',desc:'ORM concept, install EF Core + SQL Server provider, DbContext, DbSet<T>, connection strings'},
+      {n:37,topic:'Code First Approach',desc:'Entity classes, DataAnnotations vs Fluent API, OnModelCreating, table/column configuration'},
+      {n:38,topic:'Migrations',desc:'Add-Migration, Update-Database, migration files anatomy, data seeding, migration rollback'},
+      {n:39,topic:'CRUD Operations',desc:'Add, Find, FindAsync, Update (tracking), Remove, SaveChangesAsync, AsNoTracking for reads'},
+      {n:40,topic:'Relationships & Navigation',desc:'One-to-One, One-to-Many, Many-to-Many, cascade delete, navigation properties, foreign keys'},
+      {n:41,topic:'Advanced EF Queries',desc:'Include/ThenInclude (eager loading), lazy loading, explicit loading, raw SQL, stored procs, compiled queries'},
+      {n:42,topic:'Practice',desc:'Connect Product API to SQL Server with EF Core — full working DB-backed API'},
+    ]},
+    {week:'Week 7',title:'Security & Auth',deadline:'Day 49',res:['JWT.io docs','IdentityServer docs','OWASP Top 10'],days:[
+      {n:43,topic:'Auth Fundamentals',desc:'Authentication vs authorization, cookie vs token auth, session vs JWT, when to use what'},
+      {n:44,topic:'JWT Implementation',desc:'Generate/validate JWT, claims (sub, role, email), secret key, token expiry, symmetric vs asymmetric'},
+      {n:45,topic:'Role & Policy Authorization',desc:'[Authorize] attribute, roles, claims-based policies, resource-based authorization, IAuthorizationHandler'},
+      {n:46,topic:'Refresh Tokens',desc:'Refresh token concept, secure storage, token rotation, revocation, sliding expiry'},
+      {n:47,topic:'CORS, Security Headers & HTTPS',desc:'CORS policy configuration, security headers (HSTS, X-Frame-Options, CSP), HTTPS redirection'},
+      {n:48,topic:'Global Error Handling',desc:'ProblemDetails RFC 7807, exception middleware, consistent error response, logging errors'},
+      {n:49,topic:'Secure API Complete',desc:'Full JWT auth + role-based authorization + refresh tokens + CORS — production-ready API'},
+    ]},
+  ]},
+  {id:'p3',title:'Phase 3 — SQL Server + Database',color:'#059669',bg:'#dcfce7',weeks:[
+    {week:'Week 8',title:'SQL Server Fundamentals',deadline:'Day 56',res:['SQLBolt.com','Kudvenkat SQL series','Mode SQL Tutorial'],days:[
+      {n:50,topic:'SQL Basics + SSMS',desc:'Install SSMS, CREATE DATABASE/TABLE, data types, INSERT, SELECT, UPDATE, DELETE, constraints'},
+      {n:51,topic:'Filtering & Sorting',desc:'WHERE, AND/OR/NOT, LIKE, IN, BETWEEN, IS NULL, ORDER BY, DISTINCT, TOP/LIMIT'},
+      {n:52,topic:'Joins',desc:'INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN, CROSS JOIN, SELF JOIN — with real examples'},
+      {n:53,topic:'Aggregations & Grouping',desc:'GROUP BY, HAVING, COUNT, SUM, AVG, MIN, MAX, ROLLUP, CUBE'},
+      {n:54,topic:'Subqueries & CTEs',desc:'Correlated subqueries, EXISTS/NOT EXISTS, Common Table Expressions (WITH), recursive CTEs'},
+      {n:55,topic:'Stored Procedures & Functions',desc:'CREATE PROCEDURE, input/output params, EXEC, scalar functions, table-valued functions, triggers'},
+      {n:56,topic:'Practice — 25 SQL Problems',desc:'Write queries on HR/Sales database — complex joins, aggregations, window functions, CTEs'},
+    ]},
+    {week:'Week 9',title:'Database Advanced',deadline:'Day 63',res:['Use The Index Luke','Redis Docs','Dapper GitHub'],days:[
+      {n:57,topic:'Indexes & Performance',desc:'Clustered vs non-clustered, covering indexes, index fragmentation, when to add/avoid indexes'},
+      {n:58,topic:'Transactions & Concurrency',desc:'BEGIN TRANSACTION, COMMIT, ROLLBACK, ACID properties, isolation levels, deadlocks, optimistic concurrency'},
+      {n:59,topic:'Query Optimization',desc:'Execution plan, query cost, N+1 problem, avoid SELECT *, parameterized queries, statistics'},
+      {n:60,topic:'Repository + Unit of Work',desc:'Generic repository, specific repositories, Unit of Work pattern, transaction management'},
+      {n:61,topic:'Redis Caching',desc:'Caching strategies (cache-aside, write-through), install Redis, StackExchange.Redis, IDistributedCache, TTL'},
+      {n:62,topic:'Dapper Micro-ORM',desc:'Install Dapper, Query/Execute/QueryMultiple, dynamic params, multi-mapping, when Dapper over EF'},
+      {n:63,topic:'Practice',desc:'Optimize API queries (execution plans), add Redis caching layer, implement Repository+UoW pattern'},
+    ]},
+  ]},
+  {id:'p4',title:'Phase 4 — Angular + TypeScript',color:'#d97706',bg:'#fef3c7',weeks:[
+    {week:'Week 10',title:'TypeScript + HTML/CSS',deadline:'Day 70',res:['TypeScript Handbook','CSS Flexbox Froggy','HTML MDN Docs'],days:[
+      {n:64,topic:'HTML Essentials',desc:'Semantic HTML5 tags, forms (input types, validation), tables, accessibility basics (aria-*, role)'},
+      {n:65,topic:'CSS Essentials',desc:'Box model, flexbox, CSS Grid, responsive design, media queries, CSS variables, BEM naming'},
+      {n:66,topic:'TypeScript Basics',desc:'Types (string, number, boolean, any, unknown, never), interfaces, type aliases, union/intersection types'},
+      {n:67,topic:'TypeScript OOP',desc:'Classes, access modifiers, readonly, abstract, generics in TS, implements vs extends'},
+      {n:68,topic:'TypeScript Advanced',desc:'Decorators, mapped types, conditional types, utility types (Partial, Required, Readonly, Pick, Omit)'},
+      {n:69,topic:'ES6+ & Modules',desc:'Arrow functions, destructuring, spread/rest, template literals, Promise, async/await, ES modules (import/export)'},
+      {n:70,topic:'Mini Project — TS Todo App',desc:'TypeScript Todo app with local storage, classes, interfaces, strict mode enabled'},
+    ]},
+    {week:'Week 11',title:'Angular Fundamentals',deadline:'Day 77',res:['Angular.io official docs','Fireship Angular YouTube','Maximilian Udemy Angular'],days:[
+      {n:71,topic:'Angular Setup & Architecture',desc:'Install Node 20+, Angular CLI 17+, first project, standalone components concept, folder structure'},
+      {n:72,topic:'Components & Lifecycle',desc:'@Component decorator, lifecycle hooks (ngOnInit, ngOnDestroy, ngOnChanges), @Input/@Output, ViewChild'},
+      {n:73,topic:'Data Binding',desc:'String interpolation, property binding, event binding, two-way binding [(ngModel)], template reference variables'},
+      {n:74,topic:'Directives',desc:'Structural (*ngIf, *ngFor, *ngSwitch), attribute (ngClass, ngStyle), custom attribute directive'},
+      {n:75,topic:'Pipes',desc:'Built-in pipes (date, currency, decimal, uppercase, async), pure vs impure, custom pipes'},
+      {n:76,topic:'Modules & Standalone',desc:'NgModule vs standalone components (Angular 17+), lazy loading, shared module pattern'},
+      {n:77,topic:'Practice — Product List UI',desc:'Product listing app with search, filter, sort using Angular components and pipes'},
+    ]},
+    {week:'Week 12',title:'Services, HTTP & Routing',deadline:'Day 84',res:['RxJS docs','Angular Router docs','Fireship RxJS'],days:[
+      {n:78,topic:'Services & DI',desc:'@Injectable, providedIn root vs module, service singleton, hierarchical injection, token injection'},
+      {n:79,topic:'HTTP Client',desc:'HttpClientModule, GET/POST/PUT/DELETE, type-safe responses, error handling with catchError'},
+      {n:80,topic:'RxJS Essentials',desc:'Observable, Subject, BehaviorSubject, ReplaySubject, operators (map, filter, switchMap, mergeMap, debounceTime, takeUntil)'},
+      {n:81,topic:'Angular Router',desc:'RouterModule, Routes config, router-outlet, routerLink, ActivatedRoute, programmatic navigation'},
+      {n:82,topic:'Route Guards & Resolvers',desc:'CanActivate, CanDeactivate, CanLoad, Route Resolvers, lazy loading guards'},
+      {n:83,topic:'HTTP Interceptors',desc:'HttpInterceptor, add JWT to requests, refresh token logic, loading spinner, error interceptor'},
+      {n:84,topic:'Full Stack Connected!',desc:'Angular app fully connected to .NET API — CRUD with auth, interceptor, guards'},
+    ]},
+    {week:'Week 13',title:'Angular Advanced',deadline:'Day 91',res:['NgRx docs','Angular Material docs','Angular Performance Guide'],days:[
+      {n:85,topic:'Reactive Forms',desc:'FormGroup, FormControl, FormBuilder, validators (built-in + custom), async validators, FormArray'},
+      {n:86,topic:'Template-Driven Forms',desc:'NgForm, NgModel, form validation messages, comparing with reactive forms, when to use each'},
+      {n:87,topic:'NgRx State Management',desc:'Store, Actions, Reducers, Effects, Selectors, createAction/createReducer, DevTools'},
+      {n:88,topic:'Angular Material UI',desc:'Install CDK + Material, use Table (mat-table), Dialog, Snackbar, Paginator, Sort'},
+      {n:89,topic:'Performance Optimization',desc:'OnPush change detection, trackBy, async pipe, lazy loading, virtual scrolling, preloading strategies'},
+      {n:90,topic:'Angular Signals (v17+)',desc:'signal(), computed(), effect(), toSignal(), toObservable() — new reactivity model'},
+      {n:91,topic:'Auth UI Complete',desc:'Login/register pages, JWT stored in memory, refresh token, protected routes, role-based UI'},
+    ]},
+  ]},
+  {id:'p5',title:'Phase 5 — Senior & Advanced Level',color:'#dc2626',bg:'#fee2e2',weeks:[
+    {week:'Week 14',title:'Clean Architecture + Patterns',deadline:'Day 98',res:['Jason Taylor Clean Arch GitHub','ardalis.com','Pluralsight Design Patterns'],days:[
+      {n:92,topic:'SOLID Principles',desc:'SRP, OCP, LSP, ISP, DIP — C# real-world code examples, common violations, refactoring'},
+      {n:93,topic:'Clean Architecture',desc:'Domain layer (entities, value objects), Application (use cases), Infrastructure (EF, external), Presentation (API)'},
+      {n:94,topic:'Value Objects & DDD Basics',desc:'Entities vs Value Objects, Aggregates, Aggregate Roots, Domain Services, Bounded Context'},
+      {n:95,topic:'Creational Patterns',desc:'Singleton (thread-safe), Factory Method, Abstract Factory, Builder, Prototype — C# examples'},
+      {n:96,topic:'Structural Patterns',desc:'Adapter, Decorator, Facade, Proxy, Composite, Bridge — real .NET use cases'},
+      {n:97,topic:'Behavioral Patterns',desc:'Strategy, Observer, Command, Mediator, Chain of Responsibility, Template Method, State'},
+      {n:98,topic:'Refactor to Clean Arch',desc:'Refactor Product API into Clean Architecture with Domain/Application/Infrastructure/API layers'},
+    ]},
+    {week:'Week 15',title:'CQRS + MediatR + Event Sourcing',deadline:'Day 105',res:['MediatR GitHub','FluentValidation docs','Greg Young Event Sourcing'],days:[
+      {n:99,topic:'CQRS Pattern',desc:'Command Query Responsibility Segregation — when to use, separate read/write models, eventual consistency'},
+      {n:100,topic:'MediatR Implementation',desc:'Install MediatR, IRequest/IRequestHandler, INotification, pipeline behaviors, send vs publish'},
+      {n:101,topic:'Pipeline Behaviors',desc:'Validation behavior (FluentValidation), logging behavior, performance monitoring, transaction behavior'},
+      {n:102,topic:'FluentValidation',desc:'AbstractValidator, RuleFor, custom validators, WithMessage, async validation, DI integration'},
+      {n:103,topic:'Event Sourcing Concepts',desc:'Event store, event replay, snapshots, projections, difference from CRUD, EventStoreDB intro'},
+      {n:104,topic:'Domain Events',desc:'IDomainEvent, raise events in aggregates, dispatch with MediatR, eventual consistency pattern'},
+      {n:105,topic:'Full CQRS App',desc:'Implement CQRS + MediatR + FluentValidation in Clean Architecture — production pattern'},
+    ]},
+    {week:'Week 16',title:'Microservices Architecture',deadline:'Day 112',res:['dotnet-microservices GitHub','Chris Richardson microservices.io','Udi Dahan talks'],days:[
+      {n:106,topic:'Microservices Fundamentals',desc:'Monolith vs SOA vs microservices, 12-factor app, Conway\'s Law, bounded contexts, service autonomy'},
+      {n:107,topic:'Sync Communication',desc:'REST between services, gRPC (protocol buffers, streaming), service discovery, Polly resilience (retry, circuit breaker)'},
+      {n:108,topic:'API Gateway — Ocelot',desc:'Ocelot setup, routing, aggregation, rate limiting, auth at gateway, YARP alternative'},
+      {n:109,topic:'Async — RabbitMQ',desc:'AMQP concepts, exchanges (direct, topic, fanout), queues, RabbitMQ.Client, publish/consume patterns'},
+      {n:110,topic:'MassTransit Framework',desc:'MassTransit over RabbitMQ, consumers, fault consumers, Sagas (state machine), outbox pattern'},
+      {n:111,topic:'Service Mesh & Patterns',desc:'Sidecar pattern, strangler fig, saga pattern (choreography vs orchestration), outbox/inbox pattern'},
+      {n:112,topic:'Practice',desc:'Split into User + Product + Order microservices — REST + RabbitMQ events + Ocelot gateway'},
+    ]},
+    {week:'Week 17',title:'Docker + Kubernetes + Cloud',deadline:'Day 119',res:['TechWorld with Nana YouTube','Microsoft Azure Learn','Docker docs'],days:[
+      {n:113,topic:'Docker Fundamentals',desc:'Container vs VM, Docker architecture, images vs containers, Docker Hub, common commands'},
+      {n:114,topic:'Dockerfile for .NET',desc:'Multi-stage builds, COPY, RUN, EXPOSE, ENTRYPOINT, .dockerignore, image size optimization'},
+      {n:115,topic:'Docker Compose',desc:'docker-compose.yml — orchestrate API + SQL Server + Redis + RabbitMQ locally, networks, volumes'},
+      {n:116,topic:'Kubernetes Basics',desc:'Pods, Deployments, Services (ClusterIP/NodePort/LoadBalancer), ConfigMaps, Secrets, kubectl commands'},
+      {n:117,topic:'Azure Services',desc:'Azure Container Registry, AKS (Azure Kubernetes Service), App Service, Azure SQL, Key Vault, Service Bus'},
+      {n:118,topic:'CI/CD with GitHub Actions',desc:'Workflow YAML, build/test/push/deploy pipeline, environment secrets, Azure deployment, rollback strategy'},
+      {n:119,topic:'Practice — Full Deploy',desc:'Dockerize all microservices + Kubernetes manifests + GitHub Actions CI/CD to AKS'},
+    ]},
+    {week:'Week 18',title:'Performance, Security & Observability',deadline:'Day 126',res:['BenchmarkDotNet docs','OWASP Top 10','Application Insights docs'],days:[
+      {n:120,topic:'Advanced Caching Strategies',desc:'Cache-aside, read-through, write-through, write-behind, cache stampede prevention, distributed cache patterns'},
+      {n:121,topic:'Performance & Memory',desc:'BenchmarkDotNet, Span<T>/Memory<T>, ArrayPool<T>, object pooling, GC tuning, async vs sync performance'},
+      {n:122,topic:'Rate Limiting',desc:'Fixed window, sliding window, token bucket, concurrency limiter — AspNetCoreRateLimit + built-in .NET 7+'},
+      {n:123,topic:'OAuth 2.0 + OIDC + Keycloak',desc:'Authorization Code flow, PKCE, client credentials, Keycloak setup, token introspection, scopes'},
+      {n:124,topic:'OWASP Top 10 & Security',desc:'Injection, XSS, CSRF, IDOR, security misconfiguration, secret management, penetration testing basics'},
+      {n:125,topic:'Observability — Logs/Metrics/Traces',desc:'OpenTelemetry, distributed tracing, Jaeger, Prometheus + Grafana, Azure Application Insights'},
+      {n:126,topic:'Practice',desc:'Add rate limiting, OpenTelemetry tracing, Prometheus metrics, health checks dashboard'},
+    ]},
+  ]},
+  {id:'p6',title:'Phase 6 — Ultra Advanced (Architect Level)',color:'#7c3aed',bg:'#f3e8ff',weeks:[
+    {week:'Week 19',title:'System Design & Architecture',deadline:'Day 133',res:['ByteByteGo YouTube','Designing Data-Intensive Applications book','High Scalability blog'],days:[
+      {n:127,topic:'Distributed Systems Theory',desc:'CAP theorem, PACELC, consistency models (strong, eventual, causal), two-phase commit, distributed transactions'},
+      {n:128,topic:'High Availability & Scalability',desc:'Horizontal vs vertical scaling, load balancing strategies, database sharding, read replicas, connection pooling'},
+      {n:129,topic:'Message-Driven Architecture',desc:'Event-driven vs message-driven, event streaming (Kafka basics), event sourcing at scale, CQRS with separate DB'},
+      {n:130,topic:'Design Pattern — URL Shortener',desc:'System design: API design, hashing, DB schema, caching layer, rate limiting, analytics — full solution'},
+      {n:131,topic:'Design Pattern — Notification System',desc:'Fan-out, message queues, push/pull, real-time (SignalR/WebSocket), delivery guarantees, retry'},
+      {n:132,topic:'Design Pattern — E-Commerce Platform',desc:'Product catalog, cart, checkout, payment, order management — distributed, consistent, scalable design'},
+      {n:133,topic:'Architecture Review',desc:'Review all designs, trade-off analysis, present solutions like in a real architect interview'},
+    ]},
+    {week:'Week 20',title:'SignalR, gRPC & Advanced APIs',deadline:'Day 140',res:['SignalR docs','gRPC .NET docs','GraphQL Hot Chocolate'],days:[
+      {n:134,topic:'SignalR Real-Time',desc:'Hub setup, groups, client methods, JavaScript client, reconnection, scaling with Redis backplane'},
+      {n:135,topic:'gRPC in .NET',desc:'Protocol Buffers (.proto), server/client streaming, bidirectional streaming, interceptors, transcoding to REST'},
+      {n:136,topic:'GraphQL with Hot Chocolate',desc:'Schema definition, queries/mutations/subscriptions, DataLoader, filtering/sorting, Hot Chocolate setup'},
+      {n:137,topic:'Minimal APIs',desc:'.NET 8 Minimal APIs, endpoint filters, route groups, OpenAPI, performance vs controller-based'},
+      {n:138,topic:'Background Services',desc:'IHostedService, BackgroundService, Quartz.NET (job scheduling), Hangfire (recurring jobs, dashboards)'},
+      {n:139,topic:'Multi-Tenancy',desc:'Tenant identification, data isolation (separate DB vs schema vs row-level), tenant middleware, SaaS patterns'},
+      {n:140,topic:'Practice — Real-Time Notifications',desc:'Add SignalR notifications to microservices — order status updates, real-time dashboard'},
+    ]},
+    {week:'Week 21',title:'Capstone Project Build',deadline:'Day 147',res:['GitHub portfolio tips','Portfolio project ideas','Azure free tier'],days:[
+      {n:141,topic:'Project Architecture Design',desc:'Design full E-Commerce Microservices — service boundaries, DB per service, event flows, API contracts'},
+      {n:142,topic:'User + Auth Service',desc:'ASP.NET Core Identity, JWT, refresh tokens, OAuth (Google login), email verification'},
+      {n:143,topic:'Product + Catalog Service',desc:'CQRS, EF Core, Redis caching, full-text search (Elasticsearch basics), image upload (Azure Blob)'},
+      {n:144,topic:'Order + Payment Service',desc:'Saga orchestration, payment webhook handling, order state machine, MassTransit saga'},
+      {n:145,topic:'Notification Service',desc:'Email (SendGrid), SMS, SignalR push, RabbitMQ consumer, notification preferences'},
+      {n:146,topic:'Angular Frontend',desc:'Full Angular 17 frontend — login, product browse, cart, checkout, order history, real-time updates'},
+      {n:147,topic:'DevOps & Deploy',desc:'Docker Compose locally, K8s manifests, GitHub Actions CI/CD, Azure AKS deployment, monitoring'},
+    ]},
+    {week:'Week 22',title:'Interview Preparation',deadline:'Day 154',res:['LeetCode','NeetCode.io','Pramp.com mock interviews'],days:[
+      {n:148,topic:'C# Advanced Interview Qs',desc:'GC internals, threading (Mutex/Semaphore/Monitor), async internals, IL code, CLR, memory management'},
+      {n:149,topic:'ASP.NET + Architecture Qs',desc:'DI internals, middleware pipeline deep dive, CQRS trade-offs, Clean Architecture questions'},
+      {n:150,topic:'Database Design Qs',desc:'Normalization (1NF-3NF-BCNF), ER diagrams, indexing strategy, sharding approaches, CAP theorem'},
+      {n:151,topic:'Microservices Qs',desc:'Service discovery, circuit breaker, saga vs 2PC, event sourcing vs CRUD, bounded contexts'},
+      {n:152,topic:'System Design Practice',desc:'Twitter feed, Uber dispatch, Netflix streaming, WhatsApp — whiteboard design 4 systems'},
+      {n:153,topic:'Coding Rounds',desc:'LeetCode Medium: arrays, strings, hash maps, trees, graphs, dynamic programming — 20 problems'},
+      {n:154,topic:'Full Mock Interview',desc:'1-hour full mock: system design + coding + behavioural + project walkthrough — YOU ARE READY! 🎉'},
+    ]},
+  ]},
+];
+
+// ===================== RESOURCES DATA =====================
+const RESOURCES = [
+  {phase:'Phase 1 — C# Fundamentals',color:'#4f46e5',bg:'#ede9fe',items:[
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'Kudvenkat C# Tutorial Playlist',url:'https://www.youtube.com/watch?v=OXion8hZ9Vo'},
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'IAmTimCorey — C# Basics',url:'https://www.youtube.com/c/IAmTimCorey'},
+    {type:'Docs',label:'Free',color:'#059669',name:'Microsoft Learn — C# Fundamentals',url:'https://learn.microsoft.com/en-us/dotnet/csharp/'},
+    {type:'Website',label:'Free',color:'#0891b2',name:'W3Schools C# Tutorial',url:'https://www.w3schools.com/cs/'},
+    {type:'Book',label:'Paid',color:'#7c3aed',name:'C# in Depth by Jon Skeet',url:'https://www.manning.com/books/c-sharp-in-depth-fourth-edition'},
+    {type:'Practice',label:'Free',color:'#d97706',name:'LeetCode — Easy C# problems',url:'https://leetcode.com'},
+  ]},
+  {phase:'Phase 2 — ASP.NET Core Web API',color:'#0891b2',bg:'#e0f7fa',items:[
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'Nick Chapsas — ASP.NET Core Series',url:'https://www.youtube.com/@nickchapsas'},
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'IAmTimCorey — REST API Tutorial',url:'https://www.youtube.com/c/IAmTimCorey'},
+    {type:'Docs',label:'Free',color:'#059669',name:'Microsoft ASP.NET Core Docs',url:'https://learn.microsoft.com/en-us/aspnet/core/'},
+    {type:'Course',label:'Paid',color:'#7c3aed',name:'Udemy — Complete ASP.NET Core MVC',url:'https://www.udemy.com'},
+    {type:'Tool',label:'Free',color:'#d97706',name:'Postman API Testing Tool',url:'https://www.postman.com'},
+    {type:'GitHub',label:'Free',color:'#1f2937',name:'ASP.NET Core sample apps',url:'https://github.com/dotnet/aspnetcore'},
+  ]},
+  {phase:'Phase 3 — SQL Server',color:'#059669',bg:'#dcfce7',items:[
+    {type:'Website',label:'Free',color:'#0891b2',name:'SQLBolt — Interactive SQL',url:'https://sqlbolt.com'},
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'Kudvenkat SQL Server Tutorial',url:'https://www.youtube.com/watch?v=s9vBk5ZdvZ4'},
+    {type:'Website',label:'Free',color:'#0891b2',name:'Mode SQL Tutorial',url:'https://mode.com/sql-tutorial/'},
+    {type:'Book',label:'Free',color:'#7c3aed',name:'Use The Index, Luke!',url:'https://use-the-index-luke.com'},
+    {type:'Docs',label:'Free',color:'#059669',name:'Redis Documentation',url:'https://redis.io/docs/'},
+    {type:'GitHub',label:'Free',color:'#1f2937',name:'Dapper — lightweight ORM',url:'https://github.com/DapperLib/Dapper'},
+  ]},
+  {phase:'Phase 4 — Angular + TypeScript',color:'#d97706',bg:'#fef3c7',items:[
+    {type:'Docs',label:'Free',color:'#059669',name:'Angular Official Documentation',url:'https://angular.io/docs'},
+    {type:'Docs',label:'Free',color:'#059669',name:'TypeScript Handbook',url:'https://www.typescriptlang.org/docs/'},
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'Fireship — Angular in 100 Seconds + Series',url:'https://www.youtube.com/@Fireship'},
+    {type:'Course',label:'Paid',color:'#7c3aed',name:'Maximilian Schwarzmüller — Angular Udemy',url:'https://www.udemy.com'},
+    {type:'Website',label:'Free',color:'#0891b2',name:'Flexbox Froggy — CSS Game',url:'https://flexboxfroggy.com'},
+    {type:'Docs',label:'Free',color:'#059669',name:'RxJS Documentation',url:'https://rxjs.dev/'},
+  ]},
+  {phase:'Phase 5 — Senior & Advanced',color:'#dc2626',bg:'#fee2e2',items:[
+    {type:'GitHub',label:'Free',color:'#1f2937',name:'Jason Taylor Clean Architecture Template',url:'https://github.com/jasontaylordev/CleanArchitecture'},
+    {type:'Blog',label:'Free',color:'#0891b2',name:'ardalis.com — Clean Architecture Blog',url:'https://ardalis.com'},
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'TechWorld with Nana — Docker & Kubernetes',url:'https://www.youtube.com/@TechWorldwithNana'},
+    {type:'Docs',label:'Free',color:'#059669',name:'Microsoft Azure Learning Path',url:'https://learn.microsoft.com/en-us/azure/'},
+    {type:'Docs',label:'Free',color:'#059669',name:'MassTransit Documentation',url:'https://masstransit.io/'},
+    {type:'GitHub',label:'Free',color:'#1f2937',name:'eShopOnContainers — Microsoft microservices',url:'https://github.com/dotnet-architecture/eShopOnContainers'},
+  ]},
+  {phase:'Phase 6 — Ultra Advanced',color:'#7c3aed',bg:'#f3e8ff',items:[
+    {type:'YouTube',label:'Free',color:'#dc2626',name:'ByteByteGo — System Design',url:'https://www.youtube.com/@ByteByteGo'},
+    {type:'Book',label:'Paid',color:'#7c3aed',name:'Designing Data-Intensive Applications',url:'https://dataintensive.net/'},
+    {type:'Website',label:'Free',color:'#0891b2',name:'microservices.io — Chris Richardson',url:'https://microservices.io'},
+    {type:'Practice',label:'Free',color:'#d97706',name:'NeetCode.io — Coding Problems',url:'https://neetcode.io'},
+    {type:'Practice',label:'Free',color:'#d97706',name:'Pramp — Free Mock Interviews',url:'https://www.pramp.com'},
+    {type:'Blog',label:'Free',color:'#0891b2',name:'High Scalability Blog',url:'http://highscalability.com'},
+  ]},
+];
+let customResourceLinks = JSON.parse(localStorage.getItem('dotnet_custom_resources') || '[]');
+let editingResourceId = null;
+
+// ===================== COMMUNITY CONTENT DATA =====================
+// Grouped by author. LinkedIn blocks automated access to post bodies, so 'Post' items
+// carry title + link only (open while signed in to read the full post). 'Roadmap' items are
+// summarized from the source document itself, which we do have full access to.
+const CONTENT_AUTHORS = [
+  {
+    id:'sandip', name:'Sandip Mhaske', role:'Lead Developer · .NET Stack · AWS · Angular',
+    avatar:'SM', linkedin:'https://www.linkedin.com/in/sandip-mhaske',
+    items:[
+      {id:'sm-pdf', type:'Roadmap', badgeColor:'#7c3aed', title:'30-Day Full-Stack .NET Developer Plan',
+        summary:'The original source document this whole tracker is built from — a day-by-day roadmap covering C#, ASP.NET Core, SQL, Angular, Identity Server, Azure, CI/CD, woven together with daily Blind 75 practice.',
+        points:[
+          'Week 1 — C# & OOP foundations, LINQ, SQL, EF Core (Database First) · Blind 75 Arrays',
+          'Week 2 — ASP.NET Core MVC & Web API, JWT auth, repository pattern · Blind 75 Strings',
+          'Week 3 — Angular basic → advanced: forms, routing, RxJS, HttpClient · Blind 75 Binary Search / Linked List',
+          'Week 4 — Identity Server (OAuth2/OIDC), Azure App Service, CI/CD, final deployment · Blind 75 mix + interview prep'
+        ]},
+      {id:'sm-1', type:'Post', badgeColor:'#0a66c2', title:'.NET Working with MongoDB',
+        summary:'Practical notes on wiring a MongoDB data layer into a .NET application.',
+        url:'https://www.linkedin.com/posts/sandip-mhaske_net-working-with-mongodb-activity-7292436771064238080-Q4k9'},
+      {id:'sm-2', type:'Post', badgeColor:'#0a66c2', title:'.NET Integration with AWS DynamoDB',
+        summary:'Connecting a .NET service to DynamoDB as a NoSQL, cloud-native data store.',
+        url:'https://www.linkedin.com/posts/sandip-mhaske_net-integration-with-aws-dynamodb-activity-7312710308203040768-810V'},
+      {id:'sm-3', type:'Post', badgeColor:'#0a66c2', title:'AWS DynamoDB & NoSQL',
+        summary:'A grounding in DynamoDB fundamentals for developers coming from relational SQL.',
+        url:'https://www.linkedin.com/posts/sandip-mhaske_aws-dynamodb-nosql-activity-7283716769712648192-rnVl'},
+      {id:'sm-4', type:'Post', badgeColor:'#0a66c2', title:"The Developer's Notebook",
+        summary:'A recurring series of day-to-day developer notes and lessons learned.',
+        url:'https://www.linkedin.com/posts/sandip-mhaske_the-developers-notebook-activity-7314308345056714752-vre-'}
+    ]
+  }
+];
+
+const TYPE_ICON = {Roadmap:'bi-signpost-split',Post:'bi-linkedin',Link:'bi-link-45deg',Video:'bi-play-btn-fill',Note:'bi-sticky',Paragraph:'bi-text-paragraph',Bullets:'bi-list-ul',Image:'bi-image',PDF:'bi-file-earmark-pdf-fill',Diagram:'bi-diagram-3'};
+const TYPE_COLOR = {Roadmap:'#7c3aed',Post:'#0a66c2',Link:'#0891b2',Video:'#be123c',Note:'#6b7280',Paragraph:'#1f2937',Bullets:'#16a34a',Image:'#d97706',PDF:'#dc2626',Diagram:'#4f46e5'};
+const ITEM_PAGE_SIZE = 4;
+let authorOrder = JSON.parse(localStorage.getItem('dotnet_author_order') || 'null');
+let itemOrders = JSON.parse(localStorage.getItem('dotnet_item_orders') || '{}');
+let customAuthors = JSON.parse(localStorage.getItem('dotnet_custom_authors') || '[]');
+let expandedCount = JSON.parse(localStorage.getItem('dotnet_item_expanded') || '{}');
+let authorCollapsed = JSON.parse(localStorage.getItem('dotnet_author_collapsed') || '{}');
+let itemCollapsed = JSON.parse(localStorage.getItem('dotnet_item_collapsed') || '{}');
+let itemOverrides = JSON.parse(localStorage.getItem('dotnet_item_overrides') || '{}'); // persisted edits to built-in items
+let deletedItemIds = new Set(JSON.parse(localStorage.getItem('dotnet_deleted_items') || '[]')); // persisted deletes of built-in items
+let authorOverrides = JSON.parse(localStorage.getItem('dotnet_author_overrides') || '{}'); // persisted edits to built-in author profile (name/role/link)
+let editingItem = null; // {authorId, itemId} or null when adding new
+let editingAuthorId = null; // author id being edited (name/role), or null
+
+// ---- Docs Hub: dynamic, scrollable sub-tabs (Community Docs / Curated Resources are built-in;
+// any number of custom ones can be created right from the "Add new content" flow) ----
+let docsSections = JSON.parse(localStorage.getItem('dotnet_docs_sections') || 'null') || [
+  {key:'community', label:'Community Docs', icon:'bi-people-fill', builtin:true},
+  {key:'resources', label:'Curated Resources', icon:'bi-bookmark-star-fill', builtin:true}
+];
+let activeDocsSection = localStorage.getItem('dotnet_active_docs_section') || 'community';
+function saveDocsSections(){ localStorage.setItem('dotnet_docs_sections', JSON.stringify(docsSections)); }
+function slugify(str){ return str.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || ('section-'+Date.now()); }
+
+// Shared drag-to-reorder for the scrollable sub-tab rows (Docs Hub + Interview Q&A).
+// `sectionsArr` is mutated in place via splice, so no return value is needed — both
+// callers pass their own live array (docsSections / qaSections) plus how to save + redraw it.
+let draggedSubtabKey = null;
+function attachSubtabDragEvents(containerId, sectionsArr, saveFn, rerenderFn){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  container.querySelectorAll('.subtab-pill[data-key]').forEach(pill=>{
+    pill.addEventListener('dragstart', ()=>{ draggedSubtabKey = pill.dataset.key; pill.classList.add('dragging'); });
+    pill.addEventListener('dragend', ()=>{ pill.classList.remove('dragging'); container.querySelectorAll('.subtab-pill').forEach(p=>p.classList.remove('drag-over-item')); });
+    pill.addEventListener('dragover', e=>{ e.preventDefault(); if(draggedSubtabKey && draggedSubtabKey!==pill.dataset.key) pill.classList.add('drag-over-item'); });
+    pill.addEventListener('dragleave', ()=> pill.classList.remove('drag-over-item'));
+    pill.addEventListener('drop', e=>{
+      e.preventDefault(); pill.classList.remove('drag-over-item');
+      if(!draggedSubtabKey || draggedSubtabKey===pill.dataset.key) return;
+      const fromIdx = sectionsArr.findIndex(s=>s.key===draggedSubtabKey);
+      const toIdx = sectionsArr.findIndex(s=>s.key===pill.dataset.key);
+      if(fromIdx<0 || toIdx<0) return;
+      const [moved] = sectionsArr.splice(fromIdx,1);
+      sectionsArr.splice(toIdx,0,moved);
+      saveFn();
+      rerenderFn();
+    });
+  });
+}
+let pendingMedia = null; // {dataUrl, name, mime} staged from file input before save
+
+// ---- IndexedDB (local cache for images/PDFs; Firebase Firestore is the real store) ----
+const IDB_NAME='dotnet_roadmap_media', IDB_STORE='media';
+function idbOpen(){
+  return new Promise((res,rej)=>{
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = ()=> req.result.createObjectStore(IDB_STORE);
+    req.onsuccess = ()=> res(req.result);
+    req.onerror = ()=> rej(req.error);
+  });
+}
+async function idbPutLocal(key, value){ const db = await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).put(value,key); tx.oncomplete=()=>res(true); tx.onerror=()=>rej(tx.error); }); }
+async function idbGetLocal(key){ const db = await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readonly'); const r=tx.objectStore(IDB_STORE).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbDeleteLocal(key){ const db = await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).delete(key); tx.oncomplete=()=>res(true); tx.onerror=()=>rej(tx.error); }); }
+// Images/PDFs: saved in Firestore (source of truth); IndexedDB is only a fast local cache.
+async function idbPut(key, value){
+  await idbPutLocal(key, value);
+  if(window.Cloud){ try{ await Cloud.putMedia(key, value); }catch(e){ console.error(e); alert('Saved on this device, but uploading to Firebase failed: '+(e.message||e)); } }
+  return true;
+}
+async function idbGet(key){
+  let v = await idbGetLocal(key);
+  if(v===undefined && window.Cloud){ try{ v = await Cloud.getMedia(key); if(v) await idbPutLocal(key, v); }catch(e){ console.error(e); } }
+  return v === null ? undefined : v;
+}
+async function idbDelete(key){
+  await idbDeleteLocal(key);
+  if(window.Cloud){ Cloud.deleteMedia(key).catch(e=>console.error(e)); }
+  return true;
+}
+
+function getAllAuthors(){
+  const all = [...CONTENT_AUTHORS, ...customAuthors].map(a=>({
+    ...a,
+    ...(authorOverrides[a.id]||{}),
+    items: a.items.filter(it=>!deletedItemIds.has(it.id)).map(it=> itemOverrides[it.id] ? {...it, ...itemOverrides[it.id]} : it)
+  }));
+  all.forEach(a=>{
+    const ord = itemOrders[a.id];
+    if(ord){
+      const map = new Map(a.items.map(it=>[it.id,it]));
+      const ordered = ord.map(id=>map.get(id)).filter(Boolean);
+      a.items.forEach(it=>{ if(!ord.includes(it.id)) ordered.unshift(it); });
+      a.items = ordered;
+    }
+  });
+  if(authorOrder){
+    const map = new Map(all.map(a=>[a.id,a]));
+    const ordered = authorOrder.map(id=>map.get(id)).filter(Boolean);
+    all.forEach(a=>{ if(!authorOrder.includes(a.id)) ordered.push(a); });
+    return ordered;
+  }
+  return all;
+}
+function persistCustomAuthors(){ localStorage.setItem('dotnet_custom_authors', JSON.stringify(customAuthors)); }
+function saveAuthorOrder(list){ authorOrder = list.map(a=>a.id); localStorage.setItem('dotnet_author_order', JSON.stringify(authorOrder)); }
+function saveItemOrder(authorId, items){ itemOrders[authorId] = items.map(i=>i.id); localStorage.setItem('dotnet_item_orders', JSON.stringify(itemOrders)); }
+function toggleAuthorCollapse(authorId){ authorCollapsed[authorId] = !authorCollapsed[authorId]; localStorage.setItem('dotnet_author_collapsed', JSON.stringify(authorCollapsed)); renderAuthorPosts(); }
+function toggleItemCollapse(itemId){ itemCollapsed[itemId] = !itemCollapsed[itemId]; localStorage.setItem('dotnet_item_collapsed', JSON.stringify(itemCollapsed)); renderAuthorPosts(); }
+
+// Sourced directly from the original 30-Day Full-Stack .NET PDF (Sandip Mhaske).
+const ROADMAP_PLAN = [
+  {week:'Week 1 — C# & .NET Foundations + SQL + Blind 75 Arrays', days:[
+    {n:1,topic:'C# Basics',morning:'Syntax, variables, types.',midday:'Calculator console app.',afternoon:'Blind 75 — Two Sum, Best Time to Buy/Sell Stock.',evening:'Review & notes.'},
+    {n:2,topic:'Control Structures & Collections',morning:'Loops, collections.',midday:'Student Management app.',afternoon:'Blind 75 — Contains Duplicate, Product of Array Except Self.',evening:'LINQ basics.'},
+    {n:3,topic:'OOP Concepts',morning:'Encapsulation, inheritance, polymorphism.',midday:'Library System app.',afternoon:'Blind 75 — Maximum Subarray, Maximum Product Subarray.',evening:'OOP Q&A.'},
+    {n:4,topic:'Advanced C#',morning:'Interfaces, delegates, events.',midday:'Event-driven console app.',afternoon:'Blind 75 — Find Min in Rotated Sorted Array.',evening:'Practice.'},
+    {n:5,topic:'LINQ',morning:'Basics & lambda expressions.',midday:'LINQ dataset practice.',afternoon:'Blind 75 — Search in Rotated Sorted Array, 3Sum.',evening:'SQL intro.'},
+    {n:6,topic:'SQL Basics',morning:'CRUD, joins.',midday:'Database creation.',afternoon:'Blind 75 — Container With Most Water.',evening:'DB normalization.'},
+    {n:7,topic:'Database First Approach',morning:'EF model scaffold.',midday:'CRUD with EF Core.',afternoon:'Blind 75 — Longest Consecutive Sequence.',evening:'Week recap.'},
+  ]},
+  {week:'Week 2 — ASP.NET Core MVC/API + Blind 75 Strings', days:[
+    {n:8,topic:'ASP.NET Core Intro',morning:'Middleware, DI.',midday:'MVC app.',afternoon:'Blind 75 — Valid Anagram, Group Anagrams.',evening:'Middleware review.'},
+    {n:9,topic:'MVC in Depth',morning:'Controllers, Views, Razor.',midday:'CRUD.',afternoon:'Blind 75 — Valid Palindrome, Longest Palindromic Substring.',evening:'ViewData/ViewBag.'},
+    {n:10,topic:'API Development',morning:'API controllers, CRUD.',midday:'Postman testing.',afternoon:'Blind 75 — Longest Substring Without Repeating Characters.',evening:'Validation.'},
+    {n:11,topic:'Advanced API',morning:'DTOs, AutoMapper, filters.',midday:'Repository pattern.',afternoon:'Blind 75 — Minimum Window Substring.',evening:'Auth intro.'},
+    {n:12,topic:'Authentication Basics',morning:'JWT.',midday:'Secure API.',afternoon:'Blind 75 — Encode and Decode Strings.',evening:'Claims & roles.'},
+    {n:13,topic:'API + SQL Integration',morning:'EF DB First.',midday:'CRUD with repository.',afternoon:'Blind 75 — Longest Repeating Character Replacement.',evening:'Refactor.'},
+    {n:14,topic:'MVC + API Integration Project',morning:'Employee CRUD API.',midday:'MVC consumes API.',afternoon:'Blind 75 — Valid Parentheses.',evening:'Week review.'},
+  ]},
+  {week:'Week 3 — Angular Basic to Advanced + Blind 75 Binary Search / Linked List', days:[
+    {n:15,topic:'Angular Setup & Basics',morning:'CLI setup, components.',midday:'Data binding.',afternoon:'Blind 75 — Binary Search problems.',evening:'Angular notes.'},
+    {n:16,topic:'Directives, Pipes, Services',morning:'ngIf/ngFor, pipes.',midday:'Services & DI.',afternoon:'Blind 75 — Reverse Linked List, Merge Two Sorted Lists.',evening:'Review.'},
+    {n:17,topic:'Forms',morning:'Template & reactive forms.',midday:'Validation.',afternoon:'Blind 75 — Reorder List, Remove Nth Node From End.',evening:'Form Q&A.'},
+    {n:18,topic:'Routing',morning:'Router, lazy loading.',midday:'Routing project.',afternoon:'Blind 75 — Linked List Cycle, Intersection of Two Linked Lists.',evening:'Guards intro.'},
+    {n:19,topic:'Lifecycle Hooks & State',morning:'ngOnInit, Observables.',midday:'State sharing.',afternoon:'Blind 75 — Validate BST, Lowest Common Ancestor.',evening:'RxJS basics.'},
+    {n:20,topic:'API Integration in Angular',morning:'HttpClient.',midday:'Interceptors.',afternoon:'Blind 75 — Tree problems.',evening:'Review.'},
+    {n:21,topic:'Angular CRUD Project',morning:'Full CRUD with API.',midday:'UI improvements.',afternoon:'Blind 75 — Graph problems.',evening:'Week recap.'},
+  ]},
+  {week:'Week 4 — Identity Server, Azure, CI/CD + Blind 75 Mix', days:[
+    {n:22,topic:'Identity Server Intro',morning:'OAuth2 & OIDC.',midday:'Setup Identity Server.',afternoon:'Blind 75 — Climbing Stairs, Coin Change.',evening:'Clients & scopes.'},
+    {n:23,topic:'Authentication Flow',morning:'Register/Login.',midday:'Secure API.',afternoon:'Blind 75 — Longest Increasing Subsequence.',evening:'Refresh tokens.'},
+    {n:24,topic:'Authorization',morning:'Roles, policies, claims.',midday:'Protect Angular routes.',afternoon:'Blind 75 — Word Break.',evening:'Access control tests.'},
+    {n:25,topic:'Auth Microservice',morning:'Create Auth microservice.',midday:'Integrate API + Angular.',afternoon:'Blind 75 — House Robber.',evening:'Sessions.'},
+    {n:26,topic:'Token Management in Angular',morning:'Store tokens securely.',midday:'Auto-refresh.',afternoon:'Blind 75 — Unique Paths.',evening:'Review.'},
+    {n:27,topic:'Azure Basics',morning:'App Service, Azure SQL.',midday:'Deploy API.',afternoon:'Blind 75 — Heap problems.',evening:'Blob storage.'},
+    {n:28,topic:'CI/CD in Azure DevOps',morning:'Build pipelines.',midday:'Release pipelines.',afternoon:'Blind 75 — Interval problems.',evening:'Test deployment.'},
+    {n:29,topic:'Final Project Deployment',morning:'Deploy API + Angular + Identity Server.',midday:'Testing.',afternoon:'Blind 75 — Backtracking problems.',evening:'Polish portfolio.'},
+    {n:30,topic:'Interview Prep',morning:'Revise all concepts.',midday:'Mock interview.',afternoon:'Remaining Blind 75 problems.',evening:'HR/behavioral prep.'},
+  ]},
+];
+
+function roadmapAccordionHTML(){
+  return `<div class="roadmap-embed">${ROADMAP_PLAN.map(w=>`
+    <details class="week-details">
+      <summary>${w.week}</summary>
+      <div class="days-list">
+        ${w.days.map(d=>`<details class="day-details">
+          <summary>Day ${d.n} — ${d.topic}</summary>
+          <div class="sessions">
+            <div><b>Morning:</b> ${d.morning}</div>
+            <div><b>Midday:</b> ${d.midday}</div>
+            <div><b>Afternoon:</b> ${d.afternoon}</div>
+            <div><b>Evening:</b> ${d.evening}</div>
+          </div>
+        </details>`).join('')}
+      </div>
+    </details>`).join('')}</div>`;
+}
+
+function itemBodyHTML(item){
+  let html = '';
+  // PDF: keep the optional topic/notes text collapsible rather than always shown.
+  if(item.type==='PDF' && item.summary){
+    html += `<details class="pdf-note-details"><summary style="cursor:pointer;font-size:0.8rem;color:var(--muted);font-weight:600">Topic / notes</summary><div class="item-summary mt-1">${item.summary}</div></details>`;
+  } else if(item.summary){
+    html += `<div class="item-summary">${item.summary}</div>`;
+  }
+  if(item.points) html += `<ul class="item-points">${item.points.map(p=>`<li>${p}</li>`).join('')}</ul>`;
+  if(item.type==='Roadmap') html += roadmapAccordionHTML();
+  if(item.type==='Diagram' && item.steps){
+    html += `<div class="diagram-flow">${item.steps.map((s,i)=>`<span class="diagram-step">${s}</span>${i<item.steps.length-1?'<i class="bi bi-arrow-right diagram-arrow"></i>':''}`).join('')}</div>`;
+  }
+  if(item.type==='Image' && item.mediaKey){
+    html += `<img class="item-media-img" id="img-${item.id}" alt="${item.title}">
+      <div class="item-media-actions"><button class="btn btn-sm btn-outline-secondary" onclick="downloadStoredMedia('${item.id}')"><i class="bi bi-download me-1"></i>Download</button></div>`;
+  }
+  if(item.type==='PDF' && item.mediaKey){
+    html += `<div class="item-pdf-box"><i class="bi bi-file-earmark-pdf-fill"></i><span style="flex:1;font-size:0.82rem">${item.mediaName||'Attached PDF'}</span><button class="btn btn-sm btn-outline-primary" onclick="togglePdfPreview('${item.id}')"><i class="bi bi-eye me-1"></i>Preview</button><button class="btn btn-sm btn-outline-danger" onclick="downloadStoredMedia('${item.id}')"><i class="bi bi-download me-1"></i>Download</button></div><div id="pdf-preview-${item.id}" style="display:none"></div>`;
+  }
+  if((item.type==='Video' || (item.type==='Link' && getVideoEmbedInfo(item.url))) && item.url){
+    const vid = getVideoEmbedInfo(item.url);
+    if(vid && vid.kind==='iframe'){
+      html += `<div class="item-video-wrap"><iframe src="${vid.src}" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`;
+    } else if(vid && vid.kind==='video'){
+      html += `<div class="item-video-wrap"><video src="${vid.src}" controls></video></div>`;
+    }
+  } else if(item.url){
+    const isLinkedIn = /linkedin\.com/i.test(item.url);
+    html += `<a class="item-open" href="${item.url}" target="_blank" rel="noopener">${isLinkedIn?'Open on LinkedIn':'Open link'} <i class="bi bi-box-arrow-up-right"></i></a>`;
+  }
+  return html;
+}
+
+// Looks up an item's data no matter which board it lives on (Docs Hub author items,
+// Advanced+ topics, or Interview Q&A rich answers) — lets Preview/Download work everywhere.
+function findAnyItemById(itemId){
+  for(const author of getAllAuthors()){
+    const it = author.items.find(i=>i.id===itemId);
+    if(it) return it;
+  }
+  const adv = getAllAdvItems().find(i=>i.id===itemId);
+  if(adv) return adv;
+  const qa = customQA.find(i=>i.id===itemId);
+  if(qa) return qa;
+  return null;
+}
+
+async function downloadStoredMedia(itemId){
+  const item = findAnyItemById(itemId);
+  if(!item || !item.mediaKey) return;
+  const dataUrl = await idbGet(item.mediaKey);
+  if(!dataUrl){ alert('Could not load this file from storage.'); return; }
+  const blobUrl = URL.createObjectURL(dataUrlToBlob(dataUrl));
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = item.mediaName || item.title || item.q || 'download';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(blobUrl), 5000);
+}
+
+function renderAuthorPosts(){
+  renderDocsSubtabs();
+  const board = document.getElementById('author-board'); board.innerHTML='';
+  const authors = getAllAuthors();
+
+  authors.forEach(author=>{
+    const sectionItems = author.items.filter(it=>(it.section||'community')===activeDocsSection);
+    if(sectionItems.length===0) return;
+
+    const card = document.createElement('div');
+    card.className='author-card';
+    card.dataset.authorId = author.id;
+
+    const collapsed = !!authorCollapsed[author.id];
+    const shown = expandedCount[author.id] || ITEM_PAGE_SIZE;
+    const visibleItems = sectionItems.slice(0, shown);
+    const hasMore = sectionItems.length > shown;
+    const isCustom = customAuthors.some(a=>a.id===author.id);
+
+    card.innerHTML = `
+      <div class="author-topbar" draggable="true">
+        <button class="collapse-btn ${collapsed?'collapsed':''}" onclick="toggleAuthorCollapse('${author.id}')" title="Collapse/expand"><i class="bi bi-chevron-down"></i></button>
+        <i class="bi bi-grip-vertical drag-handle"></i>
+        <div class="author-avatar">${author.avatar}</div>
+        <div class="author-meta">
+          <p class="name">${author.name} ${!collapsed?'':`<span style="font-weight:400;opacity:.8">· ${sectionItems.length} item${sectionItems.length!==1?'s':''}</span>`}</p>
+          <p class="role">${author.role}</p>
+        </div>
+        <a class="author-link" href="${author.linkedin}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>Profile</a>
+        <div class="author-actions">
+          <button onclick="editAuthorMeta('${author.id}')" title="Edit author"><i class="bi bi-pencil"></i></button>
+          ${isCustom ? `<button onclick="deleteAuthor('${author.id}')" title="Delete author"><i class="bi bi-trash"></i></button>` : ''}
+        </div>
+      </div>
+      ${collapsed ? '' : `<div class="item-list" data-author-id="${author.id}"></div>
+      ${hasMore ? `<div class="d-flex pb-3"><button class="btn btn-sm btn-outline-secondary show-more-btn mx-auto" onclick="showMoreItems('${author.id}')"><i class="bi bi-chevron-down me-1"></i>Show ${sectionItems.length - shown} more</button></div>` : ''}`}
+    `;
+    board.appendChild(card);
+
+    if(!collapsed){
+      const list = card.querySelector('.item-list');
+      visibleItems.forEach(item=>{
+        const itemClosed = !!itemCollapsed[item.id];
+        const el = document.createElement('div');
+        el.className='content-item';
+        el.draggable = true;
+        el.dataset.itemId = item.id;
+        el.dataset.type = item.type;
+        el.innerHTML = `
+          <i class="bi bi-grip-vertical item-handle"></i>
+          <div class="item-body">
+            <div class="item-top">
+              <span class="item-badge" style="background:${(item.badgeColor||TYPE_COLOR[item.type])}18;color:${item.badgeColor||TYPE_COLOR[item.type]}"><i class="bi ${TYPE_ICON[item.type]||'bi-file-text'} me-1"></i>${item.type}</span>
+              <span class="item-title">${item.title}</span>
+              <button class="item-collapse-btn" onclick="toggleItemCollapse('${item.id}')" title="Collapse/expand"><i class="bi bi-chevron-${itemClosed?'down':'up'}"></i></button>
+              <div class="item-actions">
+                <button class="item-action-btn" onclick="editItem('${author.id}','${item.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
+                <button class="item-action-btn danger" onclick="deleteItem('${author.id}','${item.id}')" title="Delete"><i class="bi bi-trash"></i></button>
+              </div>
+            </div>
+            ${itemClosed ? '' : itemBodyHTML(item)}
+          </div>`;
+        list.appendChild(el);
+        attachItemDragEvents(el, author.id);
+        if(!itemClosed && item.type==='Image' && item.mediaKey){
+          idbGet(item.mediaKey).then(dataUrl=>{ const img=document.getElementById('img-'+item.id); if(img && dataUrl) img.src = dataUrl; });
+        }
+      });
+    }
+
+    attachAuthorDragEvents(card);
+  });
+
+  if(board.children.length===0){
+    board.innerHTML = `<p class="small text-muted text-center py-4"><i class="bi bi-inbox me-1"></i>Nothing in this section yet — tap "Add new content" above to add something here.</p>`;
+  }
+
+  const searchEl = document.getElementById('docs-search-input');
+  if(searchEl && (searchEl.value || document.getElementById('docs-type-filter').value)) filterDocsHub();
+}
+
+// ---- Dynamic, scrollable Docs Hub sub-tabs ----
+function renderDocsSubtabs(){
+  const el = document.getElementById('docs-subtabs');
+  if(!el) return;
+  el.innerHTML = docsSections.map(s=>`
+    <button class="subtab-pill ${s.key===activeDocsSection?'active':''}" data-key="${s.key}" draggable="true" onclick="setDocsSubtab('${s.key}')">
+      <i class="bi bi-grip-vertical" style="opacity:0.4;font-size:0.7rem"></i>
+      <i class="bi ${s.icon}"></i>${s.label}
+      ${!s.builtin ? `<i class="bi bi-x-circle del-section" onclick="event.stopPropagation();deleteDocsSection('${s.key}')" title="Delete this section"></i>` : ''}
+    </button>`).join('')
+    + `<button class="subtab-pill add-pill" onclick="promptNewDocsSection()"><i class="bi bi-plus-lg"></i>New tab</button>`;
+  attachSubtabDragEvents('docs-subtabs', docsSections, saveDocsSections, renderDocsSubtabs);
+}
+function setDocsSubtab(key){
+  activeDocsSection = key;
+  renderDocsSubtabs();
+  localStorage.setItem('dotnet_active_docs_section', key);
+  document.getElementById('docs-community-view').style.display = key==='resources' ? 'none' : '';
+  document.getElementById('docs-resources-view').style.display = key==='resources' ? '' : 'none';
+  if(key==='resources') renderResources(); else renderAuthorPosts();
+  filterDocsHub();
+}
+function promptNewDocsSection(){
+  const name = prompt('Name your new tab (e.g. "Certifications", "Cheat Sheets"):');
+  if(!name) return;
+  const key = slugify(name);
+  if(docsSections.some(s=>s.key===key)){ setDocsSubtab(key); return; }
+  docsSections.push({key, label:name, icon:'bi-folder2', builtin:false});
+  saveDocsSections();
+  setDocsSubtab(key);
+}
+function deleteDocsSection(key){
+  const sec = docsSections.find(s=>s.key===key);
+  if(!sec) return;
+  if(!confirm(`Delete the "${sec.label}" tab? Any items already in it will move back to Community Docs.`)) return;
+  customAuthors.forEach(author=> author.items.forEach(it=>{ if((it.section||'community')===key) it.section='community'; }));
+  persistCustomAuthors();
+  CONTENT_AUTHORS.forEach(author=> author.items.forEach(it=>{
+    const current = itemOverrides[it.id] ? {...it, ...itemOverrides[it.id]} : it;
+    if((current.section||'community')===key) itemOverrides[it.id] = {...(itemOverrides[it.id]||{}), section:'community'};
+  }));
+  localStorage.setItem('dotnet_item_overrides', JSON.stringify(itemOverrides));
+  docsSections = docsSections.filter(s=>s.key!==key);
+  saveDocsSections();
+  setDocsSubtab('community');
+}
+
+// ---- Search + type filter for Docs Hub (Community Docs) ----
+function filterDocsHub(){
+  const term = (document.getElementById('docs-search-input').value||'').trim().toLowerCase();
+  const typeEl = document.getElementById('docs-type-filter');
+  const isRes = activeDocsSection==='resources';
+  if(typeEl) typeEl.style.display = isRes ? 'none' : '';
+  if(isRes){ filterResources(); return; }
+  const type = typeEl ? typeEl.value : '';
+  let shown = 0;
+  document.querySelectorAll('.author-card').forEach(card=>{
+    let anyVisible = false;
+    card.querySelectorAll('.content-item').forEach(row=>{
+      const matchesText = !term || row.textContent.toLowerCase().includes(term);
+      const matchesType = !type || row.dataset.type===type;
+      const show = matchesText && matchesType;
+      row.style.display = show ? '' : 'none';
+      if(show){ anyVisible = true; shown++; }
+    });
+    card.style.display = anyVisible ? '' : 'none';
+  });
+  const empty = document.getElementById('docs-empty-msg');
+  if(empty) empty.style.display = (shown===0 && (term||type)) ? '' : 'none';
+}
+
+// ---- Search filter for Curated Resources ----
+function filterResources(){
+  const term = (document.getElementById('docs-search-input').value||'').trim().toLowerCase();
+  document.querySelectorAll('#res-container .res-card').forEach(card=>{
+    let anyVisible = false;
+    card.querySelectorAll('.res-link').forEach(row=>{
+      const match = !term || row.textContent.toLowerCase().includes(term);
+      row.style.display = match ? '' : 'none';
+      if(match) anyVisible = true;
+    });
+    card.parentElement.style.display = anyVisible ? '' : 'none';
+  });
+}
+
+// ---- Step 1 of adding content: ask what they want to upload ----
+// Step 1 (popup): which section is this going into?
+let pendingDocsSection = 'community';
+function openAddChooser(){
+  editingItem = null; editingAuthorId = null; pendingMedia = null; editingResourceId = null;
+  openModal(`
+    <div class="author-form docshub-form-compact mb-0">
+      <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>Where should this go?</h6>
+      <div class="type-chooser-grid" style="grid-template-columns:repeat(2,1fr)">
+        ${docsSections.map(s=>`<button type="button" class="type-chooser-btn" onclick="${s.key==='resources'?`openResourceForm()`:`openContentTypeChooser('${s.key}')`}"><i class="bi ${s.icon}" style="color:${s.key==='resources'?'#d97706':'#4f46e5'}"></i><span class="tc-label">${s.label}</span></button>`).join('')}
+      </div>
+      <button type="button" class="type-chooser-btn mt-2" style="border-style:dashed;width:100%" onclick="promptNewSectionThenAdd()"><i class="bi bi-plus-lg" style="color:#16a34a"></i><span class="tc-label">Create a new tab</span></button>
+      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+function promptNewSectionThenAdd(){
+  const name = prompt('Name your new tab (e.g. "Certifications", "Cheat Sheets"):');
+  if(!name) return;
+  const key = slugify(name);
+  if(!docsSections.some(s=>s.key===key)){
+    docsSections.push({key, label:name, icon:'bi-folder2', builtin:false});
+    saveDocsSections();
+  }
+  openContentTypeChooser(key);
+}
+
+// Step 2a (popup): Community Docs (or any custom tab) — what kind of content?
+function openContentTypeChooser(sectionKey){
+  pendingDocsSection = sectionKey || pendingDocsSection || 'community';
+  openModal(`
+    <div class="author-form docshub-form-compact mb-0">
+      <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>What would you like to add?</h6>
+      <div class="type-chooser-grid">
+        <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'PDF')"><i class="bi bi-file-earmark-pdf-fill" style="color:#dc2626"></i><span class="tc-label">PDF</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'Image')"><i class="bi bi-image" style="color:#d97706"></i><span class="tc-label">Image</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'Link')"><i class="bi bi-link-45deg" style="color:#0891b2"></i><span class="tc-label">Link</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'Content')"><i class="bi bi-text-paragraph" style="color:#16a34a"></i><span class="tc-label">Content</span></button>
+      </div>
+      <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-link btn-sm text-muted p-0 ps-2" onclick="openAddChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>
+      </div>
+    </div>`);
+}
+
+// Step 2b (popup): Curated Resources — a simple link form
+function openResourceForm(resId){
+  const isEdit = !!resId;
+  editingResourceId = resId || null;
+  const res = isEdit ? getAllResourceLinks().find(r=>r.id===resId) : null;
+  const existingCats = [...new Set([...RESOURCES.map(r=>r.phase), ...customResourceLinks.map(r=>r.category)])];
+  openModal(`
+    <div class="author-form docshub-form-compact mb-0">
+      <h6 class="fw-bold mb-2"><i class="bi ${isEdit?'bi-pencil-square':'bi-bookmark-star-fill'} me-1"></i>${isEdit?'Edit resource':'Add a curated resource'}</h6>
+      <div class="row g-2">
+        <div class="col-12"><label>Category</label><input id="res-cat" class="form-control" list="res-cat-list" placeholder="e.g. Phase 1 — C# Fundamentals" value="${isEdit?res.category:''}"><datalist id="res-cat-list">${existingCats.map(c=>`<option value="${c}">`).join('')}</datalist></div>
+        <div class="col-12"><label>Title <span class="text-danger">*</span></label><input id="res-name" class="form-control" placeholder="e.g. Nick Chapsas — ASP.NET Core Series" value="${isEdit?res.name:''}"></div>
+        <div class="col-12"><label>URL <span class="text-danger">*</span></label><input id="res-url" class="form-control" placeholder="https://..." value="${isEdit?res.url:''}"></div>
+        <div class="col-md-6"><label>Type tag</label><input id="res-type" class="form-control" placeholder="e.g. YouTube, Docs, Course" value="${isEdit?res.type:''}"></div>
+        <div class="col-md-6"><label>Price tag</label><select id="res-label" class="form-select"><option value="Free" ${isEdit&&res.label==='Free'?'selected':''}>Free</option><option value="Paid" ${isEdit&&res.label==='Paid'?'selected':''}>Paid</option></select></div>
+      </div>
+      <div class="d-flex gap-2 mt-2 flex-wrap">
+        <button class="btn btn-primary btn-sm" onclick="submitResourceForm()"><i class="bi bi-check2 me-1"></i>${isEdit?'Save':'Add'}</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()">Cancel</button>
+        ${!isEdit ? `<button class="btn btn-link btn-sm text-muted p-0 ps-2" onclick="openAddChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
+      </div>
+    </div>`);
+}
+function submitResourceForm(){
+  const category = document.getElementById('res-cat').value.trim() || 'My Resources';
+  const name = document.getElementById('res-name').value.trim();
+  const url = document.getElementById('res-url').value.trim();
+  const type = document.getElementById('res-type').value.trim() || 'Link';
+  const label = document.getElementById('res-label').value;
+  if(!name || !url){ alert('Please add a title and URL.'); return; }
+  const colorByType = {YouTube:'#dc2626',Docs:'#059669',Website:'#0891b2',Book:'#7c3aed',Course:'#7c3aed',Practice:'#d97706',GitHub:'#1f2937',Blog:'#0891b2',Tool:'#d97706'};
+  const data = {category, name, url, type, label, color: colorByType[type] || '#0891b2'};
+  if(editingResourceId){
+    const idx = customResourceLinks.findIndex(r=>r.id===editingResourceId);
+    if(idx>-1) customResourceLinks[idx] = {...customResourceLinks[idx], ...data};
+  } else {
+    customResourceLinks.unshift({id:'res-custom-'+Date.now(), ...data});
+  }
+  localStorage.setItem('dotnet_custom_resources', JSON.stringify(customResourceLinks));
+  closeModal();
+  renderResources();
+}
+function deleteResourceLink(id){
+  if(!confirm('Remove this resource?')) return;
+  customResourceLinks = customResourceLinks.filter(r=>r.id!==id);
+  localStorage.setItem('dotnet_custom_resources', JSON.stringify(customResourceLinks));
+  renderResources();
+}
+function getAllResourceLinks(){
+  return customResourceLinks;
+}
+
+function dataUrlToBlob(dataUrl){
+  const [meta, b64] = dataUrl.split(',');
+  const mime = meta.match(/:(.*?);/)[1];
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], {type: mime});
+}
+
+async function togglePdfPreview(itemId){
+  const box = document.getElementById('pdf-preview-'+itemId);
+  if(!box) return;
+  if(box.style.display==='block'){ box.style.display='none'; box.innerHTML=''; return; }
+  const item = findAnyItemById(itemId);
+  if(!item || !item.mediaKey) return;
+  const dataUrl = await idbGet(item.mediaKey);
+  if(!dataUrl){ box.innerHTML = '<div class="small text-danger">Could not load this PDF from storage.</div>'; box.style.display='block'; return; }
+  const blobUrl = URL.createObjectURL(dataUrlToBlob(dataUrl));
+  box.innerHTML = `<embed src="${blobUrl}" type="application/pdf" style="width:100%;height:420px;border-radius:8px;border:1px solid var(--border);margin-top:6px">`;
+  box.style.display='block';
+}
+
+function showMoreItems(authorId){
+  expandedCount[authorId] = (expandedCount[authorId]||ITEM_PAGE_SIZE) + 10;
+  localStorage.setItem('dotnet_item_expanded', JSON.stringify(expandedCount));
+  renderAuthorPosts();
+}
+
+// ---- Drag & drop: authors ----
+let draggedAuthorId = null;
+function attachAuthorDragEvents(card){
+  const bar = card.querySelector('.author-topbar');
+  bar.addEventListener('dragstart', e=>{ draggedAuthorId = card.dataset.authorId; e.dataTransfer.effectAllowed='move'; setTimeout(()=>card.style.opacity='0.5',0); });
+  bar.addEventListener('dragend', ()=>{ card.style.opacity='1'; document.querySelectorAll('.author-card').forEach(c=>c.classList.remove('drag-over')); });
+  card.addEventListener('dragover', e=>{ e.preventDefault(); if(draggedAuthorId && draggedAuthorId!==card.dataset.authorId) card.classList.add('drag-over'); });
+  card.addEventListener('dragleave', ()=> card.classList.remove('drag-over'));
+  card.addEventListener('drop', e=>{
+    e.preventDefault(); card.classList.remove('drag-over');
+    if(!draggedAuthorId || draggedAuthorId===card.dataset.authorId) return;
+    const all = getAllAuthors();
+    const fromIdx = all.findIndex(a=>a.id===draggedAuthorId);
+    const toIdx = all.findIndex(a=>a.id===card.dataset.authorId);
+    const [moved] = all.splice(fromIdx,1);
+    all.splice(toIdx,0,moved);
+    saveAuthorOrder(all);
+    renderAuthorPosts();
+  });
+}
+
+// ---- Drag & drop: items within an author ----
+let draggedItemId = null, draggedItemAuthor = null;
+function attachItemDragEvents(el, authorId){
+  el.addEventListener('dragstart', e=>{ draggedItemId = el.dataset.itemId; draggedItemAuthor = authorId; e.stopPropagation(); el.classList.add('dragging'); });
+  el.addEventListener('dragend', ()=>{ el.classList.remove('dragging'); document.querySelectorAll('.content-item').forEach(i=>i.classList.remove('drag-over-item')); });
+  el.addEventListener('dragover', e=>{ e.preventDefault(); e.stopPropagation(); if(draggedItemAuthor===authorId && draggedItemId!==el.dataset.itemId) el.classList.add('drag-over-item'); });
+  el.addEventListener('dragleave', ()=> el.classList.remove('drag-over-item'));
+  el.addEventListener('drop', e=>{
+    e.preventDefault(); e.stopPropagation(); el.classList.remove('drag-over-item');
+    if(draggedItemAuthor!==authorId || draggedItemId===el.dataset.itemId) return;
+    const author = getAllAuthors().find(a=>a.id===authorId);
+    const fromIdx = author.items.findIndex(i=>i.id===draggedItemId);
+    const toIdx = author.items.findIndex(i=>i.id===el.dataset.itemId);
+    const [moved] = author.items.splice(fromIdx,1);
+    author.items.splice(toIdx,0,moved);
+    saveItemOrder(authorId, author.items);
+    renderAuthorPosts();
+  });
+}
+
+// ---- CRUD: delete ----
+function deleteItem(authorId, itemId){
+  if(!confirm('Delete this content? This cannot be undone.')) return;
+  const author = getAllAuthors().find(a=>a.id===authorId);
+  const item = author.items.find(i=>i.id===itemId);
+  if(item && item.mediaKey) idbDelete(item.mediaKey);
+  if(customAuthors.some(a=>a.id===authorId)){
+    const custAuthor = customAuthors.find(a=>a.id===authorId);
+    custAuthor.items = custAuthor.items.filter(i=>i.id!==itemId);
+    persistCustomAuthors();
+  } else {
+    deletedItemIds.add(itemId);
+    localStorage.setItem('dotnet_deleted_items', JSON.stringify([...deletedItemIds]));
+  }
+  renderAuthorPosts();
+}
+function deleteAuthor(authorId){
+  if(!confirm('Delete this whole author card and all its content?')) return;
+  const author = customAuthors.find(a=>a.id===authorId);
+  if(author) author.items.forEach(i=>{ if(i.mediaKey) idbDelete(i.mediaKey); });
+  customAuthors = customAuthors.filter(a=>a.id!==authorId);
+  persistCustomAuthors();
+  renderAuthorPosts();
+}
+
+// ---- CRUD: add / edit form ----
+function categoryForType(type){
+  if(type==='PDF') return 'PDF';
+  if(type==='Image') return 'Image';
+  if(type==='Link' || type==='Video' || type==='Post') return 'Link';
+  return 'Content'; // Paragraph, Bullets, Diagram
+}
+function openContentForm(authorId, itemId, category){
+  editingAuthorId = null;
+  const isEdit = !!itemId;
+  let item = null, author = null;
+  if(isEdit){
+    author = getAllAuthors().find(a=>a.id===authorId);
+    item = author.items.find(i=>i.id===itemId);
+    editingItem = {authorId, itemId};
+    category = categoryForType(item.type);
+  } else {
+    editingItem = null;
+    if(!category){ openAddChooser(); return; }
+  }
+  pendingMedia = null;
+
+  const authorNameVal = isEdit ? author.name : '';
+  const authorRoleVal = isEdit ? author.role : '';
+
+  let typeSpecificHTML = '';
+  if(category==='PDF'){
+    typeSpecificHTML = `
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="naf-pdf-input" accept="application/pdf" style="display:none" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name-pdf">${isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):''}</div></div>
+      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional, collapsible)</span></label>${rteEditorHTML('naf-para','What\'s inside this PDF, briefly...', isEdit && item.type==='PDF'?item.summary||'':'')}</div>`;
+  } else if(category==='Image'){
+    typeSpecificHTML = `
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="naf-image-input" accept="image/*" style="display:none" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name">${isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):''}</div></div>
+      <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('naf-summary','One or two lines of context', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
+  } else if(category==='Link'){
+    typeSpecificHTML = `
+      <div class="col-12"><label>Link URL <span class="text-danger">*</span> <span class="text-muted fw-normal">— video links play right here</span></label><input id="naf-url" class="form-control" placeholder="https://..." value="${isEdit && item.url?item.url:''}"></div>
+      <div class="col-12"><label>Summary <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('naf-summary','One or two lines of context', isEdit?item.summary||'':'')}</div>`;
+  } else { // Content
+    typeSpecificHTML = `
+      <div class="col-md-5"><label>Content type</label>
+        <select id="naf-type" class="form-select" onchange="renderTypeFields()">
+          <option value="Paragraph">Paragraph</option>
+          <option value="Bullets">Bullets</option>
+          <option value="Diagram">Mini Roadmap Diagram</option>
+          <option value="Post">Link / Post</option>
+        </select>
+      </div>
+      <div class="col-12 type-field" data-type="Paragraph"><label>Paragraph</label>${rteEditorHTML('naf-para','Write your paragraph here...', isEdit && item.type==='Paragraph'?item.summary||'':'')}</div>
+      <div class="col-12 type-field" data-type="Bullets"><label>Bullet points (one per line)</label><textarea id="naf-bullets" class="form-control" rows="3" placeholder="First point\nSecond point\nThird point">${isEdit && item.type==='Bullets' && item.points?item.points.join('\n'):''}</textarea></div>
+      <div class="col-12 type-field" data-type="Diagram"><label>Roadmap steps (one per line)</label><textarea id="naf-steps" class="form-control" rows="3" placeholder="Setup\nBuild API\nAdd Auth\nDeploy">${isEdit && item.type==='Diagram' && item.steps?item.steps.join('\n'):''}</textarea></div>
+      <div class="col-12 type-field" data-type="Post"><label>Link URL</label><input id="naf-url" class="form-control" placeholder="https://..." value="${isEdit && item.url?item.url:''}"></div>
+      <div class="col-12"><label>Summary <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('naf-summary','One or two lines of context', isEdit && item.type!=='Paragraph'?item.summary||'':'')}</div>`;
+  }
+
+  const catMeta = {PDF:{icon:'bi-file-earmark-pdf-fill',label:'PDF'},Image:{icon:'bi-image',label:'Image'},Link:{icon:'bi-link-45deg',label:'Link'},Content:{icon:'bi-text-paragraph',label:'Content'}}[category];
+
+  openModal(`
+    <div class="author-form docshub-form-compact mb-0">
+      <h6 class="fw-bold mb-2"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit content':'Add '+catMeta.label}</h6>
+      <div class="row g-2">
+        <div class="col-12"><label>Heading / title <span class="text-danger">*</span></label><input id="naf-title" class="form-control" placeholder="e.g. Minimal APIs in .NET 8" value="${isEdit?item.title:''}" oninput="checkTopicOverlap()"><div id="naf-topic-hint"></div></div>
+        ${typeSpecificHTML}
+        <div class="col-12">
+          <button type="button" class="optional-toggle" onclick="toggleOptionalAuthorFields(this)"><i class="bi bi-chevron-right"></i> Author details (optional)</button>
+          <div class="optional-fields row g-2 mt-1">
+            <div class="col-md-6"><label>Author name</label><input id="naf-author" class="form-control" placeholder="e.g. Nick Chapsas (leave blank for 'You')" value="${authorNameVal}" ${isEdit?'readonly':''}></div>
+            <div class="col-md-6"><label>Role / headline</label><input id="naf-role" class="form-control" placeholder="e.g. .NET Content Creator" value="${authorRoleVal}" ${isEdit?'readonly':''}></div>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex gap-2 mt-2 flex-wrap">
+        <button class="btn btn-primary btn-sm" onclick="submitContentForm('${category}')"><i class="bi bi-check2 me-1"></i>${isEdit?'Save changes':'Add'}</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()">Cancel</button>
+        ${!isEdit ? `<button class="btn btn-link btn-sm text-muted" onclick="openContentTypeChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
+      </div>
+      <div class="small text-muted mt-2"><i class="bi bi-hdd me-1"></i>Everything — text, images and PDFs — is saved to your Firebase account, so it follows you to any device.</div>
+    </div>`);
+  if(category==='Content'){ document.getElementById('naf-type').value = isEdit?item.type:'Paragraph'; renderTypeFields(); }
+  if(isEdit && authorNameVal){ const opt = document.querySelector('#appModalBody .optional-fields'); const btn = document.querySelector('#appModalBody .optional-toggle'); if(opt){ opt.classList.add('open'); btn.querySelector('i').className='bi bi-chevron-down'; } }
+}
+function toggleOptionalAuthorFields(btn){
+  const wrap = btn.nextElementSibling;
+  const open = wrap.classList.toggle('open');
+  btn.querySelector('i').className = open ? 'bi bi-chevron-down' : 'bi bi-chevron-right';
+}
+function closeContentForm(){ closeModal(); editingItem=null; pendingMedia=null; }
+
+// ===================== RICH TEXT EDITOR (shared by Docs Hub + Interview Q&A) =====================
+// A small contenteditable-based editor: bold/italic/underline, bullet/numbered lists,
+// highlight colour, and inline images — no external library needed.
+function rteToolbarHTML(id){
+  return `<div class="rte-toolbar">
+    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','bold')" title="Bold"><i class="bi bi-type-bold"></i></button>
+    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','italic')" title="Italic"><i class="bi bi-type-italic"></i></button>
+    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','underline')" title="Underline"><i class="bi bi-type-underline"></i></button>
+    <span class="rte-sep"></span>
+    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','insertUnorderedList')" title="Bullet points"><i class="bi bi-list-ul"></i></button>
+    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','insertOrderedList')" title="Numbered list"><i class="bi bi-list-ol"></i></button>
+    <span class="rte-sep"></span>
+    <label class="rte-color-btn" title="Highlight colour" onmousedown="event.preventDefault()"><i class="bi bi-brush"></i><input type="color" value="#fff59d" onchange="rteHighlight('${id}', this.value)" onclick="document.getElementById('${id}').focus()"></label>
+    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="document.getElementById('${id}-img').click()" title="Insert image"><i class="bi bi-image"></i></button>
+    <input type="file" id="${id}-img" accept="image/*" style="display:none" onchange="rteInsertImage('${id}', event)">
+    <span class="rte-sep"></span>
+    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','removeFormat')" title="Clear formatting"><i class="bi bi-eraser"></i></button>
+  </div>`;
+}
+function rteEditorHTML(id, placeholder, existingHTML){
+  return `${rteToolbarHTML(id)}<div id="${id}" class="rte-editor" contenteditable="true" data-placeholder="${placeholder}">${existingHTML||''}</div>`;
+}
+function rteExec(id, cmd){
+  const el = document.getElementById(id); if(!el) return;
+  el.focus();
+  document.execCommand(cmd, false, null);
+}
+function rteHighlight(id, color){
+  const el = document.getElementById(id); if(!el) return;
+  el.focus();
+  document.execCommand('styleWithCSS', false, true);
+  if(!document.execCommand('hiliteColor', false, color)) document.execCommand('backColor', false, color);
+}
+function rteInsertImage(id, e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const el = document.getElementById(id); if(!el) return;
+    el.focus();
+    document.execCommand('insertImage', false, reader.result);
+  };
+  reader.readAsDataURL(file);
+}
+// Reads an editor's content back out — empty editors (just a stray <br>) come back as ''.
+function rteGetHTML(id){
+  const el = document.getElementById(id);
+  if(!el) return '';
+  const html = el.innerHTML.trim();
+  return (html==='<br>' || html==='') ? '' : html;
+}
+
+// Lightweight, non-blocking duplicate/overlap check: warns if a new title looks like it
+// already exists in the day-by-day Roadmap or elsewhere in Community Content, so you can
+// decide to skip it, merge it, or add it anyway.
+function checkTopicOverlap(){
+  const titleEl = document.getElementById('naf-title');
+  const hintEl = document.getElementById('naf-topic-hint');
+  if(!titleEl || !hintEl) return;
+  const words = titleEl.value.toLowerCase().split(/\W+/).filter(w=>w.length>3);
+  if(words.length===0){ hintEl.innerHTML=''; return; }
+  let match = null;
+  outer:
+  for(const phase of PHASES){
+    for(const w of phase.weeks){
+      for(const d of w.days){
+        if(words.some(word=>d.topic.toLowerCase().includes(word))){ match={type:'your Roadmap',label:`Day ${d.n} — ${d.topic}`}; break outer; }
+      }
+    }
+  }
+  if(!match){
+    for(const author of getAllAuthors()){
+      for(const it of author.items){
+        if(editingItem && it.id===editingItem.itemId) continue;
+        if(words.some(word=>it.title.toLowerCase().includes(word))){ match={type:'Docs Hub',label:it.title}; break; }
+      }
+      if(match) break;
+    }
+  }
+  hintEl.innerHTML = match ? `<div class="small mt-1" style="color:#d97706"><i class="bi bi-exclamation-triangle me-1"></i>Looks similar to "<strong>${match.label}</strong>" already in ${match.type} — add it anyway, or consider linking to that instead of duplicating.</div>` : '';
+}
+function renderTypeFields(){
+  const type = document.getElementById('naf-type').value;
+  document.querySelectorAll('.type-field').forEach(f=> f.classList.toggle('active', f.dataset.type===type));
+}
+function handleMediaFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    pendingMedia = {dataUrl: reader.result, name: file.name, mime: file.type};
+    const nameEl = document.getElementById('naf-media-name') || document.getElementById('naf-media-name-pdf');
+    if(nameEl) nameEl.textContent = '✓ ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)';
+  };
+  reader.readAsDataURL(file);
+}
+
+// Detects YouTube/Vimeo/direct video-file links and returns an embeddable player URL, or null.
+function getVideoEmbedInfo(url){
+  if(!url) return null;
+  try{
+    const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([\w-]{6,})/);
+    if(yt) return {kind:'iframe', src:`https://www.youtube.com/embed/${yt[1]}`};
+    const vm = url.match(/vimeo\.com\/(\d+)/);
+    if(vm) return {kind:'iframe', src:`https://player.vimeo.com/video/${vm[1]}`};
+    if(/\.(mp4|webm|ogg)(\?.*)?$/i.test(url)) return {kind:'video', src:url};
+  }catch(e){}
+  return null;
+}
+
+async function submitContentForm(category){
+  const title = document.getElementById('naf-title').value.trim();
+  if(!title){ alert('Please fill in a heading / title — that\'s the only required field.'); return; }
+
+  const authorInput = document.getElementById('naf-author');
+  const roleInput = document.getElementById('naf-role');
+  const displayName = localStorage.getItem('dotnet_display_name');
+  let name = authorInput ? authorInput.value.trim() : '';
+  let role = roleInput ? roleInput.value.trim() : '';
+  if(!name) name = editingItem ? null : (displayName || 'You');
+  if(!role) role = 'Community contributor';
+
+  let type;
+  if(category==='PDF') type='PDF';
+  else if(category==='Image') type='Image';
+  else if(category==='Link'){
+    const url = document.getElementById('naf-url').value.trim();
+    type = getVideoEmbedInfo(url) ? 'Video' : 'Link';
+  } else {
+    type = document.getElementById('naf-type').value;
+  }
+
+  const authors = getAllAuthors();
+  const authorId = editingItem ? editingItem.authorId : name.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+  let author = authors.find(a=>a.id===authorId);
+
+  let itemData = {type, title, badgeColor: TYPE_COLOR[type]};
+  if(!editingItem) itemData.section = pendingDocsSection || 'community';
+  itemData.summary = rteGetHTML('naf-summary');
+  if(type==='Paragraph') itemData.summary = rteGetHTML('naf-para');
+  if(type==='PDF') itemData.summary = rteGetHTML('naf-para');
+  if(type==='Bullets') itemData.points = document.getElementById('naf-bullets').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(type==='Diagram') itemData.steps = document.getElementById('naf-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(type==='Post' || type==='Link' || type==='Video') itemData.url = document.getElementById('naf-url').value.trim();
+
+  if((type==='Image' || type==='PDF') && pendingMedia){
+    const mediaKey = 'media-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+    await idbPut(mediaKey, pendingMedia.dataUrl);
+    itemData.mediaKey = mediaKey;
+    itemData.mediaName = pendingMedia.name;
+  }
+  if(!editingItem && type==='PDF' && !pendingMedia){ alert('Please choose a PDF file to upload.'); return; }
+  if(!editingItem && type==='Image' && !pendingMedia){ alert('Please choose an image file to upload.'); return; }
+  if((type==='Link'||type==='Video'||type==='Post') && !itemData.url){ alert('Please enter a link URL.'); return; }
+
+  if(editingItem){
+    const idx = author.items.findIndex(i=>i.id===editingItem.itemId);
+    const old = author.items[idx];
+    if((type==='Image'||type==='PDF') && !pendingMedia && old.mediaKey){ itemData.mediaKey = old.mediaKey; itemData.mediaName = old.mediaName; }
+    if(old.mediaKey && itemData.mediaKey && old.mediaKey!==itemData.mediaKey) idbDelete(old.mediaKey);
+    const merged = {...old, ...itemData, id: old.id};
+    author.items[idx] = merged;
+    if(customAuthors.some(a=>a.id===authorId)){
+      persistCustomAuthors();
+    } else {
+      itemOverrides[old.id] = itemData; // store only the changed fields as an override for built-in items
+      localStorage.setItem('dotnet_item_overrides', JSON.stringify(itemOverrides));
+    }
+  } else {
+    const newItem = {id: authorId+'-'+Date.now(), ...itemData};
+    if(author){
+      author.items.unshift(newItem);
+      if(customAuthors.some(a=>a.id===authorId)) persistCustomAuthors();
+    } else {
+      author = {id:authorId, name, role, avatar:name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2), linkedin: itemData.url || '#', items:[newItem]};
+      customAuthors.push(author);
+      persistCustomAuthors();
+    }
+  }
+  closeContentForm();
+  if(!editingItem && activeDocsSection !== (itemData.section||'community')){
+    setDocsSubtab(itemData.section||'community');
+  } else {
+    renderAuthorPosts();
+  }
+}
+
+function editItem(authorId, itemId){ openContentForm(authorId, itemId); }
+
+function editAuthorMeta(authorId){
+  const author = getAllAuthors().find(a=>a.id===authorId);
+  if(!author) return;
+  openModal(`
+    <div class="author-form mb-0">
+      <h6 class="fw-bold mb-3"><i class="bi bi-pencil-square me-1"></i>Edit author</h6>
+      <div class="row g-2">
+        <div class="col-md-6"><label>Name</label><input id="naf-ea-name" class="form-control" value="${author.name}"></div>
+        <div class="col-md-6"><label>Role / headline</label><input id="naf-ea-role" class="form-control" value="${author.role}"></div>
+        <div class="col-12"><label>LinkedIn / profile URL</label><input id="naf-ea-url" class="form-control" value="${author.linkedin||''}" placeholder="https://www.linkedin.com/in/..."></div>
+      </div>
+      <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-primary btn-sm" onclick="saveAuthorMeta('${authorId}')"><i class="bi bi-check2 me-1"></i>Save changes</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>`);
+}
+function saveAuthorMeta(authorId){
+  const name = document.getElementById('naf-ea-name').value.trim();
+  const role = document.getElementById('naf-ea-role').value.trim();
+  const linkedin = document.getElementById('naf-ea-url').value.trim();
+  const avatar = (name || getAllAuthors().find(a=>a.id===authorId).name).split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const custom = customAuthors.find(a=>a.id===authorId);
+  if(custom){
+    custom.name = name || custom.name;
+    custom.role = role || custom.role;
+    custom.linkedin = linkedin || custom.linkedin;
+    custom.avatar = avatar;
+    persistCustomAuthors();
+  } else {
+    // Built-in author (e.g. Sandip Mhaske) — persist as an override so it survives reloads.
+    authorOverrides[authorId] = {
+      ...(authorOverrides[authorId]||{}),
+      ...(name ? {name} : {}),
+      ...(role ? {role} : {}),
+      ...(linkedin ? {linkedin} : {}),
+      avatar
+    };
+    localStorage.setItem('dotnet_author_overrides', JSON.stringify(authorOverrides));
+  }
+  closeContentForm();
+  renderAuthorPosts();
+}
+
+// ===================== PROJECTS DATA =====================
+const PROJECTS = [
+  {
+    name:'Bank Account System',phase:'Phase 1 — Week 2',level:'Beginner',levelColor:'#059669',levelBg:'#dcfce7',
+    desc:'Console-based banking system demonstrating OOP fundamentals — the foundation of everything.',
+    goal:'Master classes, inheritance, polymorphism, interfaces in C#',
+    features:['Create Savings & Current accounts','Deposit, Withdraw, Transfer money','Account statement / history','Interest calculation for Savings','Exception handling for invalid operations'],
+    tech:['C#','OOP','Console App','File I/O (JSON)'],
+    time:'1 day'
+  },
+  {
+    name:'Student Management Console App',phase:'Phase 1 — Week 3',level:'Beginner',levelColor:'#059669',levelBg:'#dcfce7',
+    desc:'Student CRUD system using advanced C# — collections, LINQ, async, file storage.',
+    goal:'Master Collections, LINQ, Async/Await, Exception Handling',
+    features:['Add/Edit/Delete/Search students','Sort & filter using LINQ','Export to CSV/JSON file','Async file operations','Grade calculator with statistics'],
+    tech:['C#','LINQ','Collections','Async/Await','System.Text.Json'],
+    time:'1 day'
+  },
+  {
+    name:'Product Management REST API',phase:'Phase 2 — Week 4-7',level:'Intermediate',levelColor:'#d97706',levelBg:'#fef3c7',
+    desc:'Full production-ready REST API — the backbone you\'ll keep adding to throughout the course.',
+    goal:'Master ASP.NET Core, EF Core, JWT, Repository Pattern',
+    features:['Full CRUD for Products, Categories','JWT Authentication + Role-based auth','Refresh token support','Swagger documentation','Global error handling','Serilog logging','Redis caching','SQL Server with EF Core migrations'],
+    tech:['ASP.NET Core 8','EF Core','SQL Server','JWT','Redis','Serilog','AutoMapper','FluentValidation'],
+    time:'1 week',featured:true
+  },
+  {
+    name:'Full Stack Angular + .NET App',phase:'Phase 4 — Week 12',level:'Intermediate',levelColor:'#d97706',levelBg:'#fef3c7',
+    desc:'Connect your Angular frontend to your .NET API — first real full-stack working app!',
+    goal:'Master Angular, HTTP Client, RxJS, JWT in browser, Route Guards',
+    features:['Login / Register pages','JWT stored securely (memory + refresh)','Product listing with search & filter','Add to cart functionality','Protected routes (auth guards)','HTTP interceptor for tokens','Angular Material UI'],
+    tech:['Angular 17','TypeScript','RxJS','NgRx','Angular Material','ASP.NET Core 8'],
+    time:'1 week'
+  },
+  {
+    name:'Clean Architecture API',phase:'Phase 5 — Week 14-15',level:'Advanced',levelColor:'#dc2626',levelBg:'#fee2e2',
+    desc:'Refactor the Product API into Clean Architecture with CQRS + MediatR — senior-level code.',
+    goal:'Master Clean Architecture, CQRS, MediatR, Domain Events, Design Patterns',
+    features:['4-layer architecture (Domain/App/Infra/API)','CQRS — separate Commands & Queries','MediatR pipeline behaviors','FluentValidation for all commands','Domain events with MediatR','Repository + Unit of Work','Outbox pattern for events'],
+    tech:['Clean Architecture','CQRS','MediatR','FluentValidation','Domain Events','EF Core'],
+    time:'1 week'
+  },
+  {
+    name:'E-Commerce Microservices Platform',phase:'Phase 5-6 — Capstone',level:'Expert',levelColor:'#7c3aed',levelBg:'#f3e8ff',
+    desc:'The ultimate capstone — a production-grade microservices system that covers everything.',
+    goal:'Demonstrate Senior Full Stack .NET Developer skills end-to-end',
+    features:['User/Auth Service (Identity, JWT, OAuth Google)','Product/Catalog Service (CQRS, Redis, Search)','Order Service (Saga, state machine)','Payment Service (webhook, idempotency)','Notification Service (Email/SMS/SignalR)','API Gateway (Ocelot, rate limiting)','Angular 17 frontend (full UX)','Docker Compose (local dev)','Kubernetes manifests (production)','GitHub Actions CI/CD to Azure AKS','OpenTelemetry distributed tracing','Prometheus + Grafana monitoring'],
+    tech:['ASP.NET Core 8','Angular 17','RabbitMQ','MassTransit','Ocelot','Redis','SQL Server','MongoDB','Docker','Kubernetes','Azure','SignalR','OpenTelemetry'],
+    time:'1 week',featured:true
+  },
+];
+
+// ===================== PROJECT STRUCTURE DATA =====================
+const STRUCTURES = [
+  {
+    name:'Product API — Clean Architecture',
+    color:'#dc2626',
+    tree:`<span class="dir">ProductAPI.sln</span>
+<span class="dir">├── src/</span>
+<span class="dir">│   ├── ProductAPI.Domain/</span>
+<span class="file">│   │   ├── Entities/</span>
+<span class="file">│   │   │   ├── Product.cs</span>
+<span class="file">│   │   │   └── Category.cs</span>
+<span class="file">│   │   ├── Events/</span>
+<span class="file">│   │   │   └── ProductCreatedEvent.cs</span>
+<span class="file">│   │   └── Interfaces/</span>
+<span class="file">│   │       └── IProductRepository.cs</span>
+<span class="dir">│   ├── ProductAPI.Application/</span>
+<span class="file">│   │   ├── Products/</span>
+<span class="file">│   │   │   ├── Commands/</span>
+<span class="file">│   │   │   │   ├── CreateProductCommand.cs</span>
+<span class="file">│   │   │   │   └── CreateProductCommandHandler.cs</span>
+<span class="file">│   │   │   └── Queries/</span>
+<span class="file">│   │   │       ├── GetProductsQuery.cs</span>
+<span class="file">│   │   │       └── GetProductsQueryHandler.cs</span>
+<span class="file">│   │   ├── Validators/</span>
+<span class="file">│   │   │   └── CreateProductValidator.cs</span>
+<span class="file">│   │   └── Behaviours/</span>
+<span class="file">│   │       ├── ValidationBehaviour.cs</span>
+<span class="file">│   │       └── LoggingBehaviour.cs</span>
+<span class="dir">│   ├── ProductAPI.Infrastructure/</span>
+<span class="file">│   │   ├── Persistence/</span>
+<span class="file">│   │   │   ├── ApplicationDbContext.cs</span>
+<span class="file">│   │   │   └── Migrations/</span>
+<span class="file">│   │   ├── Repositories/</span>
+<span class="file">│   │   │   └── ProductRepository.cs</span>
+<span class="file">│   │   └── Caching/</span>
+<span class="file">│   │       └── RedisCacheService.cs</span>
+<span class="dir">│   └── ProductAPI.API/</span>
+<span class="file">│       ├── Controllers/</span>
+<span class="file">│       │   └── ProductsController.cs</span>
+<span class="file">│       ├── Middleware/</span>
+<span class="file">│       │   └── ExceptionMiddleware.cs</span>
+<span class="file">│       └── Program.cs</span>
+<span class="dir">└── tests/</span>
+<span class="file">    ├── ProductAPI.UnitTests/</span>
+<span class="file">    └── ProductAPI.IntegrationTests/</span>`
+  },
+  {
+    name:'E-Commerce Microservices',
+    color:'#7c3aed',
+    tree:`<span class="dir">ecommerce-microservices/</span>
+<span class="dir">├── src/</span>
+<span class="dir">│   ├── Services/</span>
+<span class="dir">│   │   ├── UserService/</span>
+<span class="file">│   │   │   ├── UserService.API/</span>
+<span class="file">│   │   │   ├── UserService.Application/</span>
+<span class="file">│   │   │   ├── UserService.Domain/</span>
+<span class="file">│   │   │   └── UserService.Infrastructure/</span>
+<span class="dir">│   │   ├── ProductService/</span>
+<span class="file">│   │   │   ├── ProductService.API/ <span class="comment">(CQRS + Redis)</span></span>
+<span class="file">│   │   │   ├── ProductService.Application/</span>
+<span class="file">│   │   │   ├── ProductService.Domain/</span>
+<span class="file">│   │   │   └── ProductService.Infrastructure/</span>
+<span class="dir">│   │   ├── OrderService/</span>
+<span class="file">│   │   │   └── <span class="comment">(Saga + MassTransit)</span></span>
+<span class="dir">│   │   ├── NotificationService/</span>
+<span class="file">│   │   │   └── <span class="comment">(SignalR + RabbitMQ consumer)</span></span>
+<span class="dir">│   │   └── PaymentService/</span>
+<span class="file">│   │       └── <span class="comment">(Webhook + Idempotency)</span></span>
+<span class="dir">│   ├── ApiGateway/</span>
+<span class="file">│   │   ├── ocelot.json <span class="comment">(routing config)</span></span>
+<span class="file">│   │   └── Program.cs</span>
+<span class="dir">│   └── Web/</span>
+<span class="file">│       └── ecommerce-angular/ <span class="comment">(Angular 17 app)</span></span>
+<span class="dir">├── k8s/</span>
+<span class="file">│   ├── deployments/ <span class="comment">(per-service k8s manifests)</span></span>
+<span class="file">│   ├── services/</span>
+<span class="file">│   └── ingress.yaml</span>
+<span class="dir">├── docker/</span>
+<span class="file">│   └── docker-compose.yml</span>
+<span class="dir">└── .github/</span>
+<span class="file">    └── workflows/</span>
+<span class="file">        └── ci-cd.yml <span class="comment">(GitHub Actions)</span></span>`
+  },
+  {
+    name:'Angular App Structure',
+    color:'#d97706',
+    tree:`<span class="dir">ecommerce-angular/</span>
+<span class="dir">├── src/</span>
+<span class="dir">│   ├── app/</span>
+<span class="dir">│   │   ├── core/ <span class="comment">(singleton services, guards)</span></span>
+<span class="file">│   │   │   ├── auth/</span>
+<span class="file">│   │   │   │   ├── auth.service.ts</span>
+<span class="file">│   │   │   │   ├── auth.guard.ts</span>
+<span class="file">│   │   │   │   └── auth.interceptor.ts</span>
+<span class="file">│   │   │   └── services/</span>
+<span class="dir">│   │   ├── shared/ <span class="comment">(reusable components)</span></span>
+<span class="file">│   │   │   ├── components/</span>
+<span class="file">│   │   │   ├── directives/</span>
+<span class="file">│   │   │   └── pipes/</span>
+<span class="dir">│   │   ├── features/ <span class="comment">(lazy-loaded modules)</span></span>
+<span class="file">│   │   │   ├── auth/</span>
+<span class="file">│   │   │   │   ├── login/login.component.ts</span>
+<span class="file">│   │   │   │   └── register/register.component.ts</span>
+<span class="file">│   │   │   ├── products/</span>
+<span class="file">│   │   │   │   ├── product-list/</span>
+<span class="file">│   │   │   │   └── product-detail/</span>
+<span class="file">│   │   │   ├── cart/</span>
+<span class="file">│   │   │   └── orders/</span>
+<span class="dir">│   │   └── store/ <span class="comment">(NgRx state)</span></span>
+<span class="file">│   │       ├── auth/</span>
+<span class="file">│   │       │   ├── auth.actions.ts</span>
+<span class="file">│   │       │   ├── auth.reducer.ts</span>
+<span class="file">│   │       │   └── auth.effects.ts</span>
+<span class="file">│   │       └── products/</span>
+<span class="file">│   ├── assets/</span>
+<span class="file">│   └── environments/</span>
+<span class="file">│       ├── environment.ts</span>
+<span class="file">│       └── environment.prod.ts</span>
+<span class="file">├── angular.json</span>
+<span class="file">└── package.json</span>`
+  },
+];
+
+// ===================== ADVANCED TOPICS =====================
+const ADV_TOPICS = [
+  {title:'Span<T> & Memory Optimization',color:'#dc2626',border:'#dc2626',
+   desc:'Span<T> and Memory<T> allow zero-copy memory operations. ArrayPool<T> reduces GC pressure. Essential for high-throughput APIs.',
+   points:['Span<T> — stack-allocated, slice arrays without copying','Memory<T> — heap-friendly version for async scenarios','ArrayPool<T> — rent/return buffers to avoid allocations','IMemoryOwner<T> for lifetime management','RecyclableMemoryStream for large streams']},
+  {title:'Channel<T> & Advanced Async Patterns',color:'#0891b2',border:'#0891b2',
+   desc:'Channel<T> is a producer-consumer pipeline built into .NET. Used for high-performance background processing.',
+   points:['Channel<T> — bounded/unbounded, backpressure support','IAsyncEnumerable<T> — async streaming of data','ValueTask — avoid heap allocation for hot paths','Parallel.ForEachAsync — parallel async iteration','AsyncLocal<T> — async context propagation']},
+  {title:'Source Generators & Reflection',color:'#7c3aed',border:'#7c3aed',
+   desc:'Source generators run at compile-time to generate code. They replace reflection for performance-critical scenarios.',
+   points:['ISourceGenerator / IIncrementalGenerator API','System.Text.Json source generation (AOT-ready)','Roslyn APIs for code analysis','Expression Trees — build LINQ at runtime','Compile-time validation vs runtime reflection']},
+  {title:'gRPC & Protocol Buffers',color:'#059669',border:'#059669',
+   desc:'gRPC is 7-10x faster than REST for internal service communication. Protocol Buffers provide strongly-typed contracts.',
+   points:['.proto file — service and message definitions','Unary, server streaming, client streaming, bidirectional','gRPC interceptors (middleware equivalent)','Deadlines and cancellation','gRPC transcoding — expose as REST + gRPC']},
+  {title:'Kafka / Event Streaming',color:'#d97706',border:'#d97706',
+   desc:'Apache Kafka for high-throughput, durable event streaming. Different from RabbitMQ (message broker) — Kafka retains events.',
+   points:['Topics, partitions, consumer groups','Confluent.Kafka .NET client','Producer + consumer implementation','Offset management and replay','When Kafka vs RabbitMQ — use case comparison']},
+  {title:'Elasticsearch + Full-Text Search',color:'#4f46e5',border:'#4f46e5',
+   desc:'Elasticsearch for full-text search, faceted search, and analytics. Common in product catalogs, logs, audit trails.',
+   points:['NEST / Elasticsearch.Net .NET client','Index mapping and analyzers','Full-text search queries (match, multi-match)','Aggregations for faceted search','Sync EF Core data to Elasticsearch']},
+  {title:'Multi-Tenancy Patterns',color:'#7c3aed',border:'#7c3aed',
+   desc:'Multi-tenancy is essential for SaaS products. Three isolation strategies each with different trade-offs.',
+   points:['Database per tenant — strongest isolation, highest cost','Schema per tenant — good balance','Row-level (discriminator column) — cost-effective, risk of data leak','Tenant resolution — subdomain, header, JWT claim','EF Core global query filters for row-level']},
+  {title:'Vertical Slice Architecture',color:'#dc2626',border:'#dc2626',
+   desc:'Alternative to Clean Architecture — organize code by feature (vertical slice) instead of layer. Reduces coupling between features.',
+   points:['Feature folder — all code for one feature together','No shared application layer between features','Jimmy Bogard\'s approach (MediatR author)','Trade-offs vs Clean Architecture','When to choose vertical slice over layered']},
+];
+
+// ===================== INTERVIEW Q&A =====================
+const QA_DATA = [
+  {cat:'C# Core',color:'#4f46e5',qs:[
+    {q:'What is the difference between value type and reference type?',a:'Value types (int, struct, bool) are stored on the stack and copied on assignment. Reference types (class, string, arrays) store a reference on the stack pointing to heap data. Assignment copies the reference, not the object.'},
+    {q:'Explain async/await internals — what happens under the hood?',a:'async/await uses a state machine generated by the compiler. When you await a Task, the method suspends and returns control to the caller. The continuation (rest of method) is registered as a callback. The ThreadPool resumes it when the awaited Task completes — it\'s not blocking a thread while waiting.'},
+    {q:'What is the difference between IEnumerable and IQueryable?',a:'IEnumerable executes queries in memory (LINQ to Objects). IQueryable builds an expression tree and executes at the database (LINQ to SQL). Use IQueryable for DB queries to avoid loading all records into memory.'},
+    {q:'What are Span<T> and Memory<T> used for?',a:'Span<T> is a stack-allocated, ref struct that provides a window into contiguous memory (array, string, native memory) without copying. Memory<T> is the heap-compatible version usable with async. Both avoid allocations in hot paths.'},
+    {q:'Explain the Garbage Collector generations.',a:'GC has 3 generations. Gen 0: short-lived objects, collected most frequently. Gen 1: buffer between Gen0 and Gen2. Gen 2: long-lived objects (static, cached), collected rarely. Large objects (>85KB) go to LOH (Large Object Heap), compacted separately.'},
+  ]},
+  {cat:'ASP.NET Core',color:'#0891b2',qs:[
+    {q:'What is the difference between AddSingleton, AddScoped, and AddTransient?',a:'Singleton: one instance for the entire app lifetime. Scoped: one instance per HTTP request (disposed at end of request). Transient: new instance every time it\'s requested. Never inject Scoped into Singleton — causes captive dependency bug.'},
+    {q:'How does the middleware pipeline work?',a:'Middleware forms a chain — each piece wraps the next. Request flows inward (top to bottom), response flows outward (bottom to top). Use() adds middleware that calls next(). Run() is terminal (doesn\'t call next). Map() branches the pipeline.'},
+    {q:'What is the difference between Authentication and Authorization?',a:'Authentication = WHO are you? (verifying identity via JWT, cookie, etc.). Authorization = WHAT can you do? (checking permissions after identity is confirmed). In ASP.NET Core, [Authorize] handles both but they are separate middleware.'},
+    {q:'Explain CQRS and when you would use it.',a:'CQRS (Command Query Responsibility Segregation) separates read models from write models. Commands mutate state, Queries just read. Use it when reads and writes have very different performance needs, or when domain events are important. Overkill for simple CRUD apps.'},
+    {q:'What is Clean Architecture and why use it?',a:'Clean Architecture organizes code into concentric layers — Domain (innermost, no dependencies), Application (use cases), Infrastructure (EF, APIs, external), Presentation (controllers). Dependencies only point inward. Benefits: testability, framework independence, clear separation of concerns.'},
+  ]},
+  {cat:'Database & EF Core',color:'#059669',qs:[
+    {q:'What is the N+1 problem and how do you fix it?',a:'N+1 happens when you load 1 parent record then make N separate queries for each child. In EF Core, fix with .Include() for eager loading, or use .Select() projection. In SQL, fix with JOIN instead of separate queries.'},
+    {q:'What is the difference between clustered and non-clustered index?',a:'Clustered index determines the physical order of data on disk — only one per table (usually primary key). Non-clustered index is a separate structure with pointers to the actual rows. Non-clustered is faster for lookups but adds write overhead.'},
+    {q:'Explain optimistic vs pessimistic concurrency.',a:'Pessimistic: lock the row when reading so others can\'t modify it (SELECT FOR UPDATE). Optimistic: don\'t lock — check if data changed before saving (using a RowVersion/timestamp column). EF Core supports optimistic concurrency with [Timestamp] or [ConcurrencyCheck] attributes.'},
+    {q:'What are ACID properties?',a:'Atomicity: transaction fully completes or fully rolls back. Consistency: DB always stays in valid state. Isolation: concurrent transactions don\'t interfere. Durability: committed data survives crashes. SQL Server supports all ACID properties at different isolation levels.'},
+    {q:'When would you use Dapper over Entity Framework Core?',a:'Dapper for: complex reporting queries, bulk operations, stored procedures with complex result mapping, when you need maximum query performance. EF Core for: standard CRUD, domain modeling, migrations, when productivity matters more than raw performance.'},
+  ]},
+  {cat:'Microservices & Architecture',color:'#dc2626',qs:[
+    {q:'How do microservices communicate?',a:'Synchronously: REST (HTTP) for simple request-response, gRPC for high-performance internal calls. Asynchronously: message brokers (RabbitMQ, Kafka, Azure Service Bus) for events/commands. Rule: prefer async to avoid tight coupling and improve resilience.'},
+    {q:'What is the Saga pattern?',a:'Saga manages distributed transactions across multiple services without 2-phase commit. Choreography: services emit events and react to each other (decoupled but hard to track). Orchestration: a central saga orchestrator tells each service what to do (easier to track, single point of coordination).'},
+    {q:'What is the CAP theorem?',a:'In a distributed system you can only guarantee 2 of 3: Consistency (every read gets latest write), Availability (every request gets a response), Partition tolerance (system works despite network failures). Since network partitions always happen, you choose CP (banks) or AP (e-commerce).'},
+    {q:'What is the Outbox Pattern?',a:'Ensures atomicity between saving to DB and publishing an event. Instead of publishing directly to RabbitMQ (which can fail), write the event to an Outbox table in the same DB transaction. A background worker reads the Outbox and publishes to the message broker, guaranteeing at-least-once delivery.'},
+    {q:'What is the difference between event-driven and message-driven architecture?',a:'Message-driven: services send messages to specific recipients (point-to-point). Event-driven: services publish events to a bus and any interested service subscribes (pub/sub). Event-driven is more decoupled — the publisher doesn\'t know who consumes.'},
+  ]},
+  {cat:'System Design',color:'#7c3aed',qs:[
+    {q:'How would you design a URL shortener like bit.ly?',a:'API: POST /shorten returns short code. Storage: original URL + short code in DB (SQL for ACID). Code generation: base62 encoding of auto-increment ID or MD5 hash. Redirect: GET /{code} → 302 redirect. Cache: Redis for hot URLs. Scale: read-heavy so cache aggressively, horizontal scaling behind load balancer.'},
+    {q:'How would you design a notification system?',a:'Producer services publish notification events to RabbitMQ. Notification service consumes events, checks user preferences, routes to channels (email/SMS/push). Email via SendGrid, SMS via Twilio, push via FCM/APNs. Real-time via SignalR hub. Store notification history in DB for inbox.'},
+    {q:'How do you handle distributed transactions without 2PC?',a:'Use Saga pattern with eventual consistency. Each service has a compensating transaction (undo action). Outbox pattern ensures event publishing is atomic with DB save. Accept temporary inconsistency — design UI to handle "processing" states gracefully.'},
+  ]},
+];
+
+// ===================== SUMMARY DATA =====================
+const SUMMARY = {
+  timeline:[
+    {month:'Month 1',color:'#4f46e5',bg:'#ede9fe',title:'C# + ASP.NET + SQL',skills:['C# OOP & advanced features','ASP.NET Core Web API','EF Core & SQL Server','JWT Authentication','Repository Pattern']},
+    {month:'Month 2',color:'#d97706',bg:'#fef3c7',title:'Angular Full Stack',skills:['TypeScript & HTML/CSS','Angular 17 (standalone)','RxJS & NgRx','HTTP interceptors','Full stack integration']},
+    {month:'Month 3',color:'#dc2626',bg:'#fee2e2',title:'Senior Architecture',skills:['Clean Architecture','CQRS + MediatR','Microservices','Docker + Kubernetes','Azure deployment']},
+    {month:'Month 4',color:'#7c3aed',bg:'#f3e8ff',title:'Expert + Capstone',skills:['System Design','SignalR + gRPC','Capstone project build','Interview preparation','Mock interviews']},
+    {month:'Month 5',color:'#059669',bg:'#dcfce7',title:'Ultra Advanced',skills:['Kafka / Event Streaming','Elasticsearch','Multi-tenancy SaaS','Architect-level patterns','Job hunting & offers 🎉']},
+  ],
+  salaries:[], // removed from UI per request; kept as empty array in case other code references SUMMARY.salaries
+  dailySchedule:[
+    {time:'8:00 – 10:00 AM',task:'Watch tutorial / Read docs (new concept)'},
+    {time:'10:00 AM – 12:30 PM',task:'Code implementation / Hands-on practice'},
+    {time:'1:30 – 3:00 PM',task:'Build mini project / Solve problems'},
+    {time:'3:00 – 4:30 PM',task:'Revision + make notes in notebook'},
+    {time:'4:30 – 5:00 PM',task:'GitHub commit + track progress here'},
+  ]
+};
+
+// ===================== RESUME BUILDER (Profile tab) =====================
+// Seeded from the resume the user uploaded — fully editable part-by-part below.
+const DEFAULT_RESUME = {
+  name: "V M Ajith Babu",
+  title: "Senior Software Engineer",
+  email: "ajithbabuvm@gmail.com",
+  phone: "+91 9626843243",
+  summary: "Dedicated Software Engineer with over 5+ years of experience in .NET technologies. Skilled at developing robust applications using .NET and SQL while focusing on coding standards and security guidelines. Strong object-oriented programming background enables efficient, tailored solutions to user requirements.",
+  skills: [
+    {cat:"Programming Languages", items:"C#, Java, VB.NET, JavaScript"},
+    {cat:"Frameworks & Libraries", items:".NET, Angular"},
+    {cat:"Database Management", items:"MS SQL, Entity Framework, SQL Query Optimization"},
+    {cat:"Development Processes", items:"DevOps, SCRUM/Agile, CI/CD"},
+    {cat:"Tools & Technologies", items:"Git, TFS (Team Foundation Server), SSRS"}
+  ],
+  education: [
+    {degree:"Master of Computer Application", school:"Anna University", year:"2020", detail:"Graduated with 73.56%, demonstrating a solid understanding of computer applications."},
+    {degree:"B.Sc (Computer Science)", school:"Kamaraj University", year:"2018", detail:"Completed with 58.83%, laying the foundation for a career in software development."}
+  ],
+  experience: [
+    {company:"Eurofins IT Delivery Center", role:"Software Engineer", date:"Jan 2022 – Present", bullets:[
+      "Owned development and maintenance of the eLIMS application used for evaluation and testing of food and soil samples.",
+      "Built key functionalities using VB and .NET for precise test result processing, integrating Angular and SSRS to improve user interaction and system performance.",
+      "Crafted and optimized SQL queries, achieving a 25% improvement in database efficiency for large datasets.",
+      "Collaborated with lab technicians to refine testing processes, reducing manual entry errors by 40%.",
+      "Established CI/CD pipelines using TFS, cutting deployment time by 70%.",
+      "Resolved complex software issues, reducing critical bug reports by 30% and improving system reliability."
+    ]},
+    {company:"20Cube Logistics Pvt. Ltd", role:"Software Developer → Senior Software Engineer", date:"Jun 2021 – Jan 2022", bullets:[
+      "Developed an Android application for warehouse distribution, giving logistics stakeholders real-time visibility and tracking.",
+      "Expanded into C# backend development and Angular to enhance key platform features.",
+      "Engineered C# solutions that increased order processing efficiency by 15% through improved warehouse management and real-time data integration.",
+      "Collaborated on seamless Android/C# integration, improving system performance and user experience.",
+      "Advanced the platform with new technologies for end-to-end visibility and traceability in global logistics operations."
+    ]}
+  ],
+  projects: [
+    {title:"Chat Application (Native App)", tech:"Android, Firebase", date:"Jan 2021 – Jun 2021", bullets:[
+      "Independently developed a real-time Chat Application with private chat, timed messaging, and dynamic status updates."
+    ]},
+    {title:"Food Ordering App (Native App)", tech:"", date:"Jun 2021 – Sep 2021", bullets:[
+      "Built a dual-purpose Food Ordering App with separate apps for end-users to place orders and canteen owners to manage them."
+    ]},
+    {title:"Marriage Invitation Platform", tech:"", date:"Apr 2024 – Jul 2024", bullets:[
+      "Designed and distributed digital marriage invitations covering venue, food menu, visitor arrangements, and site visit scheduling.",
+      "Implemented CRUD-based wedding greeting messages for efficient management of guest messages and details."
+    ]}
+  ],
+  achievements: [
+    {title:"Star Performer Award", org:"Eurofins IT Delivery Center", date:"May 2023", bullets:[
+      "Recognized for improving SQL query performance, delivering 25% quicker processing times in line with organizational goals.",
+      "Honored as the top performer overall."
+    ]}
+  ],
+  certifications: [],
+  languages: [
+    {name:"English", level:"Professional working proficiency"}
+  ],
+  customSections: [] // [{id, title, bullets:[]}] — freeform sections the user names themselves (Volunteering, Publications, Awards, Hobbies, anything)
+};
+let resumeData = null;
+try{ resumeData = JSON.parse(localStorage.getItem('dotnet_resume_data')||'null'); }catch(e){}
+if(!resumeData) resumeData = JSON.parse(JSON.stringify(DEFAULT_RESUME));
+// Migrate resumes saved before certifications/languages/customSections/sectionOrder existed.
+if(!resumeData.certifications) resumeData.certifications = [];
+if(!resumeData.languages) resumeData.languages = [];
+if(!resumeData.customSections) resumeData.customSections = [];
+if(!resumeData.sectionOrder) resumeData.sectionOrder = ['summary','skills','experience','projects','education','achievements','certifications','languages','customSections'];
+
+const RESUME_SECTION_LABELS = {summary:'Summary', skills:'Skills', experience:'Work Experience', projects:'Projects', education:'Education', achievements:'Achievements', certifications:'Certifications', languages:'Languages', customSections:'Custom Sections'};
+function moveResumeSection(key, dir){
+  const arr = resumeData.sectionOrder;
+  const idx = arr.indexOf(key);
+  const newIdx = idx + dir;
+  if(idx<0 || newIdx<0 || newIdx>=arr.length) return;
+  [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+  saveResumeData();
+  renderResumeEditor();
+  updateResumePreview();
+}
+function resumeSectionSummary(key, count, extraLabel){
+  const idx = resumeData.sectionOrder.indexOf(key);
+  const last = resumeData.sectionOrder.length - 1;
+  return `<summary>
+    <span class="resume-section-reorder">
+      <i class="bi bi-caret-up-fill ${idx<=0?'disabled':''}" onclick="event.preventDefault();moveResumeSection('${key}',-1)" title="Move section up"></i>
+      <i class="bi bi-caret-down-fill ${idx>=last?'disabled':''}" onclick="event.preventDefault();moveResumeSection('${key}',1)" title="Move section down"></i>
+    </span>
+    ${RESUME_SECTION_LABELS[key]}${count!==undefined?` (${count})`:''} ${extraLabel?`<span class="text-muted fw-normal" style="font-size:0.68rem">${extraLabel}</span>`:''}
+  </summary>`;
+}
+
+// ---- Named resume versions, so you can keep a tailored copy per job application ----
+let resumeVersions = JSON.parse(localStorage.getItem('dotnet_resume_versions') || '[]'); // [{id,name,data,savedAt}]
+let activeResumeVersionId = localStorage.getItem('dotnet_resume_active_version') || null;
+
+function saveResumeData(){ localStorage.setItem('dotnet_resume_data', JSON.stringify(resumeData)); }
+function saveAndPreview(){ saveResumeData(); updateResumePreview(); }
+
+function renderResumeBuilder(){
+  const wrap = document.getElementById('resume-builder-container');
+  if(wrap && !wrap.dataset.built){
+    wrap.dataset.built = '1';
+    wrap.innerHTML = `
+      <div class="docshub-header" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
+        <div>
+          <h5 class="docshub-title"><i class="bi bi-file-earmark-person-fill me-2"></i>Resume Builder</h5>
+          <p class="docshub-sub mb-0">Edit any section, match it against a job description, then download.</p>
+        </div>
+      </div>
+
+      <div class="phase-card mb-3" style="padding:0.9rem 1rem">
+        <h6 class="fw-bold mb-1" style="font-size:0.85rem"><i class="bi bi-collection me-2 text-primary"></i>Tailored versions <span class="text-muted fw-normal">(optional)</span></h6>
+        <p class="small text-muted mb-2">Keep a separate saved copy per job — e.g. "Backend-focused", "Full-stack" — and switch between them any time.</p>
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+          <select id="resume-version-select" class="form-select form-select-sm" style="max-width:220px" onchange="switchResumeVersion(this.value)"></select>
+          <button class="btn btn-sm btn-outline-primary" onclick="saveResumeVersion()"><i class="bi bi-save me-1"></i>Save as version</button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteResumeVersion()"><i class="bi bi-trash me-1"></i>Delete version</button>
+        </div>
+      </div>
+
+      <div class="phase-card mb-3" style="padding:0.9rem 1rem">
+        <h6 class="fw-bold mb-2" style="font-size:0.85rem"><i class="bi bi-bullseye me-2 text-primary"></i>ATS Match Check <span class="text-muted fw-normal">(optional)</span></h6>
+        <textarea id="resume-jd-input" class="form-control form-control-sm mb-2" rows="3" placeholder="Paste a job description here to see your keyword match score..."></textarea>
+        <button class="btn btn-primary btn-sm mb-2" onclick="checkATSMatch()"><i class="bi bi-search me-1"></i>Check ATS Match</button>
+        <div id="resume-ats-result"><p class="small text-muted mb-0">Paste a job description above, then tap "Check ATS Match".</p></div>
+      </div>
+
+      <div class="d-flex gap-2 mb-3 flex-wrap">
+        <button class="btn btn-sm btn-primary" onclick="downloadResumePDF()"><i class="bi bi-file-earmark-pdf me-1"></i>Download PDF</button>
+        <button class="btn btn-sm btn-outline-primary" onclick="downloadResumeTxt()"><i class="bi bi-filetype-txt me-1"></i>Download ATS-safe .txt</button>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-lg-6">
+          <h6 class="fw-bold mb-2" style="font-size:0.82rem"><i class="bi bi-pencil-square me-2 text-primary"></i>Edit — part by part</h6>
+          <div id="resume-editor"></div>
+        </div>
+        <div class="col-lg-6">
+          <h6 class="fw-bold mb-2" style="font-size:0.82rem"><i class="bi bi-eye me-2 text-primary"></i>Live preview</h6>
+          <div id="resume-preview" class="resume-doc"></div>
+        </div>
+      </div>
+    `;
+  }
+  renderResumeVersionSelect();
+  renderResumeEditor();
+  updateResumePreview();
+}
+
+// ---- Tailored resume versions: save/switch/delete named snapshots of resumeData ----
+function renderResumeVersionSelect(){
+  const sel = document.getElementById('resume-version-select');
+  if(!sel) return;
+  sel.innerHTML = `<option value="">Untitled (current)</option>` + resumeVersions.map(v=>`<option value="${v.id}" ${v.id===activeResumeVersionId?'selected':''}>${esc(v.name)}</option>`).join('');
+  if(!activeResumeVersionId) sel.value = '';
+}
+function saveResumeVersion(){
+  const defaultName = activeResumeVersionId ? (resumeVersions.find(v=>v.id===activeResumeVersionId)?.name || '') : '';
+  const name = prompt('Name this version (e.g. "Backend-focused", "Startup application"):', defaultName);
+  if(!name) return;
+  const existing = resumeVersions.find(v=>v.name.toLowerCase()===name.toLowerCase());
+  if(existing){
+    existing.data = JSON.parse(JSON.stringify(resumeData));
+    existing.savedAt = Date.now();
+    activeResumeVersionId = existing.id;
+  } else {
+    const v = {id:'ver-'+Date.now(), name, data: JSON.parse(JSON.stringify(resumeData)), savedAt: Date.now()};
+    resumeVersions.push(v);
+    activeResumeVersionId = v.id;
+  }
+  localStorage.setItem('dotnet_resume_versions', JSON.stringify(resumeVersions));
+  localStorage.setItem('dotnet_resume_active_version', activeResumeVersionId);
+  renderResumeVersionSelect();
+  alert('Saved as "'+name+'".');
+}
+function switchResumeVersion(id){
+  if(!id){ activeResumeVersionId = null; localStorage.removeItem('dotnet_resume_active_version'); return; }
+  const v = resumeVersions.find(x=>x.id===id);
+  if(!v) return;
+  resumeData = JSON.parse(JSON.stringify(v.data));
+  if(!resumeData.certifications) resumeData.certifications = [];
+  if(!resumeData.languages) resumeData.languages = [];
+  if(!resumeData.customSections) resumeData.customSections = [];
+  if(!resumeData.sectionOrder) resumeData.sectionOrder = ['summary','skills','experience','projects','education','achievements','certifications','languages','customSections'];
+  activeResumeVersionId = id;
+  localStorage.setItem('dotnet_resume_active_version', activeResumeVersionId);
+  saveResumeData();
+  renderResumeEditor();
+  updateResumePreview();
+}
+function deleteResumeVersion(){
+  if(!activeResumeVersionId){ alert('Nothing to delete — you\'re on the untitled current copy.'); return; }
+  const v = resumeVersions.find(x=>x.id===activeResumeVersionId);
+  if(!v || !confirm('Delete the saved version "'+v.name+'"? This only removes the saved snapshot, not your current edits.')) return;
+  resumeVersions = resumeVersions.filter(x=>x.id!==activeResumeVersionId);
+  localStorage.setItem('dotnet_resume_versions', JSON.stringify(resumeVersions));
+  activeResumeVersionId = null;
+  localStorage.removeItem('dotnet_resume_active_version');
+  renderResumeVersionSelect();
+}
+
+function renderResumeEditor(){
+  const c = document.getElementById('resume-editor');
+  if(!c) return;
+  const d = resumeData;
+
+  const sectionHTML = {
+    summary: `<details class="resume-edit-section" open>
+      ${resumeSectionSummary('summary')}
+      <div class="p-2"><textarea class="form-control form-control-sm" rows="3" oninput="resumeData.summary=this.value;saveAndPreview()">${d.summary}</textarea></div>
+    </details>`,
+
+    skills: `<details class="resume-edit-section">
+      ${resumeSectionSummary('skills', d.skills.length)}
+      <div class="p-2">
+        ${d.skills.map((s,i)=>`<div class="resume-entry-row">
+          <div class="flex-1">
+            <input class="form-control form-control-sm mb-1" placeholder="Category, e.g. Frameworks" value="${s.cat}" oninput="resumeData.skills[${i}].cat=this.value;saveAndPreview()">
+            <input class="form-control form-control-sm" placeholder="Comma-separated skills" value="${s.items}" oninput="resumeData.skills[${i}].items=this.value;saveAndPreview()">
+          </div>
+          <div class="resume-entry-btns">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.skills.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.skills[${i}])));saveResumeData();renderResumeBuilder()" title="Duplicate"><i class="bi bi-copy"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.skills.splice(${i},1);saveResumeData();renderResumeBuilder()" title="Remove"><i class="bi bi-trash"></i></button>
+          </div>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.skills.push({cat:'',items:''});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add skill group</button>
+      </div>
+    </details>`,
+
+    experience: `<details class="resume-edit-section">
+      ${resumeSectionSummary('experience', d.experience.length)}
+      <div class="p-2">
+        ${d.experience.map((x,i)=>`<div class="resume-entry-block">
+          <div class="row g-2">
+            <div class="col-md-6"><label>Company</label><input class="form-control form-control-sm" value="${x.company}" oninput="resumeData.experience[${i}].company=this.value;saveAndPreview()"></div>
+            <div class="col-md-6"><label>Role</label><input class="form-control form-control-sm" value="${x.role}" oninput="resumeData.experience[${i}].role=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Dates</label><input class="form-control form-control-sm" placeholder="e.g. Jan 2022 – Present" value="${x.date}" oninput="resumeData.experience[${i}].date=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="4" oninput="resumeData.experience[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${x.bullets.join('\n')}</textarea></div>
+          </div>
+          <div class="resume-entry-btns mt-1">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.experience.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.experience[${i}])));saveResumeData();renderResumeBuilder()"><i class="bi bi-copy me-1"></i>Duplicate</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.experience.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove this job</button>
+          </div>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.experience.push({company:'',role:'',date:'',bullets:[]});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add job</button>
+      </div>
+    </details>`,
+
+    projects: `<details class="resume-edit-section">
+      ${resumeSectionSummary('projects', d.projects.length)}
+      <div class="p-2">
+        ${d.projects.map((p,i)=>`<div class="resume-entry-block">
+          <div class="row g-2">
+            <div class="col-md-6"><label>Project title</label><input class="form-control form-control-sm" value="${p.title}" oninput="resumeData.projects[${i}].title=this.value;saveAndPreview()"></div>
+            <div class="col-md-6"><label>Tech stack</label><input class="form-control form-control-sm" value="${p.tech}" oninput="resumeData.projects[${i}].tech=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Dates</label><input class="form-control form-control-sm" value="${p.date}" oninput="resumeData.projects[${i}].date=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="3" oninput="resumeData.projects[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${p.bullets.join('\n')}</textarea></div>
+          </div>
+          <div class="resume-entry-btns mt-1">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.projects.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.projects[${i}])));saveResumeData();renderResumeBuilder()"><i class="bi bi-copy me-1"></i>Duplicate</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.projects.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove this project</button>
+          </div>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.projects.push({title:'',tech:'',date:'',bullets:[]});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add project</button>
+      </div>
+    </details>`,
+
+    education: `<details class="resume-edit-section">
+      ${resumeSectionSummary('education', d.education.length)}
+      <div class="p-2">
+        ${d.education.map((e,i)=>`<div class="resume-entry-block">
+          <div class="row g-2">
+            <div class="col-md-6"><label>Degree</label><input class="form-control form-control-sm" value="${e.degree}" oninput="resumeData.education[${i}].degree=this.value;saveAndPreview()"></div>
+            <div class="col-md-4"><label>School</label><input class="form-control form-control-sm" value="${e.school}" oninput="resumeData.education[${i}].school=this.value;saveAndPreview()"></div>
+            <div class="col-md-2"><label>Year</label><input class="form-control form-control-sm" value="${e.year}" oninput="resumeData.education[${i}].year=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Detail <span class="text-muted fw-normal">(optional)</span></label><input class="form-control form-control-sm" value="${e.detail||''}" oninput="resumeData.education[${i}].detail=this.value;saveAndPreview()"></div>
+          </div>
+          <div class="resume-entry-btns mt-1">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.education.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.education[${i}])));saveResumeData();renderResumeBuilder()"><i class="bi bi-copy me-1"></i>Duplicate</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.education.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove</button>
+          </div>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.education.push({degree:'',school:'',year:'',detail:''});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add education</button>
+      </div>
+    </details>`,
+
+    achievements: `<details class="resume-edit-section">
+      ${resumeSectionSummary('achievements', d.achievements.length)}
+      <div class="p-2">
+        ${d.achievements.map((a,i)=>`<div class="resume-entry-block">
+          <div class="row g-2">
+            <div class="col-md-6"><label>Title</label><input class="form-control form-control-sm" value="${a.title}" oninput="resumeData.achievements[${i}].title=this.value;saveAndPreview()"></div>
+            <div class="col-md-4"><label>Organization</label><input class="form-control form-control-sm" value="${a.org}" oninput="resumeData.achievements[${i}].org=this.value;saveAndPreview()"></div>
+            <div class="col-md-2"><label>Date</label><input class="form-control form-control-sm" value="${a.date}" oninput="resumeData.achievements[${i}].date=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="2" oninput="resumeData.achievements[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${a.bullets.join('\n')}</textarea></div>
+          </div>
+          <div class="resume-entry-btns mt-1">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.achievements.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.achievements[${i}])));saveResumeData();renderResumeBuilder()"><i class="bi bi-copy me-1"></i>Duplicate</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.achievements.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove</button>
+          </div>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.achievements.push({title:'',org:'',date:'',bullets:[]});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add achievement</button>
+      </div>
+    </details>`,
+
+    certifications: `<details class="resume-edit-section">
+      ${resumeSectionSummary('certifications', d.certifications.length)}
+      <div class="p-2">
+        ${d.certifications.map((cert,i)=>`<div class="resume-entry-block">
+          <div class="row g-2">
+            <div class="col-md-6"><label>Certification name</label><input class="form-control form-control-sm" placeholder="e.g. AWS Certified Developer" value="${cert.name}" oninput="resumeData.certifications[${i}].name=this.value;saveAndPreview()"></div>
+            <div class="col-md-4"><label>Issuer</label><input class="form-control form-control-sm" placeholder="e.g. Amazon Web Services" value="${cert.issuer}" oninput="resumeData.certifications[${i}].issuer=this.value;saveAndPreview()"></div>
+            <div class="col-md-2"><label>Date</label><input class="form-control form-control-sm" placeholder="e.g. 2024" value="${cert.date}" oninput="resumeData.certifications[${i}].date=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Credential URL <span class="text-muted fw-normal">(optional)</span></label><input class="form-control form-control-sm" placeholder="https://..." value="${cert.url||''}" oninput="resumeData.certifications[${i}].url=this.value;saveAndPreview()"></div>
+          </div>
+          <div class="resume-entry-btns mt-1">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.certifications.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.certifications[${i}])));saveResumeData();renderResumeBuilder()"><i class="bi bi-copy me-1"></i>Duplicate</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.certifications.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove</button>
+          </div>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.certifications.push({name:'',issuer:'',date:'',url:''});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add certification</button>
+      </div>
+    </details>`,
+
+    languages: `<details class="resume-edit-section">
+      ${resumeSectionSummary('languages', d.languages.length)}
+      <div class="p-2">
+        ${d.languages.map((lang,i)=>`<div class="resume-entry-row">
+          <div class="flex-1">
+            <input class="form-control form-control-sm mb-1" placeholder="Language, e.g. Spanish" value="${lang.name}" oninput="resumeData.languages[${i}].name=this.value;saveAndPreview()">
+            <input class="form-control form-control-sm" placeholder="Proficiency, e.g. Conversational" value="${lang.level}" oninput="resumeData.languages[${i}].level=this.value;saveAndPreview()">
+          </div>
+          <div class="resume-entry-btns">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.languages.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.languages[${i}])));saveResumeData();renderResumeBuilder()" title="Duplicate"><i class="bi bi-copy"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.languages.splice(${i},1);saveResumeData();renderResumeBuilder()" title="Remove"><i class="bi bi-trash"></i></button>
+          </div>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.languages.push({name:'',level:''});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add language</button>
+      </div>
+    </details>`,
+
+    customSections: `<details class="resume-edit-section">
+      ${resumeSectionSummary('customSections', d.customSections.length, '— Volunteering, Publications, Awards, Hobbies, anything')}
+      <div class="p-2">
+        ${d.customSections.map((sec,i)=>`<div class="resume-entry-block">
+          <div class="row g-2">
+            <div class="col-12"><label>Section title</label><input class="form-control form-control-sm" placeholder="e.g. Volunteer Experience" value="${sec.title}" oninput="resumeData.customSections[${i}].title=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="3" oninput="resumeData.customSections[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${(sec.bullets||[]).join('\n')}</textarea></div>
+          </div>
+          <div class="resume-entry-btns mt-1">
+            <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.customSections.splice(${i}+1,0,{...JSON.parse(JSON.stringify(resumeData.customSections[${i}])),id:'sec-'+Date.now()});saveResumeData();renderResumeBuilder()"><i class="bi bi-copy me-1"></i>Duplicate</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="resumeData.customSections.splice(${i},1);saveResumeData();renderResumeBuilder()"><i class="bi bi-trash me-1"></i>Remove section</button>
+          </div>
+        </div>`).join('')}
+        <button class="btn btn-sm btn-outline-primary mt-1" onclick="resumeData.customSections.push({id:'sec-'+Date.now(),title:'',bullets:[]});saveResumeData();renderResumeBuilder()"><i class="bi bi-plus-lg me-1"></i>Add a new section</button>
+      </div>
+    </details>`
+  };
+
+  const contactHTML = `<details class="resume-edit-section" open>
+      <summary>Contact &amp; Title</summary>
+      <div class="row g-2 p-2">
+        <div class="col-md-6"><label>Full name</label><input class="form-control form-control-sm" value="${d.name}" oninput="resumeData.name=this.value;saveAndPreview()"></div>
+        <div class="col-md-6"><label>Title / role</label><input class="form-control form-control-sm" value="${d.title||''}" oninput="resumeData.title=this.value;saveAndPreview()"></div>
+        <div class="col-md-6"><label>Email</label><input class="form-control form-control-sm" value="${d.email}" oninput="resumeData.email=this.value;saveAndPreview()"></div>
+        <div class="col-md-6"><label>Phone</label><input class="form-control form-control-sm" value="${d.phone}" oninput="resumeData.phone=this.value;saveAndPreview()"></div>
+      </div>
+    </details>`;
+
+  c.innerHTML = contactHTML
+    + resumeData.sectionOrder.map(key => sectionHTML[key] || '').join('')
+    + `<button class="btn btn-sm btn-outline-secondary mt-2" onclick="resetResumeToUploaded()"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset to originally uploaded resume</button>`;
+}
+
+function resetResumeToUploaded(){
+  if(!confirm('Discard your edits and restore the originally uploaded resume?')) return;
+  resumeData = JSON.parse(JSON.stringify(DEFAULT_RESUME));
+  saveResumeData();
+  renderResumeBuilder();
+}
+
+function esc(s){ return (s||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function resumePreviewHTML(){
+  const d = resumeData;
+  const sectionRenderers = {
+    summary: () => d.summary ? `<h2>Summary</h2><p>${esc(d.summary)}</p>` : '',
+    skills: () => d.skills.length ? `<h2>Skills</h2>${d.skills.filter(s=>s.cat||s.items).map(s=>`<div class="resume-skill-line"><strong>${esc(s.cat)}:</strong> ${esc(s.items)}</div>`).join('')}` : '',
+    experience: () => d.experience.length ? `<h2>Work Experience</h2>${d.experience.filter(x=>x.company).map(x=>`<div class="resume-job"><div class="resume-row-head"><strong>${esc(x.company)}</strong><span>${esc(x.date)}</span></div><div class="resume-role">${esc(x.role)}</div><ul>${x.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}` : '',
+    projects: () => d.projects.length ? `<h2>Projects</h2>${d.projects.filter(p=>p.title).map(p=>`<div class="resume-job"><div class="resume-row-head"><strong>${esc(p.title)}</strong><span>${esc(p.date)}</span></div>${p.tech?`<div class="resume-role">${esc(p.tech)}</div>`:''}<ul>${p.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}` : '',
+    education: () => d.education.length ? `<h2>Education</h2>${d.education.filter(e=>e.degree).map(e=>`<div class="resume-edu"><div class="resume-row-head"><strong>${esc(e.degree)}</strong><span>${esc(e.year)}</span></div><div class="resume-role">${esc(e.school)}</div>${e.detail?`<div class="resume-detail">${esc(e.detail)}</div>`:''}</div>`).join('')}` : '',
+    achievements: () => d.achievements.length ? `<h2>Achievements</h2>${d.achievements.filter(a=>a.title).map(a=>`<div class="resume-job"><div class="resume-row-head"><strong>${esc(a.title)}</strong><span>${esc(a.date)}</span></div>${a.org?`<div class="resume-role">${esc(a.org)}</div>`:''}<ul>${a.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}` : '',
+    certifications: () => d.certifications.length ? `<h2>Certifications</h2>${d.certifications.filter(cert=>cert.name).map(cert=>`<div class="resume-edu"><div class="resume-row-head"><strong>${esc(cert.name)}</strong><span>${esc(cert.date)}</span></div><div class="resume-role">${esc(cert.issuer)}</div>${cert.url?`<div class="resume-detail">${esc(cert.url)}</div>`:''}</div>`).join('')}` : '',
+    languages: () => d.languages.length ? `<h2>Languages</h2>${d.languages.filter(l=>l.name).map(l=>`<div class="resume-skill-line"><strong>${esc(l.name)}:</strong> ${esc(l.level)}</div>`).join('')}` : '',
+    customSections: () => (d.customSections||[]).filter(sec=>sec.title).map(sec=>`<h2>${esc(sec.title)}</h2><ul>${(sec.bullets||[]).map(b=>`<li>${esc(b)}</li>`).join('')}</ul>`).join('')
+  };
+  return `
+    <h1>${esc(d.name)}</h1>
+    <div class="resume-contact">${d.title?esc(d.title)+' &nbsp;•&nbsp; ':''}${esc(d.email)}${d.phone?' &nbsp;•&nbsp; '+esc(d.phone):''}</div>
+    ${resumeData.sectionOrder.map(key => sectionRenderers[key] ? sectionRenderers[key]() : '').join('')}
+  `;
+}
+
+function updateResumePreview(){
+  const p = document.getElementById('resume-preview');
+  if(p) p.innerHTML = resumePreviewHTML();
+  updateATSScore();
+}
+
+// ---- Lightweight, client-side ATS keyword match against a pasted job description ----
+const RESUME_STOPWORDS = new Set(['the','and','a','an','to','of','in','on','for','with','is','are','as','at','by','or','be','this','that','from','will','have','has','you','your','we','our','they','their','it','its','who','what','why','how','can','able','including','etc','also','into','across','than','then','such','using','use','used']);
+function resumeExtractKeywords(text){
+  return [...new Set((text||'').toLowerCase().replace(/[^a-z0-9+#.\s]/g,' ').split(/\s+/).filter(w=>w.length>2 && !RESUME_STOPWORDS.has(w)))];
+}
+function resumeToPlainText(){
+  const d = resumeData;
+  return [
+    d.name, d.title, d.summary,
+    d.skills.map(s=>s.cat+' '+s.items).join(' '),
+    d.education.map(e=>e.degree+' '+e.school+' '+(e.detail||'')).join(' '),
+    d.experience.map(x=>x.company+' '+x.role+' '+x.bullets.join(' ')).join(' '),
+    d.projects.map(p=>p.title+' '+p.tech+' '+p.bullets.join(' ')).join(' '),
+    d.achievements.map(a=>a.title+' '+a.org+' '+a.bullets.join(' ')).join(' '),
+    (d.certifications||[]).map(cert=>cert.name+' '+cert.issuer).join(' '),
+    (d.languages||[]).map(l=>l.name+' '+l.level).join(' '),
+    (d.customSections||[]).map(sec=>sec.title+' '+(sec.bullets||[]).join(' ')).join(' ')
+  ].join(' ').toLowerCase();
+}
+function updateATSScore(){
+  const jdEl = document.getElementById('resume-jd-input');
+  const box = document.getElementById('resume-ats-result');
+  if(!jdEl || !box) return;
+  const jdText = jdEl.value.trim();
+  if(!jdText){ box.innerHTML = '<p class="small text-muted mb-0">Paste a job description above, then tap "Check ATS Match" to see your keyword score and what\'s missing.</p>'; return; }
+  const jdWords = resumeExtractKeywords(jdText);
+  const resumeText = resumeToPlainText();
+  const matched = jdWords.filter(w=>resumeText.includes(w));
+  const missing = jdWords.filter(w=>!resumeText.includes(w)).slice(0,18);
+  const score = jdWords.length ? Math.round(matched.length/jdWords.length*100) : 0;
+  const color = score>=70?'#16a34a':score>=40?'#d97706':'#dc2626';
+  box.innerHTML = `
+    <div class="d-flex align-items-center gap-3 mb-2">
+      <div style="font-size:1.9rem;font-weight:800;color:${color};line-height:1">${score}%</div>
+      <div class="small text-muted">Keyword match with this job description<br>(${matched.length} of ${jdWords.length} key terms found)</div>
+    </div>
+    ${missing.length ? `<div class="small mb-0"><strong>Consider adding these keywords:</strong><div class="mt-1">${missing.map(w=>`<span class="badge rounded-pill" style="background:#fef3c7;color:#92400e;margin:2px 3px 0 0;font-weight:600">${esc(w)}</span>`).join('')}</div></div>` : `<div class="small text-success mb-0"><i class="bi bi-check-circle me-1"></i>Great keyword coverage for this JD.</div>`}
+  `;
+}
+function checkATSMatch(){ updateATSScore(); }
+
+// ---- Download: PDF via print (isolates just the resume), and a plain-text ATS-safe copy ----
+function downloadResumePDF(){
+  const root = document.getElementById('resume-print-root');
+  if(root) root.innerHTML = resumePreviewHTML();
+  document.body.classList.add('resume-print-mode');
+  window.print();
+}
+window.addEventListener('afterprint', ()=>document.body.classList.remove('resume-print-mode'));
+
+function downloadResumeTxt(){
+  const d = resumeData;
+  let txt = `${d.name}\n${d.email}${d.phone?' | '+d.phone:''}${d.title?'\n'+d.title:''}\n\n`;
+  if(d.summary) txt += `SUMMARY\n${d.summary}\n\n`;
+  if(d.skills.length){ txt += 'SKILLS\n'; d.skills.forEach(s=>{ if(s.cat||s.items) txt += `${s.cat}: ${s.items}\n`; }); txt += '\n'; }
+  if(d.experience.length){ txt += 'WORK EXPERIENCE\n'; d.experience.forEach(x=>{ if(!x.company) return; txt += `${x.company} — ${x.role} (${x.date})\n`; x.bullets.forEach(b=>txt+=`- ${b}\n`); txt += '\n'; }); }
+  if(d.projects.length){ txt += 'PROJECTS\n'; d.projects.forEach(p=>{ if(!p.title) return; txt += `${p.title}${p.tech?' — '+p.tech:''} (${p.date})\n`; p.bullets.forEach(b=>txt+=`- ${b}\n`); txt += '\n'; }); }
+  if(d.education.length){ txt += 'EDUCATION\n'; d.education.forEach(e=>{ if(!e.degree) return; txt += `${e.degree}, ${e.school} (${e.year})\n`; if(e.detail) txt += `${e.detail}\n`; }); txt += '\n'; }
+  if(d.achievements.length){ txt += 'ACHIEVEMENTS\n'; d.achievements.forEach(a=>{ if(!a.title) return; txt += `${a.title} — ${a.org} (${a.date})\n`; a.bullets.forEach(b=>txt+=`- ${b}\n`); }); txt += '\n'; }
+  if(d.certifications.length){ txt += 'CERTIFICATIONS\n'; d.certifications.forEach(cert=>{ if(!cert.name) return; txt += `${cert.name} — ${cert.issuer} (${cert.date})${cert.url?' — '+cert.url:''}\n`; }); txt += '\n'; }
+  if(d.languages.length){ txt += 'LANGUAGES\n'; d.languages.forEach(l=>{ if(!l.name) return; txt += `${l.name}: ${l.level}\n`; }); txt += '\n'; }
+  (d.customSections||[]).forEach(sec=>{
+    if(!sec.title) return;
+    txt += `${sec.title.toUpperCase()}\n`;
+    (sec.bullets||[]).forEach(b=>txt+=`- ${b}\n`);
+    txt += '\n';
+  });
+  const blob = new Blob([txt], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = (d.name||'resume').trim().replace(/\s+/g,'_') + '_ATS.txt';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+}
+let done = new Set(JSON.parse(localStorage.getItem('dotnet_done2') || '[]'));
+let filter = 'all';
+let searchTerm = '';
+
+function save(){ localStorage.setItem('dotnet_done2', JSON.stringify([...done])); }
+function toggle(n){ if(done.has(n)) done.delete(n); else done.add(n); save(); render(); updateStats(); }
+function setFilter(f,btn){ filter=f; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); render(); }
+function filterDays(){ searchTerm=document.getElementById('search-box').value.toLowerCase(); render(); }
+function resetAll(){ if(confirm('Reset all progress?')){ done.clear(); save(); render(); updateStats(); } }
+
+function updateStats(){
+  const d=done.size, l=TOTAL-d, pct=Math.round(d/TOTAL*100);
+  document.getElementById('stat-left').textContent=l;
+  document.getElementById('main-prog').style.width=pct+'%';
+  document.getElementById('prog-label').textContent=d+' / '+TOTAL+' days';
+  updateCalendarCaption();
+}
+
+// Keeps the calendar-based stat boxes (Days Elapsed, Target End Date, Days Left) in sync
+// with the start date → target date, independent of task-completion counts.
+function updateCalendarCaption(){
+  const t = getTimelineInfo();
+  const elapsedEl = document.getElementById('stat-elapsed');
+  const endDateEl = document.getElementById('stat-enddate');
+  const targetEl = document.getElementById('stat-target-days');
+  if(elapsedEl) elapsedEl.textContent = t.elapsedDays;
+  if(endDateEl) endDateEl.textContent = t.target.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  if(targetEl) targetEl.textContent = t.overdue ? '0' : t.remainingDays;
+}
+
+// Tapping any stat box opens a popup with the underlying data behind that number.
+function showStatDetail(which){
+  const d = done.size, l = TOTAL-d, pct = Math.round(d/TOTAL*100);
+  const t = getTimelineInfo();
+  let html = '';
+  if(which==='elapsed'){
+    const startStr = new Date(t.startStr+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-calendar3 me-2 text-primary"></i>${t.elapsedDays} Days Elapsed</h6>
+      <p class="small text-muted mb-2">Since you started on <strong>${startStr}</strong>.</p>
+      <p class="small mb-0">You've completed <strong>${d}</strong> of ${TOTAL} roadmap days so far — current pace: <strong>${t.currentPace}</strong> days/week.</p>
+      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
+  } else if(which==='left'){
+    const leftDays = [];
+    PHASES.forEach(phase=> phase.weeks.forEach(w=> w.days.forEach(dd=>{ if(!done.has(dd.n)) leftDays.push(dd); })));
+    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-hourglass-split me-2 text-primary"></i>${l} Tasks Left</h6>
+      <div style="max-height:340px;overflow-y:auto">
+        ${leftDays.length ? leftDays.map(dd=>`<div class="small py-1" style="border-bottom:1px solid #f3f4f6">Day ${dd.n} — ${dd.topic}</div>`).join('') : '<p class="small text-muted">All caught up!</p>'}
+      </div>
+      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
+  } else if(which==='enddate'){
+    const endStr = t.target.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-flag-fill me-2 text-primary"></i>Target: ${endStr}</h6>
+      <p class="small mb-0" style="color:${t.overdue?'#dc2626':'var(--muted)'}">
+        ${t.overdue ? "You're past this date — consider setting a new start date, or just keep going at your own pace." :
+          `That's <strong>${t.remainingDays} days</strong> away. To finish on time you need about <strong>${t.requiredPace} days/week</strong>.`}
+      </p>
+      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
+  } else if(which==='target'){
+    const startStr = new Date(t.startStr+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    const endStr = t.target.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-flag me-2 text-primary"></i>${t.overdue?'Past target date':t.remainingDays+' Days Left'}</h6>
+      <table class="table table-sm mb-2" style="font-size:0.82rem">
+        <tbody>
+          <tr><td class="text-muted">Start date</td><td>${startStr}</td></tr>
+          <tr><td class="text-muted">Target end date</td><td>${endStr}</td></tr>
+          <tr><td class="text-muted">Days elapsed</td><td>${t.elapsedDays}</td></tr>
+          <tr><td class="text-muted">Days remaining</td><td>${t.overdue?'0 (overdue)':t.remainingDays}</td></tr>
+        </tbody>
+      </table>
+      <p class="small text-muted mb-0">Change your start date any time from Profile → Timeline &amp; Summary.</p>
+      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
+  }
+  openModal(html);
+}
+
+function showTab(tab, btn){
+  document.querySelectorAll('[id^="tab-"]').forEach(t=>t.style.display='none');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tab).style.display='';
+  btn.classList.add('active');
+  if(tab==='author'){
+    renderDocsSubtabs();
+    document.getElementById('docs-community-view').style.display = activeDocsSection==='resources' ? 'none' : '';
+    document.getElementById('docs-resources-view').style.display = activeDocsSection==='resources' ? '' : 'none';
+    if(activeDocsSection==='resources') renderResources(); else renderAuthorPosts();
+  }
+  if(tab==='projects'){ renderProjects(); renderStructure(); renderAdvanced(); }
+  if(tab==='interview') renderInterview();
+  if(tab==='profile'){ renderProfile(); renderSummary(); }
+}
+
+function setProjSubtab(which, btn){
+  document.querySelectorAll('.proj-subtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('proj-container').style.display = which==='list' ? '' : 'none';
+  document.getElementById('struct-container').style.display = which==='structure' ? '' : 'none';
+  document.getElementById('advanced-container').style.display = which==='advanced' ? '' : 'none';
+}
+
+function setProfileSubtab(which, btn){
+  document.querySelectorAll('.profile-subtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('profile-overview-view').style.display = which==='overview' ? '' : 'none';
+  document.getElementById('profile-summary-view').style.display = which==='summary' ? '' : 'none';
+  document.getElementById('profile-resume-view').style.display = which==='resume' ? '' : 'none';
+  if(which==='resume') renderResumeBuilder();
+}
+
+// ===================== DAY NOTES =====================
+let dayNotes = JSON.parse(localStorage.getItem('dotnet_day_notes') || '{}'); // {dayNum: {type, text|points, mediaKey, mediaName, updatedAt}}
+let pendingNoteImages = {}; // keyed by day number (or 'quick') -> {dataUrl, name}
+let noteCollapsed = JSON.parse(localStorage.getItem('dotnet_note_collapsed') || '{}');
+
+function toggleNoteBox(n){
+  const box = document.getElementById('note-box-'+n);
+  if(!box) return;
+  box.style.display = box.style.display==='block' ? 'none' : 'block';
+  if(box.style.display==='block'){ const ed = document.getElementById('note-text-'+n); if(ed) ed.focus(); }
+}
+function handleNoteImage(e, n){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    pendingNoteImages[n] = {dataUrl: reader.result, name: file.name};
+    const el = document.getElementById('note-img-name-'+n) || document.getElementById('quick-note-img-name');
+    if(el) el.textContent = '✓ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
+async function saveNote(n){
+  const raw = rteGetHTML('note-text-'+n);
+  const old = dayNotes[n];
+  let mediaKey = old?.mediaKey, mediaName = old?.mediaName;
+  if(pendingNoteImages[n]){
+    if(mediaKey) idbDelete(mediaKey);
+    mediaKey = 'media-note-'+Date.now();
+    await idbPut(mediaKey, pendingNoteImages[n].dataUrl);
+    mediaName = pendingNoteImages[n].name;
+    delete pendingNoteImages[n];
+  }
+  if(raw || mediaKey){
+    dayNotes[n] = {type:'rich', text: raw, updatedAt: Date.now(), mediaKey, mediaName};
+  } else {
+    if(old?.mediaKey) idbDelete(old.mediaKey);
+    delete dayNotes[n];
+  }
+  localStorage.setItem('dotnet_day_notes', JSON.stringify(dayNotes));
+  render(); // re-render Roadmap so the note icon (has-note state) updates
+  refreshAllNoteViews();
+}
+function findDayTopic(n){
+  for(const phase of PHASES) for(const w of phase.weeks) for(const d of w.days) if(d.n===Number(n)) return d.topic;
+  return '';
+}
+function toggleNoteFold(key){
+  noteCollapsed[key] = !noteCollapsed[key];
+  localStorage.setItem('dotnet_note_collapsed', JSON.stringify(noteCollapsed));
+  refreshAllNoteViews();
+}
+function deleteNote(n){
+  if(!confirm('Delete this note? This can\'t be undone.')) return;
+  const note = dayNotes[n];
+  if(note && note.mediaKey) idbDelete(note.mediaKey);
+  delete dayNotes[n];
+  localStorage.setItem('dotnet_day_notes', JSON.stringify(dayNotes));
+  render(); // updates the note icon on that day row
+  refreshAllNoteViews();
+}
+function renderAllNotes(searchTerm){
+  const term = (searchTerm||'').toLowerCase();
+  const entries = Object.keys(dayNotes)
+    .map(n=>({n:Number(n), ...dayNotes[n], topic: findDayTopic(n)}))
+    .filter(e=>{
+      if(!term) return true;
+      const hay = (e.text||(e.points||[]).join(' ')||'').toLowerCase() + ' ' + e.topic.toLowerCase();
+      return hay.includes(term);
+    })
+    .sort((a,b)=>b.updatedAt-a.updatedAt);
+  if(entries.length===0) return `<div class="text-muted small text-center py-3">No notes ${term?'match your search':'yet'} — add one from any day, or use Quick Add.</div>`;
+  return entries.map(e=>{
+    const key = 'note-'+e.n;
+    const lengthGuess = e.text ? e.text.length : (e.points||[]).join('').length;
+    const isLong = lengthGuess > 160 || (e.points||[]).length > 4;
+    // Default folded for long notes the first time they're seen; after that, remember whatever the user chose.
+    const collapsed = noteCollapsed[key] !== undefined ? noteCollapsed[key] : isLong;
+    const bodyHtml = e.type==='bullets'
+      ? `<ul class="note-bullets note-text">${(e.points||[]).map(p=>`<li>${p}</li>`).join('')}</ul>`
+      : `<div class="note-text">${e.text||''}</div>`;
+    return `<div class="note-card">
+      <div class="note-meta" style="cursor:pointer" onclick="toggleNoteFold('${key}')">
+        <span><i class="bi bi-chevron-${collapsed?'right':'down'} me-1" style="font-size:0.62rem"></i><i class="bi bi-calendar3 me-1"></i>Day ${e.n} — ${e.topic}</span>
+        <span class="d-flex align-items-center gap-2">
+          <span>${new Date(e.updatedAt).toLocaleDateString()}</span>
+          <i class="bi bi-trash" style="color:#b45309;font-size:0.75rem" onclick="event.stopPropagation();deleteNote(${e.n})" title="Delete note"></i>
+        </span>
+      </div>
+      ${collapsed ? '' : bodyHtml + (e.mediaKey ? `<img class="note-img" id="noteimg-${key}" alt="attachment">` : '')}
+    </div>`;
+  }).join('');
+}
+function hydrateNoteImages(){
+  Object.keys(dayNotes).forEach(n=>{
+    const note = dayNotes[n];
+    if(note.mediaKey){
+      idbGet(note.mediaKey).then(dataUrl=>{
+        document.querySelectorAll(`#noteimg-note-${n}`).forEach(img=>{ if(dataUrl) img.src=dataUrl; });
+      });
+    }
+  });
+}
+function filterNotes(){ const el=document.getElementById('all-notes-list'); if(el){ el.innerHTML = renderAllNotes(document.getElementById('notes-search-input').value); hydrateNoteImages(); } }
+function filterNotesSidebar(){ const el=document.getElementById('all-notes-list-sidebar'); if(el){ el.innerHTML = renderAllNotes(document.getElementById('notes-search-sidebar').value); hydrateNoteImages(); } }
+function refreshAllNoteViews(){
+  const s1=document.getElementById('notes-search-input'), s2=document.getElementById('notes-search-sidebar');
+  const l1=document.getElementById('all-notes-list'), l2=document.getElementById('all-notes-list-sidebar');
+  if(l1) l1.innerHTML = renderAllNotes(s1?s1.value:'');
+  if(l2) l2.innerHTML = renderAllNotes(s2?s2.value:'');
+  hydrateNoteImages();
+}
+function populateQuickNoteDaySelect(){
+  const sel = document.getElementById('quick-note-day');
+  if(!sel) return;
+  let opts = '<option value="">Choose a day...</option>';
+  PHASES.forEach(phase=> phase.weeks.forEach(w=> w.days.forEach(d=>{
+    opts += `<option value="${d.n}">Day ${d.n} — ${d.topic}</option>`;
+  })));
+  sel.innerHTML = opts;
+}
+function toggleQuickNoteForm(){
+  const form = document.getElementById('quick-note-form');
+  form.style.display = form.style.display==='block' ? 'none' : 'block';
+}
+async function quickAddNote(){
+  const n = document.getElementById('quick-note-day').value;
+  const raw = rteGetHTML('quick-note-text');
+  if(!n || (!raw && !pendingNoteImages['quick'])){ alert('Pick a day and write something (or attach an image) first.'); return; }
+  let mediaKey, mediaName;
+  if(pendingNoteImages['quick']){
+    mediaKey = 'media-note-'+Date.now();
+    await idbPut(mediaKey, pendingNoteImages['quick'].dataUrl);
+    mediaName = pendingNoteImages['quick'].name;
+    delete pendingNoteImages['quick'];
+  }
+  dayNotes[n] = {type:'rich', text: raw, updatedAt: Date.now(), mediaKey, mediaName};
+  localStorage.setItem('dotnet_day_notes', JSON.stringify(dayNotes));
+  document.getElementById('quick-note-text').innerHTML='';
+  document.getElementById('quick-note-day').value='';
+  const imgNameEl = document.getElementById('quick-note-img-name'); if(imgNameEl) imgNameEl.textContent='';
+  document.getElementById('quick-note-form').style.display='none';
+  refreshAllNoteViews();
+  if(document.getElementById('tab-roadmap').style.display!=='none') render();
+}
+
+// ===================== CUSTOM PHASES (user-added, CRUD) =====================
+let customPhases = JSON.parse(localStorage.getItem('dotnet_custom_phases') || '[]'); // [{id,title,unit,color,tasks:[{id,label,title,points:[]}]}]
+let customPhaseDone = new Set(JSON.parse(localStorage.getItem('dotnet_custom_phase_done') || '[]'));
+let editingPhaseId = null;
+let taskRowCounter = 0;
+const PHASE_COLORS = ['#4f46e5','#16a34a','#d97706','#dc2626','#0891b2','#7c3aed'];
+
+function saveCustomPhases(){ localStorage.setItem('dotnet_custom_phases', JSON.stringify(customPhases)); }
+function saveCustomPhaseDone(){ localStorage.setItem('dotnet_custom_phase_done', JSON.stringify([...customPhaseDone])); }
+
+function openPhaseForm(phaseId){
+  editingPhaseId = phaseId;
+  const phase = phaseId ? customPhases.find(p=>p.id===phaseId) : null;
+  taskRowCounter = 0;
+  const slot = document.getElementById('phase-form-slot');
+  slot.innerHTML = `
+    <div class="author-form">
+      <h6 class="fw-bold mb-3"><i class="bi ${phase?'bi-pencil-square':'bi-plus-circle'} me-1"></i>${phase?'Edit phase':'Add a new phase'}</h6>
+      <div class="row g-2 mb-2">
+        <div class="col-md-8"><label class="small text-muted d-block">Phase title</label><input id="phase-title" class="form-control" placeholder="e.g. Phase 6 — Portfolio Prep" value="${phase?phase.title:''}"></div>
+        <div class="col-md-4"><label class="small text-muted d-block">Organize by</label>
+          <select id="phase-unit">
+            <option value="Day" ${phase&&phase.unit==='Day'?'selected':''}>Day</option>
+            <option value="Week" ${phase&&phase.unit==='Week'?'selected':''}>Week</option>
+            <option value="Month" ${phase&&phase.unit==='Month'?'selected':''}>Month</option>
+            <option value="Hour" ${phase&&phase.unit==='Hour'?'selected':''}>Hour</option>
+            <option value="Task" ${!phase||phase.unit==='Task'?'selected':''}>Task (no numbering)</option>
+          </select>
+        </div>
+      </div>
+      <div id="task-rows-container"></div>
+      <button class="btn btn-sm btn-outline-primary mb-3" onclick="addTaskRow()"><i class="bi bi-plus-lg me-1"></i>Add ${phase?phase.unit:'item'}</button>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm" onclick="submitPhaseForm()"><i class="bi bi-check2 me-1"></i>${phase?'Save changes':'Create phase'}</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="closePhaseForm()">Cancel</button>
+      </div>
+    </div>`;
+  document.getElementById('phase-unit').style.cssText = 'font-size:0.84rem;width:100%;border:1px solid var(--border);border-radius:8px;padding:0.375rem 0.5rem;';
+  if(phase && phase.tasks.length){
+    phase.tasks.forEach(t=>addTaskRow(t));
+  } else {
+    addTaskRow();
+  }
+  slot.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function closePhaseForm(){ document.getElementById('phase-form-slot').innerHTML=''; editingPhaseId=null; }
+
+function addTaskRow(existing){
+  const id = 'trow-'+(taskRowCounter++);
+  const container = document.getElementById('task-rows-container');
+  const row = document.createElement('div');
+  row.className = 'task-row-form';
+  row.id = id;
+  row.innerHTML = `
+    <button class="remove-task-btn" onclick="document.getElementById('${id}').remove()" title="Remove"><i class="bi bi-x-lg"></i></button>
+    <input class="form-control task-title" placeholder="Title (e.g. Setup & First App)" value="${existing?existing.title:''}">
+    <textarea class="form-control task-points" rows="2" placeholder="Bullet points, one per line (e.g. Morning: ..., Afternoon: ...)">${existing&&existing.points?existing.points.join('\n'):''}</textarea>
+  `;
+  container.appendChild(row);
+}
+
+function submitPhaseForm(){
+  const title = document.getElementById('phase-title').value.trim();
+  const unit = document.getElementById('phase-unit').value;
+  if(!title){ alert('Please give the phase a title.'); return; }
+  const rows = [...document.querySelectorAll('#task-rows-container .task-row-form')];
+  const tasks = rows.map((row,i)=>{
+    const existingId = editingPhaseId && customPhases.find(p=>p.id===editingPhaseId)?.tasks[i]?.id;
+    return {
+      id: existingId || ('task-'+Date.now()+'-'+i),
+      label: unit==='Task' ? '' : unit+' '+(i+1),
+      title: row.querySelector('.task-title').value.trim() || '(untitled)',
+      points: row.querySelector('.task-points').value.split('\n').map(s=>s.trim()).filter(Boolean)
+    };
+  }).filter(t=>t.title);
+  if(tasks.length===0){ alert('Add at least one item.'); return; }
+
+  if(editingPhaseId){
+    const phase = customPhases.find(p=>p.id===editingPhaseId);
+    phase.title = title; phase.unit = unit; phase.tasks = tasks;
+  } else {
+    customPhases.push({id:'phase-'+Date.now(), title, unit, color: PHASE_COLORS[customPhases.length % PHASE_COLORS.length], tasks});
+  }
+  saveCustomPhases();
+  closePhaseForm();
+  renderCustomPhases();
+}
+function editPhase(phaseId){ openPhaseForm(phaseId); }
+function deletePhase(phaseId){
+  if(!confirm('Delete this whole phase and all its items?')) return;
+  const phase = customPhases.find(p=>p.id===phaseId);
+  if(phase) phase.tasks.forEach(t=> customPhaseDone.delete(phase.id+':'+t.id));
+  customPhases = customPhases.filter(p=>p.id!==phaseId);
+  saveCustomPhases(); saveCustomPhaseDone();
+  renderCustomPhases();
+}
+function toggleCustomTask(phaseId, taskId){
+  const key = phaseId+':'+taskId;
+  if(customPhaseDone.has(key)) customPhaseDone.delete(key); else customPhaseDone.add(key);
+  saveCustomPhaseDone();
+  renderCustomPhases();
+}
+
+function renderCustomPhases(){
+  const c = document.getElementById('custom-phases-container'); if(!c) return;
+  c.innerHTML = '';
+  customPhases.forEach(phase=>{
+    const total = phase.tasks.length;
+    const done_ = phase.tasks.filter(t=>customPhaseDone.has(phase.id+':'+t.id)).length;
+    const pct = total ? Math.round(done_/total*100) : 0;
+    const card = document.createElement('div');
+    card.className = 'phase-card';
+    card.innerHTML = `
+      <div class="phase-header" style="background:${phase.color}12;border-bottom:2px solid ${phase.color}">
+        <span class="fw-bold" style="color:${phase.color}"><i class="bi bi-stars me-1"></i>${phase.title} <span class="text-muted fw-normal small">(custom)</span></span>
+        <div class="d-flex align-items-center gap-2">
+          <span class="phase-badge" style="background:${phase.color};color:#fff">${done_}/${total}</span>
+          <button class="btn btn-sm btn-outline-secondary" onclick="editPhase('${phase.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deletePhase('${phase.id}')" title="Delete"><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+      ${phase.tasks.map(t=>{
+        const isDone = customPhaseDone.has(phase.id+':'+t.id);
+        return `<div class="custom-task-row">
+          <div class="day-check ${isDone?'done':''}" onclick="toggleCustomTask('${phase.id}','${t.id}')"></div>
+          <div class="day-topic">
+            <strong style="${isDone?'text-decoration:line-through;color:var(--muted)':''}">${t.label?t.label+' — ':''}${t.title}</strong>
+            ${t.points.length ? `<ul style="margin:4px 0 0;padding-left:1.1rem;font-size:0.8rem;color:var(--muted)">${t.points.map(p=>`<li>${p}</li>`).join('')}</ul>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    `;
+    c.appendChild(card);
+  });
+}
+
+let NEXT_DAY = null;
+let weekState = {};
+try{ weekState = JSON.parse(localStorage.getItem('dn_weeks')||'{}'); }catch(e){ weekState = {}; }
+function findNextDay(){
+  for(const ph of PHASES) for(const w of ph.weeks) for(const d of w.days) if(!done.has(d.n)) return d.n;
+  return null;
+}
+function toggleWeek(el){
+  const card = el.closest('.week-card'); if(!card) return;
+  const collapsed = card.classList.toggle('collapsed');
+  weekState[card.dataset.wk] = !collapsed;
+  try{ localStorage.setItem('dn_weeks', JSON.stringify(weekState)); }catch(e){}
+}
+function setAllWeeks(open){
+  document.querySelectorAll('#phases-container .week-card').forEach(c=>{ c.classList.toggle('collapsed', !open); weekState[c.dataset.wk]=open; });
+  try{ localStorage.setItem('dn_weeks', JSON.stringify(weekState)); }catch(e){}
+}
+function render(){
+  NEXT_DAY = findNextDay();
+  const c=document.getElementById('phases-container'); c.innerHTML='';
+  let shownWeeks = 0;
+  PHASES.forEach(phase=>{
+    let pd=0,pt=0;
+    phase.weeks.forEach(w=>w.days.forEach(d=>{pt++;if(done.has(d.n))pd++;}));
+    const pp=pt?Math.round(pd/pt*100):0;
+    const div=document.createElement('div'); div.className='phase-card'; div.style.setProperty('--phc',phase.color);
+    const weeksHtml = phase.weeks.map(w=>renderWeek(w,phase.color)).join('');
+    if(!weeksHtml) return;
+    shownWeeks++;
+    div.innerHTML=`
+      <div class="phase-header" style="background:${phase.bg}" onclick="togglePhase('${phase.id}')">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span style="width:10px;height:10px;border-radius:50%;background:${phase.color};display:inline-block;flex-shrink:0"></span>
+          <span class="fw-bold" style="color:${phase.color};font-size:0.9rem">${phase.title}</span>
+          <span class="phase-badge" style="background:${phase.color};color:white">${pd}/${pt}</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span style="font-size:0.8rem;color:${phase.color};font-weight:600">${pp}%</span>
+          <i class="bi bi-chevron-down" id="chev-${phase.id}" style="color:${phase.color};transition:transform 0.25s"></i>
+        </div>
+      </div>
+      <div id="body-${phase.id}" style="padding:0.65rem">
+        ${weeksHtml}
+      </div>`;
+    c.appendChild(div);
+  });
+  const emptyEl = document.getElementById('roadmap-empty');
+  if(emptyEl) emptyEl.style.display = shownWeeks ? 'none' : '';
+}
+
+function renderWeek(w,color){
+  const wd=w.days.filter(d=>done.has(d.n)).length, wt=w.days.length;
+  const pct=Math.round(wd/wt*100);
+  const days=w.days.filter(d=>{
+    if(filter==='done'&&!done.has(d.n)) return false;
+    if(filter==='pending'&&done.has(d.n)) return false;
+    if(searchTerm&&!d.topic.toLowerCase().includes(searchTerm)&&!d.desc.toLowerCase().includes(searchTerm)) return false;
+    return true;
+  });
+  if(!days.length) return '';
+  const resHtml = w.res ? `<div class="wk-res">
+    <i class="bi bi-book me-1"></i><strong>Resources:</strong> ${w.res.map(r=>`<span class="chip">${r}</span>`).join('')}
+  </div>` : '';
+  const wkKey = 'w'+w.days[0].n;
+  const hasNext = w.days.some(d=>d.n===NEXT_DAY);
+  let collapsed;
+  if(searchTerm || filter!=='all') collapsed = false;
+  else if(weekState[wkKey]!==undefined) collapsed = !weekState[wkKey];
+  else collapsed = !hasNext;
+  return `<div class="week-card mb-2 ${collapsed?'collapsed':''}" data-wk="${wkKey}">
+    <div class="week-header" onclick="toggleWeek(this)">
+      <span><i class="bi bi-chevron-down wk-chev"></i> <span style="color:${color}">${w.week}</span> — ${w.title}</span>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="deadline-badge"><i class="bi bi-flag-fill me-1"></i>${w.deadline}</span>
+        <div class="week-prog"><div class="week-prog-fill" style="width:${pct}%;background:${color}"></div></div>
+        <span style="font-size:0.72rem;color:var(--muted)">${wd}/${wt}</span>
+      </div>
+    </div>
+    ${days.map(d=>`
+    <div class="day-row ${d.n===NEXT_DAY?'is-next':''}" data-day="${d.n}" style="flex-wrap:wrap">
+      <span class="day-num">Day ${d.n}</span>
+      <div class="day-check ${done.has(d.n)?'done':''}" onclick="toggle(${d.n})"></div>
+      <div class="day-topic">
+        <strong style="${done.has(d.n)?'text-decoration:line-through;color:var(--muted)':''}">${d.topic}${d.n===NEXT_DAY?'<span class="next-pill">Up next</span>':''}</strong>
+        <span>${d.desc}</span>
+      </div>
+      <button class="day-note-btn ${dayNotes[d.n]?'has-note':''}" onclick="toggleNoteBox(${d.n})" title="Add/view note"><i class="bi bi-sticky${dayNotes[d.n]?'-fill':''}"></i></button>
+      <div class="day-note-box" id="note-box-${d.n}" style="width:100%">
+        ${rteEditorHTML('note-text-'+d.n, 'What did you learn or struggle with on Day '+d.n+'?', dayNotes[d.n] ? (dayNotes[d.n].type==='bullets' ? '<ul>'+(dayNotes[d.n].points||[]).map(p=>`<li>${p}</li>`).join('')+'</ul>' : (dayNotes[d.n].text||'')) : '')}
+        <div class="note-attach-row">
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('note-img-input-${d.n}').click()"><i class="bi bi-paperclip me-1"></i>Attach image</button>
+          <input type="file" id="note-img-input-${d.n}" accept="image/*" style="display:none" onchange="handleNoteImage(event,${d.n})">
+          <span class="small text-success" id="note-img-name-${d.n}">${dayNotes[d.n]&&dayNotes[d.n].mediaName?'✓ '+dayNotes[d.n].mediaName:''}</span>
+        </div>
+        <div class="note-actions">
+          <button class="btn btn-sm btn-outline-secondary" onclick="toggleNoteBox(${d.n})">Close</button>
+          <button class="btn btn-sm btn-primary" onclick="saveNote(${d.n})"><i class="bi bi-check2 me-1"></i>Save note</button>
+        </div>
+      </div>
+    </div>`).join('')}
+    ${resHtml}
+  </div>`;
+}
+
+function togglePhase(id){
+  const body=document.getElementById('body-'+id);
+  const chev=document.getElementById('chev-'+id);
+  const hidden=body.style.display==='none';
+  body.style.display=hidden?'':'none';
+  chev.style.transform=hidden?'':'rotate(-90deg)';
+}
+
+let resCatOrder = JSON.parse(localStorage.getItem('dotnet_res_cat_order') || 'null');
+function saveResCatOrder(names){ resCatOrder = names; localStorage.setItem('dotnet_res_cat_order', JSON.stringify(names)); }
+let draggedResCat = null;
+function attachResCardDragEvents(col, catName){
+  const card = col.querySelector('.res-card');
+  const handle = card.querySelector('h6');
+  handle.style.cursor = 'grab';
+  handle.setAttribute('draggable','true');
+  handle.addEventListener('dragstart', e=>{ draggedResCat = catName; e.stopPropagation(); card.classList.add('dragging'); });
+  handle.addEventListener('dragend', ()=>{ card.classList.remove('dragging'); document.querySelectorAll('.res-card').forEach(c=>c.classList.remove('drag-over-item')); });
+  col.addEventListener('dragover', e=>{ e.preventDefault(); e.stopPropagation(); if(draggedResCat && draggedResCat!==catName) card.classList.add('drag-over-item'); });
+  col.addEventListener('dragleave', ()=> card.classList.remove('drag-over-item'));
+  col.addEventListener('drop', e=>{
+    e.preventDefault(); e.stopPropagation(); card.classList.remove('drag-over-item');
+    if(!draggedResCat || draggedResCat===catName) return;
+    const names = [...document.querySelectorAll('#res-container > div')].map(x=>x.dataset.catName);
+    const fromIdx = names.indexOf(draggedResCat), toIdx = names.indexOf(catName);
+    names.splice(toIdx, 0, names.splice(fromIdx,1)[0]);
+    saveResCatOrder(names);
+    renderResources();
+  });
+}
+
+function renderResources(){
+  const c=document.getElementById('res-container'); c.innerHTML='';
+  const customByCat = {};
+  customResourceLinks.forEach(r=>{ (customByCat[r.category] = customByCat[r.category]||[]).push(r); });
+
+  const cards = []; // {catName, node}
+
+  RESOURCES.forEach(r=>{
+    const extra = customByCat[r.phase] || [];
+    delete customByCat[r.phase];
+    const col=document.createElement('div'); col.className='col-12 col-md-6'; col.dataset.catName=r.phase;
+    col.innerHTML=`<div class="res-card" style="border-top:3px solid ${r.color}">
+      <h6 style="color:${r.color}"><i class="bi bi-grip-vertical me-1" style="color:${r.color}66"></i>${r.phase}</h6>
+      ${r.items.map(i=>`<a class="res-link" href="${i.url}" target="_blank">
+        <span class="res-type" style="background:${i.color}22;color:${i.color}">${i.type}</span>
+        <span style="flex:1">${i.name}</span>
+        <span class="res-type" style="background:${i.label==='Free'?'#dcfce7':'#ede9fe'};color:${i.label==='Free'?'#16a34a':'#7c3aed'}">${i.label}</span>
+        <i class="bi bi-box-arrow-up-right" style="font-size:0.7rem;color:var(--muted)"></i>
+      </a>`).join('')}
+      ${extra.map(i=>`<div class="res-link" style="align-items:center">
+        <a href="${i.url}" target="_blank" class="d-flex align-items-center gap-2" style="flex:1;min-width:0;color:inherit;text-decoration:none">
+          <span class="res-type" style="background:${i.color}22;color:${i.color}">${i.type}</span>
+          <span style="flex:1">${i.name}</span>
+          <span class="res-type" style="background:${i.label==='Free'?'#dcfce7':'#ede9fe'};color:${i.label==='Free'?'#16a34a':'#7c3aed'}">${i.label}</span>
+        </a>
+        <i class="bi bi-pencil text-primary" style="font-size:0.72rem;cursor:pointer" onclick="event.preventDefault();openResourceForm('${i.id}')"></i>
+        <i class="bi bi-trash text-danger" style="font-size:0.72rem;cursor:pointer" onclick="event.preventDefault();deleteResourceLink('${i.id}')"></i>
+      </div>`).join('')}
+    </div>`;
+    cards.push({catName:r.phase, col});
+  });
+
+  // Any custom categories that don't match a built-in phase get their own card.
+  Object.keys(customByCat).forEach(catName=>{
+    const items = customByCat[catName];
+    const col=document.createElement('div'); col.className='col-12 col-md-6'; col.dataset.catName=catName;
+    col.innerHTML=`<div class="res-card" style="border-top:3px solid #16a34a">
+      <h6 style="color:#16a34a"><i class="bi bi-grip-vertical me-1" style="color:#16a34a66"></i>${catName}</h6>
+      ${items.map(i=>`<div class="res-link" style="align-items:center">
+        <a href="${i.url}" target="_blank" class="d-flex align-items-center gap-2" style="flex:1;min-width:0;color:inherit;text-decoration:none">
+          <span class="res-type" style="background:${i.color}22;color:${i.color}">${i.type}</span>
+          <span style="flex:1">${i.name}</span>
+          <span class="res-type" style="background:${i.label==='Free'?'#dcfce7':'#ede9fe'};color:${i.label==='Free'?'#16a34a':'#7c3aed'}">${i.label}</span>
+        </a>
+        <i class="bi bi-pencil text-primary" style="font-size:0.72rem;cursor:pointer" onclick="event.preventDefault();openResourceForm('${i.id}')"></i>
+        <i class="bi bi-trash text-danger" style="font-size:0.72rem;cursor:pointer" onclick="event.preventDefault();deleteResourceLink('${i.id}')"></i>
+      </div>`).join('')}
+    </div>`;
+    cards.push({catName, col});
+  });
+
+  // Apply saved order (unordered/new categories fall to the end).
+  let ordered = cards;
+  if(resCatOrder){
+    const map = new Map(cards.map(x=>[x.catName,x]));
+    ordered = resCatOrder.map(n=>map.get(n)).filter(Boolean);
+    cards.forEach(x=>{ if(!resCatOrder.includes(x.catName)) ordered.push(x); });
+  }
+  ordered.forEach(x=>{ c.appendChild(x.col); attachResCardDragEvents(x.col, x.catName); });
+
+  const rsEl = document.getElementById('docs-search-input');
+  if(rsEl && rsEl.value) filterResources();
+}
+
+function renderProjects(){
+  const c=document.getElementById('proj-container'); c.innerHTML='';
+  PROJECTS.forEach(p=>{
+    c.innerHTML+=`<div class="proj-card ${p.featured?'featured':''}">
+      <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-2">
+        <div>
+          <h5 class="mb-1" style="font-size:1rem;font-weight:700">${p.name}</h5>
+          <span style="font-size:0.75rem;color:var(--muted)">${p.phase} &nbsp;•&nbsp; ⏱ ${p.time}</span>
+        </div>
+        <span class="proj-level" style="background:${p.levelBg};color:${p.levelColor}">${p.level}</span>
+      </div>
+      <p style="font-size:0.83rem;color:#374151;margin-bottom:0.5rem">${p.desc}</p>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:0.6rem"><strong>Goal:</strong> ${p.goal}</p>
+      <div class="mb-2">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:4px">Features:</div>
+        <ul style="font-size:0.78rem;color:#374151;margin:0;padding-left:1.2rem">
+          ${p.features.map(f=>`<li>${f}</li>`).join('')}
+        </ul>
+      </div>
+      <div>${p.tech.map(t=>`<span class="proj-tech">${t}</span>`).join('')}</div>
+    </div>`;
+  });
+}
+
+function renderStructure(){
+  const c=document.getElementById('struct-container'); c.innerHTML='';
+  STRUCTURES.forEach(s=>{
+    c.innerHTML+=`<div class="phase-card mb-3">
+      <div class="phase-header" style="background:#f9fafb;border-bottom:2px solid ${s.color}">
+        <span class="fw-bold" style="color:${s.color}"><i class="bi bi-diagram-3 me-2"></i>${s.name}</span>
+      </div>
+      <div style="padding:1rem">
+        <div class="struct-tree">${s.tree}</div>
+      </div>
+    </div>`;
+  });
+}
+
+// ===================== ADVANCED+ TOPIC BOARD (add/edit/delete/drag/collapse) =====================
+let advOrder = JSON.parse(localStorage.getItem('dotnet_adv_order') || 'null');
+let advCollapsed = JSON.parse(localStorage.getItem('dotnet_adv_collapsed') || '{}');
+let advOverrides = JSON.parse(localStorage.getItem('dotnet_adv_overrides') || '{}');
+let advDeleted = new Set(JSON.parse(localStorage.getItem('dotnet_adv_deleted') || '[]'));
+let advCustom = JSON.parse(localStorage.getItem('dotnet_adv_custom') || '[]');
+let editingAdvItem = null;
+let pendingAdvMedia = null;
+
+function getAllAdvItems(){
+  const seed = ADV_TOPICS.map((t,i)=>({id:'adv-seed-'+i, type:'Bullets', badgeColor:t.color, title:t.title, summary:t.desc, points:t.points}));
+  let all = [...seed, ...advCustom]
+    .filter(it=>!advDeleted.has(it.id))
+    .map(it=> advOverrides[it.id] ? {...it, ...advOverrides[it.id]} : it);
+  if(advOrder){
+    const map = new Map(all.map(i=>[i.id,i]));
+    const ordered = advOrder.map(id=>map.get(id)).filter(Boolean);
+    all.forEach(i=>{ if(!advOrder.includes(i.id)) ordered.push(i); });
+    all = ordered;
+  }
+  return all;
+}
+function saveAdvOrder(items){ advOrder = items.map(i=>i.id); localStorage.setItem('dotnet_adv_order', JSON.stringify(advOrder)); }
+function toggleAdvCollapse(id){ advCollapsed[id]=!advCollapsed[id]; localStorage.setItem('dotnet_adv_collapsed', JSON.stringify(advCollapsed)); renderAdvanced(); }
+
+function renderAdvanced(){
+  const c=document.getElementById('adv-container'); c.innerHTML='<div class="item-list" id="adv-list" style="padding:0;background:transparent"></div>';
+  const list = document.getElementById('adv-list');
+  getAllAdvItems().forEach(item=>{
+    const closed = !!advCollapsed[item.id];
+    const el = document.createElement('div');
+    el.className='content-item';
+    el.draggable = true;
+    el.dataset.itemId = item.id;
+    el.innerHTML = `
+      <i class="bi bi-grip-vertical item-handle"></i>
+      <div class="item-body">
+        <div class="item-top">
+          <span class="item-badge" style="background:${(item.badgeColor||TYPE_COLOR[item.type])}18;color:${item.badgeColor||TYPE_COLOR[item.type]}"><i class="bi ${TYPE_ICON[item.type]||'bi-file-text'} me-1"></i>${item.type}</span>
+          <span class="item-title">${item.title}</span>
+          <button class="item-collapse-btn" onclick="toggleAdvCollapse('${item.id}')" title="Collapse/expand"><i class="bi bi-chevron-${closed?'down':'up'}"></i></button>
+          <div class="item-actions">
+            <button class="item-action-btn" onclick="editAdvItem('${item.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
+            <button class="item-action-btn danger" onclick="deleteAdvItem('${item.id}')" title="Delete"><i class="bi bi-trash"></i></button>
+          </div>
+        </div>
+        ${closed ? '' : itemBodyHTML(item)}
+      </div>`;
+    list.appendChild(el);
+    attachAdvDragEvents(el);
+    if(!closed && item.type==='Image' && item.mediaKey){ idbGet(item.mediaKey).then(d=>{ const img=document.getElementById('img-'+item.id); if(img&&d) img.src=d; }); }
+  });
+}
+
+let draggedAdvId = null;
+function attachAdvDragEvents(el){
+  el.addEventListener('dragstart', ()=>{ draggedAdvId = el.dataset.itemId; el.classList.add('dragging'); });
+  el.addEventListener('dragend', ()=>{ el.classList.remove('dragging'); document.querySelectorAll('#adv-list .content-item').forEach(i=>i.classList.remove('drag-over-item')); });
+  el.addEventListener('dragover', e=>{ e.preventDefault(); if(draggedAdvId && draggedAdvId!==el.dataset.itemId) el.classList.add('drag-over-item'); });
+  el.addEventListener('dragleave', ()=> el.classList.remove('drag-over-item'));
+  el.addEventListener('drop', e=>{
+    e.preventDefault(); el.classList.remove('drag-over-item');
+    if(!draggedAdvId || draggedAdvId===el.dataset.itemId) return;
+    const items = getAllAdvItems();
+    const fromIdx = items.findIndex(i=>i.id===draggedAdvId);
+    const toIdx = items.findIndex(i=>i.id===el.dataset.itemId);
+    const [moved] = items.splice(fromIdx,1);
+    items.splice(toIdx,0,moved);
+    saveAdvOrder(items);
+    renderAdvanced();
+  });
+}
+
+function deleteAdvItem(id){
+  if(!confirm('Delete this topic?')) return;
+  const item = getAllAdvItems().find(i=>i.id===id);
+  if(item && item.mediaKey) idbDelete(item.mediaKey);
+  if(id.startsWith('adv-seed-')){ advDeleted.add(id); localStorage.setItem('dotnet_adv_deleted', JSON.stringify([...advDeleted])); }
+  else { advCustom = advCustom.filter(i=>i.id!==id); localStorage.setItem('dotnet_adv_custom', JSON.stringify(advCustom)); }
+  renderAdvanced();
+}
+function editAdvItem(id){ openAdvForm(id); }
+
+function advCategoryForType(type){
+  if(type==='PDF') return 'PDF';
+  if(type==='Image') return 'Image';
+  if(type==='Link' || type==='Video' || type==='Post') return 'Link';
+  return 'Content';
+}
+
+// ---- Step 1: ask what kind of advanced topic to add (mirrors Docs Hub) ----
+function openAdvChooser(){
+  editingAdvItem = null; pendingAdvMedia = null;
+  const slot = document.getElementById('adv-form-slot');
+  slot.innerHTML = `
+    <div class="author-form">
+      <h6 class="fw-bold mb-1"><i class="bi bi-plus-circle me-1"></i>What kind of advanced topic?</h6>
+      <p class="small text-muted mb-3">Pick a type — the form below will only ask what's relevant.</p>
+      <div class="type-chooser-grid">
+        <button type="button" class="type-chooser-btn" onclick="openAdvForm(null,'PDF')"><i class="bi bi-file-earmark-pdf-fill" style="color:#dc2626"></i><span class="tc-label">PDF</span><span class="tc-desc">Upload &amp; preview a PDF</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openAdvForm(null,'Image')"><i class="bi bi-image" style="color:#d97706"></i><span class="tc-label">Image</span><span class="tc-desc">Upload a picture</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openAdvForm(null,'Link')"><i class="bi bi-link-45deg" style="color:#0891b2"></i><span class="tc-label">Link</span><span class="tc-desc">Web link — video links auto-play</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openAdvForm(null,'Content')"><i class="bi bi-text-paragraph" style="color:#16a34a"></i><span class="tc-label">Content</span><span class="tc-desc">Paragraph, bullets, or diagram</span></button>
+      </div>
+      <div class="d-flex mt-3"><button class="btn btn-outline-secondary btn-sm" onclick="closeAdvForm()">Cancel</button></div>
+    </div>`;
+  slot.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function openAdvForm(itemId, category){
+  const isEdit = !!itemId;
+  editingAdvItem = itemId; pendingAdvMedia = null;
+  const item = isEdit ? getAllAdvItems().find(i=>i.id===itemId) : null;
+  if(isEdit) category = advCategoryForType(item.type);
+  if(!isEdit && !category){ openAdvChooser(); return; }
+
+  let typeSpecificHTML = '';
+  if(category==='PDF'){
+    typeSpecificHTML = `
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="adv-pdf-input" accept="application/pdf" style="display:none" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name-pdf">${isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):''}</div></div>
+      <div class="col-12"><label>Topic / notes <span class="text-muted fw-normal">(optional, collapsible)</span></label><textarea id="adv-para" class="form-control" rows="2">${isEdit && item.type==='PDF'?item.summary||'':''}</textarea></div>`;
+  } else if(category==='Image'){
+    typeSpecificHTML = `
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="adv-image-input" accept="image/*" style="display:none" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name">${isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):''}</div></div>
+      <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label><textarea id="adv-summary" class="form-control" rows="2">${isEdit && item.type==='Image'?item.summary||'':''}</textarea></div>`;
+  } else if(category==='Link'){
+    typeSpecificHTML = `
+      <div class="col-12"><label>Link URL <span class="text-danger">*required</span> <span class="text-muted fw-normal">— video links play right here</span></label><input id="adv-url" class="form-control" value="${isEdit && item.url?item.url:''}" placeholder="https://..."></div>
+      <div class="col-12"><label>Short summary <span class="text-muted fw-normal">(optional)</span></label><textarea id="adv-summary" class="form-control" rows="2">${isEdit?item.summary||'':''}</textarea></div>`;
+  } else {
+    typeSpecificHTML = `
+      <div class="col-md-5"><label>Content type</label><select id="adv-type" class="form-select" onchange="renderAdvTypeFields()">
+        <option value="Bullets">Bullets</option><option value="Paragraph">Paragraph</option><option value="Diagram">Mini Roadmap Diagram</option>
+      </select></div>
+      <div class="col-12 adv-type-field" data-type="Paragraph"><label>Paragraph text</label><textarea id="adv-para" class="form-control" rows="3">${isEdit && item.type==='Paragraph'?item.summary||'':''}</textarea></div>
+      <div class="col-12 adv-type-field" data-type="Bullets"><label>Bullet points (one per line)</label><textarea id="adv-bullets" class="form-control" rows="3">${isEdit && item.points?item.points.join('\n'):''}</textarea></div>
+      <div class="col-12 adv-type-field" data-type="Diagram"><label>Steps (one per line)</label><textarea id="adv-steps" class="form-control" rows="3">${isEdit && item.steps?item.steps.join('\n'):''}</textarea></div>
+      <div class="col-12"><label>Short summary <span class="text-muted fw-normal">(optional)</span></label><textarea id="adv-summary" class="form-control" rows="2">${isEdit && item.type!=='Paragraph'?item.summary||'':''}</textarea></div>`;
+  }
+
+  const catMeta = {PDF:{icon:'bi-file-earmark-pdf-fill',label:'PDF'},Image:{icon:'bi-image',label:'Image'},Link:{icon:'bi-link-45deg',label:'Link'},Content:{icon:'bi-text-paragraph',label:'Content'}}[category];
+  const slot = document.getElementById('adv-form-slot');
+  slot.innerHTML = `
+    <div class="author-form">
+      <h6 class="fw-bold mb-3"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit topic':'Add '+catMeta.label+' topic'}</h6>
+      <div class="row g-2">
+        <div class="col-12"><label>Topic title <span class="text-danger">*required</span></label><input id="adv-title" class="form-control" value="${isEdit?item.title:''}" placeholder="e.g. Rate Limiting Strategies"></div>
+        ${typeSpecificHTML}
+      </div>
+      <div class="d-flex gap-2 mt-3 flex-wrap">
+        <button class="btn btn-primary btn-sm" onclick="submitAdvForm('${category}')"><i class="bi bi-check2 me-1"></i>${isEdit?'Save changes':'Add'}</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeAdvForm()">Cancel</button>
+        ${!isEdit ? `<button class="btn btn-link btn-sm text-muted" onclick="openAdvChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
+      </div>
+    </div>`;
+  if(category==='Content'){ document.getElementById('adv-type').value = isEdit?item.type:'Bullets'; renderAdvTypeFields(); }
+  slot.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function closeAdvForm(){ document.getElementById('adv-form-slot').innerHTML=''; editingAdvItem=null; pendingAdvMedia=null; }
+function renderAdvTypeFields(){
+  const type = document.getElementById('adv-type').value;
+  document.querySelectorAll('.adv-type-field').forEach(f=>f.classList.toggle('active', f.dataset.type===type));
+}
+function handleAdvMediaFile(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    pendingAdvMedia = {dataUrl:reader.result, name:file.name};
+    const el = document.getElementById('adv-media-name') || document.getElementById('adv-media-name-pdf');
+    if(el) el.textContent = '✓ ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)';
+  };
+  reader.readAsDataURL(file);
+}
+async function submitAdvForm(category){
+  const title = document.getElementById('adv-title').value.trim();
+  if(!title){ alert('Please add a topic title.'); return; }
+
+  let type;
+  if(category==='PDF') type='PDF';
+  else if(category==='Image') type='Image';
+  else if(category==='Link'){ const url=document.getElementById('adv-url').value.trim(); type = getVideoEmbedInfo(url) ? 'Video' : 'Link'; }
+  else type = document.getElementById('adv-type').value;
+
+  let data = {type, title, badgeColor: TYPE_COLOR[type]};
+  const summaryEl = document.getElementById('adv-summary');
+  data.summary = summaryEl ? summaryEl.value.trim() : '';
+  if(type==='Paragraph') data.summary = document.getElementById('adv-para').value.trim();
+  if(type==='PDF'){ const p=document.getElementById('adv-para'); if(p) data.summary = p.value.trim(); }
+  if(type==='Bullets') data.points = document.getElementById('adv-bullets').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(type==='Diagram') data.steps = document.getElementById('adv-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(type==='Link' || type==='Video') data.url = document.getElementById('adv-url').value.trim();
+  if((type==='Image'||type==='PDF') && pendingAdvMedia){
+    const key = 'media-adv-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+    await idbPut(key, pendingAdvMedia.dataUrl);
+    data.mediaKey = key; data.mediaName = pendingAdvMedia.name;
+  }
+  if(!editingAdvItem && type==='PDF' && !pendingAdvMedia){ alert('Please choose a PDF file to upload.'); return; }
+  if(!editingAdvItem && type==='Image' && !pendingAdvMedia){ alert('Please choose an image file to upload.'); return; }
+  if((type==='Link'||type==='Video') && !data.url){ alert('Please enter a link URL.'); return; }
+
+  if(editingAdvItem){
+    const old = getAllAdvItems().find(i=>i.id===editingAdvItem);
+    if((type==='Image'||type==='PDF') && !pendingAdvMedia && old.mediaKey){ data.mediaKey=old.mediaKey; data.mediaName=old.mediaName; }
+    if(editingAdvItem.startsWith('adv-seed-')){
+      advOverrides[editingAdvItem] = data;
+      localStorage.setItem('dotnet_adv_overrides', JSON.stringify(advOverrides));
+    } else {
+      const idx = advCustom.findIndex(i=>i.id===editingAdvItem);
+      advCustom[idx] = {...old, ...data, id:old.id};
+      localStorage.setItem('dotnet_adv_custom', JSON.stringify(advCustom));
+    }
+  } else {
+    const newItem = {id:'adv-custom-'+Date.now(), ...data};
+    advCustom.push(newItem);
+    localStorage.setItem('dotnet_adv_custom', JSON.stringify(advCustom));
+  }
+  closeAdvForm();
+  renderAdvanced();
+}
+
+let customQA = JSON.parse(localStorage.getItem('dotnet_custom_qa') || '[]'); // [{id, cat, q, a}] or rich {id, cat, q, type, summary/points/steps/url/mediaKey/mediaName}
+let qaOverrides = JSON.parse(localStorage.getItem('dotnet_qa_overrides') || '{}'); // edits to hardcoded (seed) questions, keyed by seed id
+let qaDeleted = new Set(JSON.parse(localStorage.getItem('dotnet_qa_deleted') || '[]')); // deleted hardcoded question ids
+let editingQAItem = null; // id being edited, or null when adding
+let pendingQAMedia = null;
+
+// ---- Interview Q&A: dynamic, scrollable sub-tabs (Built-in Topics / My Questions are built-in;
+// any number of custom ones can be created right from the "Add question" flow) ----
+let qaSections = JSON.parse(localStorage.getItem('dotnet_qa_sections') || 'null') || [
+  {key:'builtin', label:'Built-in Topics', icon:'bi-collection', builtin:true},
+  {key:'custom', label:'My Questions', icon:'bi-person-lines-fill', builtin:true}
+];
+let activeQASection = localStorage.getItem('dotnet_active_qa_section') || 'builtin';
+function saveQASections(){ localStorage.setItem('dotnet_qa_sections', JSON.stringify(qaSections)); }
+
+// Hardcoded QA_DATA questions get stable ids and flow through the same
+// override/delete pattern as Docs Hub + Advanced+ seed items, so they're
+// editable and deletable too — not just custom-added ones.
+function getAllQAItems(){
+  const seed = [];
+  QA_DATA.forEach((cat,ci)=>{ cat.qs.forEach((qq,qi)=>{ seed.push({id:'qa-seed-'+ci+'-'+qi, cat:cat.cat, q:qq.q, a:qq.a}); }); });
+  return [...seed, ...customQA]
+    .filter(it=>!qaDeleted.has(it.id))
+    .map(it=> qaOverrides[it.id] ? {...it, ...qaOverrides[it.id]} : it);
+}
+
+function findRelatedContent(question){
+  const words = question.toLowerCase().split(/\W+/).filter(w=>w.length>4);
+  const hits = [];
+  for(const phase of PHASES){
+    for(const w of phase.weeks){
+      for(const d of w.days){
+        if(words.some(word=>d.topic.toLowerCase().includes(word))){ hits.push({label:`Day ${d.n} — ${d.topic}`, kind:'Roadmap'}); }
+      }
+    }
+  }
+  for(const author of getAllAuthors()){
+    for(const it of author.items){
+      if(words.some(word=>it.title.toLowerCase().includes(word))){ hits.push({label:it.title, kind:'Docs Hub'}); }
+    }
+  }
+  const seen = new Set(); 
+  return hits.filter(h=>{ const k=h.kind+h.label; if(seen.has(k)) return false; seen.add(k); return true; }).slice(0,2);
+}
+
+// Renders a QA answer body: rich items (PDF/Image/Link/Video) reuse itemBodyHTML just like
+// Docs Hub / Advanced+; plain-text answers collapse behind "Show more" past ~220 chars.
+// Rich-text answers (containing HTML tags from the editor) are never truncated, since cutting
+// mid-tag would break the markup — they're shown in full instead.
+function qaAnswerHTML(q){
+  if(q.type) return itemBodyHTML(q);
+  const text = q.a || '';
+  const isRich = /<[a-z][\s\S]*>/i.test(text);
+  if(isRich || text.length <= 220) return `<div class="item-summary mb-0">${text}</div>`;
+  const short = text.slice(0,220).trim();
+  return `<div class="item-summary mb-0 qa-long-text" data-full="${encodeURIComponent(text)}" data-short="${encodeURIComponent(short)}" data-expanded="0">${short}… <button type="button" class="qa-showmore-btn" onclick="event.stopPropagation();toggleQALongText(this.parentElement)">Show more</button></div>`;
+}
+function toggleQALongText(p){
+  const expanded = p.dataset.expanded==='1';
+  const full = decodeURIComponent(p.dataset.full);
+  const short = decodeURIComponent(p.dataset.short);
+  p.innerHTML = expanded
+    ? `${short}… <button type="button" class="qa-showmore-btn" onclick="event.stopPropagation();toggleQALongText(this.parentElement)">Show more</button>`
+    : `${full} <button type="button" class="qa-showmore-btn" onclick="event.stopPropagation();toggleQALongText(this.parentElement)">Show less</button>`;
+  p.dataset.expanded = expanded ? '0' : '1';
+}
+
+// Builds one category card's HTML (used by both the Built-in and My Questions views).
+// ---- Drag & drop: reorder questions within a category (persisted, mirrors Docs Hub) ----
+let qaCatOrders = JSON.parse(localStorage.getItem('dotnet_qa_cat_orders') || '{}');
+function saveQACatOrder(catName, ids){ qaCatOrders[catName] = ids; localStorage.setItem('dotnet_qa_cat_orders', JSON.stringify(qaCatOrders)); }
+function applyQAOrder(catName, qs){
+  const ord = qaCatOrders[catName];
+  if(!ord) return qs;
+  const map = new Map(qs.map(q=>[q.id,q]));
+  const ordered = ord.map(id=>map.get(id)).filter(Boolean);
+  qs.forEach(q=>{ if(!ord.includes(q.id)) ordered.unshift(q); }); // newly added / unordered items float to the top
+  return ordered;
+}
+let draggedQAId = null, draggedQACat = null;
+function attachQADragEvents(el, catName){
+  el.addEventListener('dragstart', e=>{ draggedQAId = el.dataset.itemId; draggedQACat = catName; e.stopPropagation(); el.classList.add('dragging'); });
+  el.addEventListener('dragend', ()=>{ el.classList.remove('dragging'); document.querySelectorAll('.interview-q').forEach(i=>i.classList.remove('drag-over-item')); });
+  el.addEventListener('dragover', e=>{ e.preventDefault(); e.stopPropagation(); if(draggedQACat===catName && draggedQAId!==el.dataset.itemId) el.classList.add('drag-over-item'); });
+  el.addEventListener('dragleave', ()=> el.classList.remove('drag-over-item'));
+  el.addEventListener('drop', e=>{
+    e.preventDefault(); e.stopPropagation(); el.classList.remove('drag-over-item');
+    if(draggedQACat!==catName || draggedQAId===el.dataset.itemId) return;
+    const rows = [...el.parentElement.querySelectorAll(':scope > .interview-q')];
+    const ids = rows.map(r=>r.dataset.itemId);
+    const fromIdx = ids.indexOf(draggedQAId);
+    const toIdx = ids.indexOf(el.dataset.itemId);
+    ids.splice(toIdx, 0, ids.splice(fromIdx,1)[0]);
+    saveQACatOrder(catName, ids);
+    renderInterview();
+  });
+}
+
+// ---- Search filter (works within whichever section tab is currently active) ----
+function filterQAList(){
+  const term = (document.getElementById('qa-search-input').value||'').trim().toLowerCase();
+  document.querySelectorAll('#qa-items-container .phase-card').forEach(card=>{
+    let anyVisible = false;
+    card.querySelectorAll('.interview-q').forEach(row=>{
+      const match = !term || row.textContent.toLowerCase().includes(term);
+      row.style.display = match ? '' : 'none';
+      if(match) anyVisible = true;
+    });
+    card.style.display = anyVisible ? '' : 'none';
+  });
+}
+
+function qaCategoryCardHTML(catName, qs, color, qiStart){
+  let qi = qiStart;
+  qs = applyQAOrder(catName, qs);
+  return {qi: qi + qs.length, html: `<div class="phase-card mb-3" data-cat-name="${catName}">
+      <div class="phase-header" draggable="true" style="background:${color}15;border-bottom:2px solid ${color};cursor:grab">
+        <span class="fw-bold d-flex align-items-center gap-2" style="color:${color}"><i class="bi bi-grip-vertical" style="color:${color}66" title="Drag to reorder this whole category"></i>${catName}</span>
+        <span class="phase-badge" style="background:${color};color:white">${qs.length} Questions</span>
+      </div>
+      <div style="padding:0.6rem">
+        ${qs.map(q=>{
+          const id='qa-'+(qi++);
+          const related = findRelatedContent(q.q);
+          return `<div class="interview-q" draggable="true" data-item-id="${q.id}" data-cat="${catName}" style="cursor:pointer;border-color:${color};position:relative">
+            <div onclick="toggleQA('${id}','${q.id}',this)" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+              <span class="d-flex align-items-center gap-2"><i class="bi bi-grip-vertical" style="color:#c7ccd8;cursor:grab" title="Drag to reorder"></i>${q.type?`<span class="item-badge" style="background:${(q.badgeColor||TYPE_COLOR[q.type])}18;color:${q.badgeColor||TYPE_COLOR[q.type]}"><i class="bi ${TYPE_ICON[q.type]||'bi-file-text'} me-1"></i>${q.type}</span>`:''}<span>${q.q}</span></span>
+              <span class="d-flex align-items-center gap-2">
+                <i class="bi bi-pencil text-primary" style="font-size:0.8rem" onclick="event.stopPropagation();editQAItem('${q.id}')"></i>
+                <i class="bi bi-trash text-danger" style="font-size:0.8rem" onclick="event.stopPropagation();deleteQAItem('${q.id}')"></i>
+                <i class="bi bi-chevron-down" style="font-size:0.75rem;flex-shrink:0;color:${color}"></i>
+              </span>
+            </div>
+            <div id="${id}" class="qa-answer">
+              ${qaAnswerHTML(q)}
+              ${related.length ? `<div class="mt-2 pt-2" style="border-top:1px dashed #cbd5e1">${related.map(r=>`<span class="badge rounded-pill" style="background:#e0e7ff;color:#4338ca;font-size:0.68rem;font-weight:600;margin-right:4px"><i class="bi bi-link-45deg"></i> ${r.label} (${r.kind})</span>`).join('')}</div>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`};
+}
+
+// ---- Drag & drop: reorder entire category sections (Built-in Topics / My Questions, tracked separately) ----
+let qaCatOrder = JSON.parse(localStorage.getItem('dotnet_qa_cat_order') || '{}'); // {builtin:[catName,...], custom:[catName,...]}
+function applyCatOrder(viewKey, cats){
+  const ord = qaCatOrder[viewKey];
+  if(!ord) return cats;
+  const set = new Set(cats);
+  const ordered = ord.filter(c=>set.has(c));
+  cats.forEach(c=>{ if(!ordered.includes(c)) ordered.push(c); });
+  return ordered;
+}
+function saveCatOrder(viewKey, cats){ qaCatOrder[viewKey]=cats; localStorage.setItem('dotnet_qa_cat_order', JSON.stringify(qaCatOrder)); }
+let draggedQACatName = null, draggedQACatView = null;
+function attachQACategoryDragEvents(el, viewKey){
+  const handle = el.querySelector('.phase-header');
+  handle.addEventListener('dragstart', e=>{ draggedQACatName = el.dataset.catName; draggedQACatView = viewKey; e.stopPropagation(); el.classList.add('dragging'); });
+  handle.addEventListener('dragend', ()=>{ el.classList.remove('dragging'); document.querySelectorAll('.phase-card').forEach(c=>c.classList.remove('drag-over-item')); });
+  el.addEventListener('dragover', e=>{ e.preventDefault(); e.stopPropagation(); if(draggedQACatView===viewKey && draggedQACatName!==el.dataset.catName) el.classList.add('drag-over-item'); });
+  el.addEventListener('dragleave', ()=> el.classList.remove('drag-over-item'));
+  el.addEventListener('drop', e=>{
+    e.preventDefault(); e.stopPropagation(); el.classList.remove('drag-over-item');
+    if(draggedQACatView!==viewKey || draggedQACatName===el.dataset.catName) return;
+    const names = [...el.parentElement.querySelectorAll(':scope > .phase-card')].map(c=>c.dataset.catName);
+    const fromIdx = names.indexOf(draggedQACatName), toIdx = names.indexOf(el.dataset.catName);
+    names.splice(toIdx, 0, names.splice(fromIdx,1)[0]);
+    saveCatOrder(viewKey, names);
+    renderInterview();
+  });
+}
+
+function renderInterview(){
+  renderQASubtabs();
+  const allItems = getAllQAItems();
+  const catColorMap = {}; QA_DATA.forEach(cc=> catColorMap[cc.cat]=cc.color);
+  const builtinIds = new Set();
+  QA_DATA.forEach((cat,ci)=> cat.qs.forEach((qq,qi)=> builtinIds.add('qa-seed-'+ci+'-'+qi)));
+
+  const sectionItems = allItems.filter(i=>{
+    const sec = i.section || (builtinIds.has(i.id) ? 'builtin' : 'custom');
+    return sec === activeQASection;
+  });
+
+  const c = document.getElementById('qa-items-container'); c.innerHTML='';
+  if(sectionItems.length===0){
+    c.innerHTML = `<p class="small text-muted text-center py-3"><i class="bi bi-info-circle me-1"></i>Nothing in this tab yet — tap "Add question" above to add one here.</p>`;
+  } else {
+    let cats = [...new Set(sectionItems.map(i=>i.cat))];
+    cats = applyCatOrder(activeQASection, cats);
+    let qi=0;
+    cats.forEach(catName=>{
+      const qs = sectionItems.filter(i=>i.cat===catName);
+      if(qs.length===0) return;
+      const color = catColorMap[catName] || (activeQASection==='builtin' ? '#4f46e5' : '#16a34a');
+      const res = qaCategoryCardHTML(catName, qs, color, qi); qi = res.qi;
+      c.innerHTML += res.html;
+    });
+  }
+
+  document.querySelectorAll('#qa-items-container > .phase-card').forEach(el=> attachQACategoryDragEvents(el, activeQASection));
+  document.querySelectorAll('#qa-items-container .interview-q').forEach(el=> attachQADragEvents(el, el.dataset.cat));
+  const searchEl = document.getElementById('qa-search-input');
+  if(searchEl && searchEl.value) filterQAList();
+}
+
+// ---- Dynamic, scrollable Interview Q&A sub-tabs ----
+function renderQASubtabs(){
+  const el = document.getElementById('qa-subtabs');
+  if(!el) return;
+  el.innerHTML = qaSections.map(s=>`
+    <button class="subtab-pill ${s.key===activeQASection?'active':''}" data-key="${s.key}" draggable="true" onclick="setQASubtab('${s.key}')">
+      <i class="bi bi-grip-vertical" style="opacity:0.4;font-size:0.7rem"></i>
+      <i class="bi ${s.icon}"></i>${s.label}
+      ${!s.builtin ? `<i class="bi bi-x-circle del-section" onclick="event.stopPropagation();deleteQASection('${s.key}')" title="Delete this tab"></i>` : ''}
+    </button>`).join('')
+    + `<button class="subtab-pill add-pill" onclick="promptNewQASection()"><i class="bi bi-plus-lg"></i>New tab</button>`;
+  attachSubtabDragEvents('qa-subtabs', qaSections, saveQASections, renderQASubtabs);
+}
+function setQASubtab(key){
+  activeQASection = key;
+  localStorage.setItem('dotnet_active_qa_section', key);
+  renderInterview();
+}
+function promptNewQASection(){
+  const name = prompt('Name your new tab (e.g. "Behavioral Questions", "System Design"):');
+  if(!name) return;
+  const key = slugify(name);
+  if(!qaSections.some(s=>s.key===key)){
+    qaSections.push({key, label:name, icon:'bi-folder2', builtin:false});
+    saveQASections();
+  }
+  setQASubtab(key);
+}
+function deleteQASection(key){
+  const sec = qaSections.find(s=>s.key===key);
+  if(!sec) return;
+  if(!confirm(`Delete the "${sec.label}" tab? Any questions in it will move back to My Questions.`)) return;
+  customQA.forEach(q=>{ if((q.section||'custom')===key) q.section='custom'; });
+  localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
+  qaSections = qaSections.filter(s=>s.key!==key);
+  saveQASections();
+  setQASubtab('custom');
+}
+
+function deleteQAItem(id){
+  if(!confirm('Delete this question?')) return;
+  const item = getAllQAItems().find(i=>i.id===id);
+  if(item && item.mediaKey) idbDelete(item.mediaKey);
+  if(id.startsWith('qa-seed-')){ qaDeleted.add(id); localStorage.setItem('dotnet_qa_deleted', JSON.stringify([...qaDeleted])); }
+  else { customQA = customQA.filter(i=>i.id!==id); localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA)); }
+  renderInterview();
+}
+function editQAItem(id){ openQAForm(id); }
+
+function qaCategoryForType(type){
+  if(!type) return 'Content';
+  if(type==='PDF') return 'PDF';
+  if(type==='Image') return 'Image';
+  if(type==='Link' || type==='Video') return 'Link';
+  return 'Content';
+}
+
+// ---- Step 1: ask what kind of answer to add — compact chooser, same options as Docs Hub ----
+let pendingQADestination = 'custom';
+function openQAChooser(){
+  editingQAItem = null; pendingQAMedia = null;
+  openModal(`
+    <div class="author-form qa-form-compact mb-0">
+      <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>Where should this go?</h6>
+      <div class="type-chooser-grid" style="grid-template-columns:repeat(2,1fr)">
+        ${qaSections.map(s=>`<button type="button" class="type-chooser-btn" onclick="openQATypeChooser('${s.key}')"><i class="bi ${s.icon}" style="color:${s.builtin?'#4f46e5':'#16a34a'}"></i><span class="tc-label">${s.label}</span></button>`).join('')}
+      </div>
+      <button type="button" class="type-chooser-btn mt-2" style="border-style:dashed;width:100%" onclick="promptNewQASectionThenAdd()"><i class="bi bi-plus-lg" style="color:#16a34a"></i><span class="tc-label">Create a new tab</span></button>
+      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+function promptNewQASectionThenAdd(){
+  const name = prompt('Name your new tab (e.g. "Behavioral Questions", "System Design"):');
+  if(!name) return;
+  const key = slugify(name);
+  if(!qaSections.some(s=>s.key===key)){
+    qaSections.push({key, label:name, icon:'bi-folder2', builtin:false});
+    saveQASections();
+  }
+  openQATypeChooser(key);
+}
+
+function openQATypeChooser(destination){
+  pendingQADestination = destination;
+  openModal(`
+    <div class="author-form qa-form-compact mb-0">
+      <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>Add a question</h6>
+      <div class="type-chooser-grid">
+        <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'PDF')"><i class="bi bi-file-earmark-pdf-fill" style="color:#dc2626"></i><span class="tc-label">PDF</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'Image')"><i class="bi bi-image" style="color:#d97706"></i><span class="tc-label">Image</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'Link')"><i class="bi bi-link-45deg" style="color:#0891b2"></i><span class="tc-label">Link</span></button>
+        <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'Content')"><i class="bi bi-text-paragraph" style="color:#16a34a"></i><span class="tc-label">Text</span></button>
+      </div>
+      <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-link btn-sm text-muted p-0 ps-2" onclick="openQAChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>
+      </div>
+    </div>`);
+}
+
+function openQAForm(itemId, category){
+  const isEdit = !!itemId;
+  editingQAItem = itemId; pendingQAMedia = null;
+  const item = isEdit ? getAllQAItems().find(i=>i.id===itemId) : null;
+  if(isEdit) category = qaCategoryForType(item.type);
+  if(!isEdit && !category){ openQAChooser(); return; }
+
+  const existingCats = QA_DATA.map(c=>c.cat);
+  let typeSpecificHTML = '';
+  if(category==='PDF'){
+    typeSpecificHTML = `
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="qa-pdf-input" accept="application/pdf" style="display:none" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name-pdf">${isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):''}</div></div>
+      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-para','Optional notes', isEdit && item.type==='PDF'?item.summary||'':'')}</div>`;
+  } else if(category==='Image'){
+    typeSpecificHTML = `
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="qa-image-input" accept="image/*" style="display:none" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name">${isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):''}</div></div>
+      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-summary','Optional notes', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
+  } else if(category==='Link'){
+    typeSpecificHTML = `
+      <div class="col-12"><label>Link URL <span class="text-danger">*</span></label><input id="qa-url" class="form-control" value="${isEdit && item.url?item.url:''}" placeholder="https://..."></div>
+      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-summary','Optional notes', isEdit?item.summary||'':'')}</div>`;
+  } else {
+    typeSpecificHTML = `<div class="col-12"><label>Answer <span class="text-danger">*</span></label>${rteEditorHTML('qa-a','Write the answer', isEdit?(item.a||item.summary||''):'')}</div>`;
+  }
+
+  const catMeta = {PDF:{icon:'bi-file-earmark-pdf-fill',label:'PDF'},Image:{icon:'bi-image',label:'Image'},Link:{icon:'bi-link-45deg',label:'Link'},Content:{icon:'bi-text-paragraph',label:'Text'}}[category];
+  openModal(`
+    <div class="author-form qa-form-compact mb-0">
+      <h6 class="fw-bold mb-2"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit question':catMeta.label+' answer'}</h6>
+      <div class="row g-2">
+        <div class="col-md-6"><label>Category</label><input id="qa-cat" class="form-control" list="qa-cat-list" placeholder="e.g. C# Core" value="${isEdit?item.cat:''}"><datalist id="qa-cat-list">${existingCats.map(cn=>`<option value="${cn}">`).join('')}</datalist></div>
+        <div class="col-md-6"><label>Question <span class="text-danger">*</span></label><input id="qa-q" class="form-control" placeholder="e.g. What is ref vs out?" value="${isEdit?item.q:''}"></div>
+        ${typeSpecificHTML}
+      </div>
+      <div class="d-flex gap-2 mt-2 flex-wrap">
+        <button class="btn btn-primary btn-sm" onclick="submitQAForm('${category}')"><i class="bi bi-check2 me-1"></i>${isEdit?'Save':'Add'}</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()">Cancel</button>
+        ${!isEdit ? `<button class="btn btn-link btn-sm text-muted p-0 ps-2" onclick="openQATypeChooser(pendingQADestination)"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
+      </div>
+    </div>`);
+}
+function closeQAForm(){ closeModal(); editingQAItem=null; pendingQAMedia=null; }
+function handleQAMediaFile(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    pendingQAMedia = {dataUrl:reader.result, name:file.name};
+    const el = document.getElementById('qa-media-name') || document.getElementById('qa-media-name-pdf');
+    if(el) el.textContent = '✓ ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)';
+  };
+  reader.readAsDataURL(file);
+}
+async function submitQAForm(category){
+  const cat = document.getElementById('qa-cat').value.trim() || 'Custom Questions';
+  const q = document.getElementById('qa-q').value.trim();
+  if(!q){ alert('Please add the question.'); return; }
+
+  let type = null;
+  if(category==='PDF') type='PDF';
+  else if(category==='Image') type='Image';
+  else if(category==='Link'){ const url=document.getElementById('qa-url').value.trim(); type = getVideoEmbedInfo(url) ? 'Video' : 'Link'; }
+
+  let data = {cat, q};
+  if(type){
+    data.type = type; data.badgeColor = TYPE_COLOR[type];
+    data.summary = rteGetHTML('qa-summary');
+    if(type==='PDF') data.summary = rteGetHTML('qa-para');
+    if(type==='Link' || type==='Video') data.url = document.getElementById('qa-url').value.trim();
+    if((type==='Image'||type==='PDF') && pendingQAMedia){
+      const key = 'media-qa-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+      await idbPut(key, pendingQAMedia.dataUrl);
+      data.mediaKey = key; data.mediaName = pendingQAMedia.name;
+    }
+    if(!editingQAItem && type==='PDF' && !pendingQAMedia){ alert('Please choose a PDF file to upload.'); return; }
+    if(!editingQAItem && type==='Image' && !pendingQAMedia){ alert('Please choose an image file to upload.'); return; }
+    if((type==='Link'||type==='Video') && !data.url){ alert('Please enter a link URL.'); return; }
+  } else {
+    const a = rteGetHTML('qa-a');
+    if(!a){ alert('Please write the answer.'); return; }
+    data.a = a;
+  }
+
+  if(editingQAItem){
+    const old = getAllQAItems().find(i=>i.id===editingQAItem);
+    if(type && (type==='Image'||type==='PDF') && !pendingQAMedia && old.mediaKey){ data.mediaKey=old.mediaKey; data.mediaName=old.mediaName; }
+    if(old.mediaKey && data.mediaKey && old.mediaKey!==data.mediaKey) idbDelete(old.mediaKey);
+    if(editingQAItem.startsWith('qa-seed-')){
+      qaOverrides[editingQAItem] = data;
+      localStorage.setItem('dotnet_qa_overrides', JSON.stringify(qaOverrides));
+    } else {
+      const idx = customQA.findIndex(i=>i.id===editingQAItem);
+      customQA[idx] = {...old, ...data, id:old.id};
+      if(!type){ delete customQA[idx].type; delete customQA[idx].badgeColor; delete customQA[idx].url; delete customQA[idx].mediaKey; delete customQA[idx].mediaName; }
+      localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
+    }
+  } else {
+    customQA.unshift({id:'qa-custom-'+Date.now(), section: pendingQADestination, ...data});
+    localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
+  }
+  closeQAForm();
+  if(activeQASection !== pendingQADestination){
+    setQASubtab(pendingQADestination);
+  } else {
+    renderInterview();
+  }
+}
+
+function toggleQA(id, itemId, el){
+  const ans=document.getElementById(id);
+  const icon=el.querySelector('.bi-chevron-down');
+  const shown=ans.style.display==='block';
+  ans.style.display=shown?'none':'block';
+  if(icon) icon.style.transform=shown?'':'rotate(180deg)';
+  if(!shown && itemId){
+    const item = getAllQAItems().find(i=>i.id===itemId);
+    if(item && item.type==='Image' && item.mediaKey){
+      idbGet(item.mediaKey).then(d=>{ const img=document.getElementById('img-'+item.id); if(img&&d) img.src=d; });
+    }
+  }
+}
+
+function renderSummary(){
+  const c=document.getElementById('sum-container'); c.innerHTML='';
+
+  c.innerHTML+=`<div class="docshub-header" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+    <div>
+      <h5 class="docshub-title"><i class="bi bi-trophy-fill me-2"></i>Timeline &amp; Summary</h5>
+      <p class="docshub-sub mb-0">Your pace, the month-by-month plan, an ideal daily schedule, and every note you've written.</p>
+    </div>
+  </div>`;
+
+  // Timeline / pace card
+  c.innerHTML += renderTimelineCard();
+
+  // Month-by-month
+  c.innerHTML+=`<h5 style="font-weight:700;margin-bottom:1rem"><i class="bi bi-calendar3 me-2 text-primary"></i>Month-by-Month Timeline</h5>`;
+  SUMMARY.timeline.forEach(m=>{
+    c.innerHTML+=`<div class="summary-phase mb-2" style="background:${m.bg};border-left:4px solid ${m.color}">
+      <h6 style="color:${m.color};margin-bottom:0.35rem">${m.month} — ${m.title}</h6>
+      <div>${m.skills.map(s=>`<span class="skill-pill" style="background:${m.color}22;color:${m.color}">${s}</span>`).join('')}</div>
+    </div>`;
+  });
+
+  // Daily schedule
+  c.innerHTML+=`<h5 style="font-weight:700;margin:1.5rem 0 1rem"><i class="bi bi-clock me-2 text-warning"></i>Ideal Daily Schedule</h5>
+  <div class="card border-0 shadow-sm p-3 mb-3">
+    ${SUMMARY.dailySchedule.map((s,i)=>`<div style="display:flex;gap:12px;padding:7px 0;${i>0?'border-top:1px solid #f3f4f6':''}">
+      <span style="min-width:150px;font-size:0.78rem;font-weight:600;color:var(--primary)">${s.time}</span>
+      <span style="font-size:0.82rem;color:#374151">${s.task}</span>
+    </div>`).join('')}
+  </div>`;
+
+  // My Notes
+  c.innerHTML+=`<h5 style="font-weight:700;margin:1.5rem 0 1rem"><i class="bi bi-stickies me-2" style="color:#d97706"></i>My Notes</h5>
+  <input id="notes-search-input" class="form-control notes-search mb-2" placeholder="🔍 Search your notes..." oninput="filterNotes()">
+  <div id="all-notes-list">${renderAllNotes('')}</div>`;
+
+  // Final note — real, live countdown instead of a hardcoded number
+  const t = getTimelineInfo();
+  c.innerHTML+=`<div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:14px;padding:1.2rem;color:white;text-align:center;margin-top:1.5rem">
+    <div style="font-size:1.6rem;margin-bottom:0.3rem">🚀</div>
+    <p style="font-size:0.85rem;opacity:0.95;margin:0">${t.overdue ? 'Past target date' : t.remainingDays+' days left'} · Every day counts. Track your streak, ship your projects.</p>
+  </div>`;
+}
+
+// ===================== FIREBASE BRIDGE =====================
+// Auth, Firestore sync and the sync badge live in js/boot.js + js/cloud-store.js.
+// Every localStorage write to a "dotnet_*" key is saved to Firestore automatically.
+function syncNow(){ if(window.Cloud) Cloud.flush(); }
+function signOutUser(){ if(window.Cloud) Cloud.signOut(); }
+
+// ===================== PROFILE / SETTINGS =====================
+const TROUBLESHOOTING = [
+  {q:"Sign-up says 'operation-not-allowed' / 'configuration not found'",
+   a:"In the Firebase console go to Authentication → Sign-in method and enable <strong>Email/Password</strong>. Usernames are stored as <code>username@users.dotnet-roadmap.app</code> behind the scenes — no real email and no verification is needed."},
+  {q:"'Missing or insufficient permissions'",
+   a:"Publish the rules from <code>firestore.rules</code>: Firebase console → Firestore Database → Rules, or run <code>firebase deploy --only firestore:rules</code>."},
+  {q:"Sync badge stays on 'Saving…'",
+   a:"You're probably offline or Firestore isn't created yet. Changes are kept on this device and retried automatically as soon as the connection is back."},
+  {q:"My data isn't showing on another device",
+   a:"Sign in with the exact same username. Wait for the badge to say 'Saved', then reload the other device — it always loads from Firebase on startup."},
+  {q:"I forgot my password",
+   a:"There is no email on the account, so there is no reset link. Delete the user in Firebase console → Authentication and create a new one, or reset the password there if you have admin access."}
+];
+
+function toggleProfileItem(id, el){
+  const ans = document.getElementById(id);
+  const icon = el.querySelector('.bi-chevron-down');
+  const shown = ans.style.display==='block';
+  ans.style.display = shown ? 'none' : 'block';
+  if(icon) icon.style.transform = shown ? '' : 'rotate(180deg)';
+}
+
+function saveDisplayName(){
+  const name = document.getElementById('display-name-input').value.trim();
+  if(name) localStorage.setItem('dotnet_display_name', name);
+  else localStorage.removeItem('dotnet_display_name');
+  updateGreeting();
+  renderProfile();
+}
+function updateGreeting(){
+  const name = localStorage.getItem('dotnet_display_name');
+  const el = document.getElementById('roadmap-greeting');
+  if(el) el.textContent = name ? `Welcome back, ${name} 👋` : '';
+}
+
+function saveStartDate(){
+  const val = document.getElementById('start-date-input').value;
+  if(val) localStorage.setItem('dotnet_start_date', val);
+  renderProfile();
+  updateCalendarCaption();
+}
+// Shared by the Profile Timeline card and the "Days Left" stat caption, so both
+// always agree on start date, target end date, and days remaining.
+function getTimelineInfo(){
+  const TOTAL_DAYS = 175;
+  const startStr = localStorage.getItem('dotnet_start_date') || new Date().toISOString().slice(0,10);
+  const start = new Date(startStr+'T00:00:00');
+  const target = new Date(start.getTime() + TOTAL_DAYS*24*60*60*1000);
+  const now = new Date();
+  const msPerDay = 24*60*60*1000;
+  const elapsedDays = Math.max(0, Math.floor((now - start)/msPerDay));
+  const remainingMs = target - now;
+  const remainingDays = Math.max(0, Math.ceil(remainingMs/msPerDay));
+  const remainingHours = Math.max(0, Math.round(remainingMs/(60*60*1000)));
+  const doneCount = done.size;
+  const elapsedWeeks = Math.max(1, elapsedDays/7);
+  const currentPace = (doneCount/elapsedWeeks).toFixed(1);
+  const remainingDaysToDo = TOTAL_DAYS - doneCount;
+  const remainingWeeks = Math.max(0.1, remainingDays/7);
+  const requiredPace = (remainingDaysToDo/remainingWeeks).toFixed(1);
+  const overdue = remainingMs < 0;
+  const hasCustomStart = !!localStorage.getItem('dotnet_start_date');
+  return {TOTAL_DAYS, startStr, start, target, elapsedDays, remainingDays, remainingHours, doneCount, currentPace, requiredPace, overdue, hasCustomStart};
+}
+
+function renderTimelineCard(){
+  const t = getTimelineInfo();
+  const {startStr, target, elapsedDays, remainingDays, remainingHours, doneCount, currentPace, requiredPace, overdue} = t;
+
+  return `<div class="phase-card mb-3" style="padding:1.1rem">
+    <h6 class="fw-bold mb-2"><i class="bi bi-hourglass-split me-2 text-primary"></i>Timeline</h6>
+    <div class="row g-2 mb-3">
+      <div class="col-6">
+        <label class="small text-muted d-block">Start date</label>
+        <div class="d-flex gap-2">
+          <input type="date" id="start-date-input" class="form-control form-control-sm" value="${startStr}">
+          <button class="btn btn-sm btn-outline-primary" onclick="saveStartDate()">Set</button>
+        </div>
+      </div>
+      <div class="col-6">
+        <label class="small text-muted d-block">Target completion</label>
+        <div class="form-control form-control-sm bg-light">${target.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
+      </div>
+    </div>
+    <div class="row g-2" style="font-size:0.8rem">
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:#f5f4ff"><div class="num" style="color:#4f46e5;font-size:1.2rem">${elapsedDays}</div><div class="lbl">Days Elapsed</div></div></div>
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:${overdue?'#fee2e2':'#dcfce7'}"><div class="num" style="color:${overdue?'#dc2626':'#16a34a'};font-size:1.2rem">${overdue?'0':remainingDays}</div><div class="lbl">${overdue?'Past target':'Days Remaining'}</div></div></div>
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:#fffbeb"><div class="num" style="color:#d97706;font-size:1.2rem">${overdue?'0':remainingHours}</div><div class="lbl">Hours Remaining</div></div></div>
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:#f0f9ff"><div class="num" style="color:#0891b2;font-size:1.2rem">${currentPace}</div><div class="lbl">Days/Week Pace</div></div></div>
+    </div>
+    <p class="small mt-2 mb-0" style="color:${doneCount>0 && currentPace>=requiredPace ? '#16a34a':'#d97706'}">
+      ${overdue ? "You're past your original target date — consider setting a new start date, or just keep going at your own pace." :
+        `To finish by ${target.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}, you need about <strong>${requiredPace} days/week</strong>. ${doneCount>0 ? `You're currently averaging <strong>${currentPace}/week</strong>.` : ''}`}
+    </p>
+  </div>`;
+}
+
+// ===================== BACKUP / RESTORE (export & import everything as one JSON file) =====================
+const BACKUP_KEYS = [
+  'dotnet_adv_collapsed','dotnet_adv_custom','dotnet_adv_deleted','dotnet_adv_order','dotnet_adv_overrides',
+  'dotnet_author_collapsed','dotnet_author_order','dotnet_author_overrides','dotnet_custom_authors',
+  'dotnet_custom_phase_done','dotnet_custom_phases','dotnet_custom_qa','dotnet_custom_resources',
+  'dotnet_day_notes','dotnet_deleted_items','dotnet_display_name','dotnet_done2','dotnet_item_collapsed',
+  'dotnet_item_expanded','dotnet_item_orders','dotnet_item_overrides','dotnet_note_collapsed',
+  'dotnet_qa_cat_order','dotnet_qa_cat_orders','dotnet_qa_deleted','dotnet_qa_overrides',
+  'dotnet_res_cat_order','dotnet_resume_data','dotnet_start_date'
+];
+function exportBackup(){
+  const data = {};
+  BACKUP_KEYS.forEach(k=>{ const v = localStorage.getItem(k); if(v!==null) data[k]=v; });
+  const payload = {app:'dotnet-tracker', exportedAt: new Date().toISOString(), data};
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'dotnet-tracker-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+}
+function triggerImportBackup(){ document.getElementById('backup-import-input').click(); }
+function importBackup(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    let payload;
+    try{ payload = JSON.parse(reader.result); }catch(err){ alert('That file is not a valid backup (invalid JSON).'); return; }
+    if(!payload || !payload.data){ alert('That file is not a valid backup — expected a dotnet-tracker export.'); return; }
+    if(!confirm('This will replace your current data (progress, notes, Docs Hub, Q&A, resume, etc.) on this device with the backup. Continue?')) return;
+    BACKUP_KEYS.forEach(k=>{
+      if(payload.data[k]!==undefined) localStorage.setItem(k, payload.data[k]);
+      else localStorage.removeItem(k);
+    });
+    (window.Cloud ? Cloud.flush() : Promise.resolve()).then(()=>{ alert('Backup restored. Reloading...'); location.reload(); });
+  };
+  reader.readAsText(file);
+}
+function getLocalStorageSizeKB(){
+  let total = 0;
+  BACKUP_KEYS.forEach(k=>{ const v = localStorage.getItem(k); if(v) total += v.length; });
+  return (total/1024).toFixed(1);
+}
+
+function renderProfile(){
+  const c = document.getElementById('profile-container'); c.innerHTML='';
+
+  const signedIn = !!(window.Cloud && Cloud.user);
+  const displayName = localStorage.getItem('dotnet_display_name') || '';
+
+  c.innerHTML += `<div class="docshub-header" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
+    <div>
+      <h5 class="docshub-title"><i class="bi bi-person-circle me-2"></i>${displayName ? displayName : 'Your'} Profile</h5>
+      <p class="docshub-sub mb-0">Switch to <strong>Timeline &amp; Summary</strong> for pace, plan, and notes.</p>
+    </div>
+  </div>`;
+
+  // Name + Sync — one compact card instead of two
+  c.innerHTML += `<div class="phase-card mb-3" style="padding:1rem">
+    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+      <label class="mb-0 small fw-bold text-muted" style="flex:0 0 auto"><i class="bi bi-person-badge me-1"></i>Name</label>
+      <input id="display-name-input" class="form-control form-control-sm" style="flex:1 1 120px;min-width:0" placeholder="e.g. Sandip" value="${displayName}">
+      <button class="btn btn-sm btn-primary flex-shrink-0" onclick="saveDisplayName()">Save</button>
+    </div>
+    <hr class="my-2">
+    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+      <span class="small d-flex align-items-center gap-1"><i class="bi bi-cloud-check" style="color:${signedIn?'#16a34a':'#9ca3af'}"></i>${signedIn ? 'Signed in as <strong>'+Cloud.user.username+'</strong> · saved to Firebase' : 'Not signed in'}</span>
+      ${signedIn ? `<button class="btn btn-sm btn-outline-danger" onclick="signOutUser()"><i class="bi bi-box-arrow-right me-1"></i>Sign out</button>` : `<a class="btn btn-sm btn-outline-primary" href="login.html">Sign in</a>`}
+    </div>
+  </div>`;
+
+  // Data snapshot — real numbers from what's actually stored right now
+  const notesCount = Object.keys(dayNotes).length;
+  const customContentCount = getAllAuthors().reduce((sum,a)=>sum+a.items.length,0);
+  const customQACount = getAllQAItems().length;
+  c.innerHTML += `<div class="phase-card mb-3" style="padding:1rem">
+    <h6 class="fw-bold mb-2" style="font-size:0.85rem"><i class="bi bi-bar-chart me-2 text-primary"></i>Your data, right now</h6>
+    <div class="row g-2" style="font-size:0.8rem">
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:#f5f4ff;padding:0.7rem"><div class="num" style="color:#4f46e5;font-size:1.2rem">${done.size}</div><div class="lbl">Days Done</div></div></div>
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:#fffbeb;padding:0.7rem"><div class="num" style="color:#d97706;font-size:1.2rem">${notesCount}</div><div class="lbl">Notes</div></div></div>
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:#f0f9ff;padding:0.7rem"><div class="num" style="color:#0891b2;font-size:1.2rem">${customContentCount}</div><div class="lbl">Docs Hub Items</div></div></div>
+      <div class="col-6 col-md-3"><div class="stat-box" style="background:#fef2f2;padding:0.7rem"><div class="num" style="color:#dc2626;font-size:1.2rem">${customQACount}</div><div class="lbl">Q&amp;A Items</div></div></div>
+    </div>
+  </div>`;
+
+  // Backup & restore — a real safety net since everything lives in this browser's storage
+  c.innerHTML += `<div class="phase-card mb-3" style="padding:1rem">
+    <h6 class="fw-bold mb-1" style="font-size:0.85rem"><i class="bi bi-shield-check me-2 text-primary"></i>Backup &amp; Restore</h6>
+    <p class="small text-muted mb-2">Everything is stored in Firebase under your account (~${getLocalStorageSizeKB()} KB of settings/notes, plus uploads). You can still download an extra backup file any time.</p>
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-sm btn-primary" onclick="exportBackup()"><i class="bi bi-download me-1"></i>Download backup</button>
+      <button class="btn btn-sm btn-outline-primary" onclick="triggerImportBackup()"><i class="bi bi-upload me-1"></i>Restore from backup</button>
+      <input type="file" id="backup-import-input" accept="application/json" style="display:none" onchange="importBackup(event)">
+    </div>
+  </div>`;
+
+  // Technical details — tucked behind a collapsible so Overview stays short
+  c.innerHTML += `<details class="phase-card mb-3 profile-details">
+    <summary class="fw-bold" style="font-size:0.85rem;padding:1rem;cursor:pointer;list-style:none"><i class="bi bi-diagram-3 me-2 text-primary"></i>How this app is wired up <i class="bi bi-chevron-down float-end" style="font-size:0.7rem;color:var(--muted)"></i></summary>
+    <table class="table table-sm mb-0" style="font-size:0.78rem;padding:0 1rem 1rem">
+      <tbody>
+        <tr><td class="text-muted" style="width:40%">Login</td><td>Username + password (Firebase Authentication) — no email verification</td></tr>
+        <tr><td class="text-muted">Cloud storage</td><td>Cloud Firestore, under <code>users/&lt;your id&gt;</code> — the source of truth</td></tr>
+        <tr><td class="text-muted">Local copy</td><td>Browser cache only; cleared when you sign out</td></tr>
+        <tr><td class="text-muted">Auto-save</td><td>~1.5 seconds after every change, plus when the tab is hidden or closed</td></tr>
+        <tr><td class="text-muted">What's stored</td><td>Progress, notes, Docs Hub, Advanced+, Q&amp;A, resume, layout prefs, name, images &amp; PDFs</td></tr>
+      </tbody>
+    </table>
+  </details>`;
+
+  c.innerHTML += `<h6 class="fw-bold mb-2 mt-3" style="font-size:0.85rem"><i class="bi bi-life-preserver me-2" style="color:#d97706"></i>Troubleshooting</h6>`;
+  c.innerHTML += `<div style="padding:0">` + TROUBLESHOOTING.map((t,i)=>{
+    const id = 'profile-ts-'+i;
+    return `<div class="interview-q" style="cursor:pointer;border-color:#d97706">
+      <div onclick="toggleProfileItem('${id}',this)" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <span>${t.q}</span>
+        <i class="bi bi-chevron-down" style="font-size:0.75rem;flex-shrink:0;color:#d97706"></i>
+      </div>
+      <div id="${id}" class="qa-answer">${t.a}</div>
+    </div>`;
+  }).join('') + `</div>`;
+}
+
+// ===================== SCROLL TO TOP =====================
+function scrollToTop(){
+  // Use both window and the app's own container just in case a mobile browser
+  // is treating a wrapping element as the actual scroll root.
+  window.scrollTo({top:0, left:0, behavior:'smooth'});
+  if(document.scrollingElement) document.scrollingElement.scrollTo({top:0, behavior:'smooth'});
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+(function initScrollTopButton(){
+  const btn = document.getElementById('scroll-top-btn');
+  if(!btn) return;
+  let ticking = false;
+  function updateVisibility(){
+    const y = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+    btn.classList.toggle('show', y > 250);
+    ticking = false;
+  }
+  function onScroll(){
+    if(!ticking){ window.requestAnimationFrame(updateVisibility); ticking = true; }
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', updateVisibility, {passive:true});
+  updateVisibility();
+})();
+
+
+// Init
+document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+render();
+updateStats();
+populateQuickNoteDaySelect();
+refreshAllNoteViews();
+updateGreeting();
+renderCustomPhases();
+if(!localStorage.getItem('dotnet_start_date')) localStorage.setItem('dotnet_start_date', new Date().toISOString().slice(0,10));

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>.NET Full Stack Roadmap</title>
+<script>try{var t=localStorage.getItem('dn_theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
+<link href="css/app.css" rel="stylesheet">
+<link href="css/login.css" rel="stylesheet">
+<link href="css/royal.css" rel="stylesheet">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#4f46e5">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="icons/icon-192.png">
+</head>
+<body>
+<div id="boot-overlay"><div class="boot-box"><div class="boot-logo"><i class="bi bi-gem"></i></div><div class="boot-bar"><i></i></div><p id="boot-msg" class="mt-3 mb-0">Loading your roadmap…</p><div id="boot-actions" class="mt-3" style="display:none"><button class="btn btn-sm btn-primary me-2" onclick="location.reload()">Retry</button><a class="btn btn-sm btn-outline-secondary" href="login.html">Back to login</a></div></div></div>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html" aria-label=".NET Roadmap home">
+      <span class="brand-logo"><i class="bi bi-gem"></i></span>
+      <span class="brand-text"><b>.NET Roadmap</b><small>Full-stack mastery · 175 days</small></span>
+    </a>
+    <div class="topbar-actions">
+      <span class="sync-badge" id="sync-badge" onclick="syncNow()" title="Click to sync now"><span class="dot"></span><span id="sync-badge-text">Connecting…</span></span>
+      <button type="button" class="icon-btn kbd-btn" id="open-palette" title="Quick search (Ctrl/⌘ + K)" aria-label="Quick search"><i class="bi bi-search"></i><span class="d-none d-lg-inline">Quick search</span><kbd class="d-none d-lg-inline">Ctrl K</kbd></button>
+      <button type="button" class="icon-btn" id="open-timer" title="Focus timer" aria-label="Focus timer"><i class="bi bi-stopwatch"></i><span class="timer-live" id="timer-live"></span></button>
+      <button type="button" class="icon-btn" id="open-notes" title="My notes" aria-label="Open notes"><i class="bi bi-stickies"></i></button>
+      <button type="button" class="icon-btn" id="theme-toggle" title="Toggle dark / light" aria-label="Toggle theme"><i class="bi bi-moon-stars"></i></button>
+      <span class="text-muted small d-none" id="today-date"></span>
+      <div class="user-chip">
+        <span class="user-name d-none d-md-inline" id="nav-username"></span>
+        <button type="button" class="icon-btn" onclick="signOutUser()" title="Sign out" aria-label="Sign out"><i class="bi bi-box-arrow-right"></i></button>
+      </div>
+    </div>
+  </div>
+  <div class="topbar-progress" aria-hidden="true"><div id="top-prog-fill"></div></div>
+</header>
+
+<!-- ============ TABS (top pill-bar on desktop, bottom bar on mobile) ============ -->
+<nav class="app-tabs" aria-label="Sections">
+  <div class="tab-nav-top" id="top-tabs">
+    <button class="tab-btn tab-btn-nav active" onclick="showTab('roadmap',this)"><i class="bi bi-map"></i><span>Roadmap</span></button>
+    <button class="tab-btn tab-btn-nav" onclick="showTab('author',this)"><i class="bi bi-collection"></i><span>Docs Hub</span></button>
+    <button class="tab-btn tab-btn-nav" onclick="showTab('projects',this)"><i class="bi bi-folder2-open"></i><span>Projects</span></button>
+    <button class="tab-btn tab-btn-nav" onclick="showTab('interview',this)"><i class="bi bi-patch-question"></i><span>Interview</span></button>
+    <button class="tab-btn tab-btn-nav" onclick="showTab('profile',this)"><i class="bi bi-person-circle"></i><span>Profile</span></button>
+  </div>
+</nav>
+
+<div class="app-layout">
+<div class="notes-sidebar" id="notes-sidebar">
+  <div class="notes-sidebar-header"><i class="bi bi-stickies-fill"></i><span>My Notes</span><button type="button" class="drawer-close" onclick="toggleNotesDrawer(false)" aria-label="Close notes"><i class="bi bi-x-lg"></i></button></div>
+  <button class="btn btn-sm btn-outline-primary quick-note-toggle" onclick="toggleQuickNoteForm()"><i class="bi bi-plus-lg me-1"></i>Quick add note</button>
+  <div class="quick-note-form" id="quick-note-form">
+    <select id="quick-note-day"><option value="">Choose a day...</option></select>
+    <div class="mb-2">
+      <div class="rte-toolbar">
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('quick-note-text','bold')" title="Bold"><i class="bi bi-type-bold"></i></button>
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('quick-note-text','italic')" title="Italic"><i class="bi bi-type-italic"></i></button>
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('quick-note-text','underline')" title="Underline"><i class="bi bi-type-underline"></i></button>
+        <span class="rte-sep"></span>
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('quick-note-text','insertUnorderedList')" title="Bullet points"><i class="bi bi-list-ul"></i></button>
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('quick-note-text','insertOrderedList')" title="Numbered list"><i class="bi bi-list-ol"></i></button>
+        <span class="rte-sep"></span>
+        <label class="rte-color-btn" title="Highlight colour" onmousedown="event.preventDefault()"><i class="bi bi-brush"></i><input type="color" value="#fff59d" onchange="rteHighlight('quick-note-text', this.value)" onclick="document.getElementById('quick-note-text').focus()"></label>
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="document.getElementById('quick-note-text-img').click()" title="Insert image"><i class="bi bi-image"></i></button>
+        <input type="file" id="quick-note-text-img" accept="image/*" style="display:none" onchange="rteInsertImage('quick-note-text', event)">
+        <span class="rte-sep"></span>
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('quick-note-text','removeFormat')" title="Clear formatting"><i class="bi bi-eraser"></i></button>
+      </div>
+      <div id="quick-note-text" class="rte-editor" contenteditable="true" data-placeholder="What did you learn or struggle with?"></div>
+    </div>
+    <div class="note-attach-row">
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('quick-note-img-input').click()"><i class="bi bi-paperclip me-1"></i>Attach image</button>
+      <input type="file" id="quick-note-img-input" accept="image/*" style="display:none" onchange="handleNoteImage(event,'quick')">
+      <span class="small text-success" id="quick-note-img-name"></span>
+    </div>
+    <div class="d-flex justify-content-end gap-2 mt-2">
+      <button class="btn btn-sm btn-outline-secondary" onclick="toggleQuickNoteForm()">Cancel</button>
+      <button class="btn btn-sm btn-primary" onclick="quickAddNote()">Save</button>
+    </div>
+  </div>
+  <input id="notes-search-sidebar" class="form-control notes-search mb-2" placeholder="Search notes…" oninput="filterNotesSidebar()">
+  <div id="all-notes-list-sidebar"></div>
+</div>
+
+<div class="main-col">
+
+<!-- ===================== TAB: ROADMAP ===================== -->
+<div id="tab-roadmap">
+
+  <!-- Hero dashboard -->
+  <section class="hero">
+    <div class="hero-main">
+      <span class="eyebrow"><i class="bi bi-stars"></i> Your learning journey</span>
+      <p id="roadmap-greeting" class="hero-greeting"></p>
+      <p class="hero-sub">Stay consistent — small daily wins compound into a job-ready .NET + Angular skill set.</p>
+      <div id="goal-strip"></div>
+      <div class="hero-progress">
+        <div class="hero-progress-label"><span>Overall progress</span><span id="prog-label">0 / 175 days</span></div>
+        <div class="navbar-progress-bar"><div class="fill" id="main-prog" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="hero-ring" id="hero-ring" aria-label="Overall completion">
+      <svg viewBox="0 0 120 120"><circle class="ring-bg" cx="60" cy="60" r="52"/><circle class="ring-fg" id="ring-fg" cx="60" cy="60" r="52"/></svg>
+      <div class="ring-center"><b id="ring-pct">0%</b><small>complete</small></div>
+    </div>
+  </section>
+
+  <!-- Stat tiles -->
+  <div class="stat-grid">
+    <button type="button" class="stat-tile" onclick="showStatDetail('elapsed')" style="--tone:#6366f1"><span class="stat-ic"><i class="bi bi-calendar3"></i></span><div><div class="num" id="stat-elapsed">0</div><div class="lbl">Days elapsed</div></div></button>
+    <button type="button" class="stat-tile" onclick="showStatDetail('left')" style="--tone:#16a34a"><span class="stat-ic"><i class="bi bi-hourglass-split"></i></span><div><div class="num" id="stat-left">175</div><div class="lbl">Tasks left</div></div></button>
+    <button type="button" class="stat-tile" onclick="showStatDetail('enddate')" style="--tone:#d97706"><span class="stat-ic"><i class="bi bi-flag-fill"></i></span><div><div class="num" id="stat-enddate">–</div><div class="lbl">Target end date</div></div></button>
+    <button type="button" class="stat-tile" onclick="showStatDetail('target')" style="--tone:#0891b2"><span class="stat-ic"><i class="bi bi-clock-history"></i></span><div><div class="num" id="stat-target-days">–</div><div class="lbl">Days left (target)</div></div></button>
+  </div>
+
+  <div id="up-next"></div>
+
+  <!-- Toolbar: ONE search box for the roadmap -->
+  <div class="toolbar">
+    <label class="searchbar" for="search-box"><i class="bi bi-search"></i>
+      <input id="search-box" type="search" placeholder="Search days, topics, concepts…  ( / )" autocomplete="off" oninput="filterDays()">
+    </label>
+    <div class="seg" role="group" aria-label="Filter days">
+      <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('pending',this)">Pending</button>
+      <button class="filter-btn" onclick="setFilter('done',this)">Done</button>
+    </div>
+    <div class="toolbar-actions">
+      <button class="btn btn-sm btn-ghost" id="exp-all" title="Expand all weeks"><i class="bi bi-arrows-expand"></i><span>Expand</span></button>
+      <button class="btn btn-sm btn-ghost" id="col-all" title="Collapse all weeks"><i class="bi bi-arrows-collapse"></i><span>Collapse</span></button>
+      <button class="btn btn-sm btn-primary" onclick="openPhaseForm(null)"><i class="bi bi-plus-lg"></i><span> Add phase</span></button>
+      <button class="btn btn-sm btn-ghost danger" onclick="resetAll()" title="Reset all progress"><i class="bi bi-arrow-counterclockwise"></i></button>
+    </div>
+  </div>
+  <div id="roadmap-empty" class="empty-state" style="display:none"><i class="bi bi-search"></i><b>No days match</b><span>Try a different keyword or clear the filter.</span></div>
+  <div id="phases-container"></div>
+  <div id="custom-phases-container" class="mt-3"></div>
+  <div id="phase-form-slot" class="mt-3"></div>
+</div>
+
+<!-- ===================== TAB: DOCS HUB ===================== -->
+<div id="tab-author" style="display:none">
+  <div class="page-head">
+    <div><h2><i class="bi bi-collection"></i>Docs Hub</h2><p>Community docs, curated resources and your own references — all in one place.</p></div>
+    <button class="btn btn-primary" onclick="openAddChooser()"><i class="bi bi-plus-lg me-1"></i>Add content</button>
+  </div>
+  <div class="subtab-scroll-row mb-2" id="docs-subtabs"></div>
+  <!-- ONE search box that works for both Community docs and Resources -->
+  <div class="search-filter-bar mb-3">
+    <i class="bi bi-search"></i>
+    <input type="search" id="docs-search-input" placeholder="Search titles, notes, links, resources…  ( / )" oninput="filterDocsHub()" autocomplete="off">
+    <select id="docs-type-filter" onchange="filterDocsHub()" aria-label="Filter by type">
+      <option value="">All types</option>
+      <option value="PDF">PDF</option>
+      <option value="Image">Image</option>
+      <option value="Link">Link</option>
+      <option value="Video">Video</option>
+      <option value="Paragraph">Paragraph</option>
+      <option value="Bullets">Bullets</option>
+      <option value="Diagram">Diagram</option>
+      <option value="Post">Post</option>
+    </select>
+  </div>
+  <div id="docs-empty-msg" class="empty-state" style="display:none"><i class="bi bi-search"></i><b>Nothing found</b><span>No Docs Hub item matches your search.</span></div>
+  <div id="docs-community-view">
+    <div id="author-board" class="author-board"></div>
+  </div>
+  <div id="docs-resources-view" style="display:none">
+    <div class="row g-3" id="res-container"></div>
+  </div>
+</div>
+
+<!-- ===================== TAB: PROJECTS ===================== -->
+<div id="tab-projects" style="display:none">
+  <div class="page-head">
+    <div><h2><i class="bi bi-folder2-open"></i>Projects</h2><p>Build real things: project ideas, folder structures and architect-level topics.</p></div>
+  </div>
+  <div class="seg seg-scroll mb-3" role="group">
+    <button class="proj-subtab active" onclick="setProjSubtab('list',this)"><i class="bi bi-folder2-open me-1"></i>Projects</button>
+    <button class="proj-subtab" onclick="setProjSubtab('structure',this)"><i class="bi bi-diagram-3 me-1"></i>Folder structure</button>
+    <button class="proj-subtab" onclick="setProjSubtab('advanced',this)"><i class="bi bi-lightning-charge-fill me-1"></i>Advanced topics</button>
+  </div>
+  <div id="proj-container"></div>
+  <div id="struct-container" style="display:none"></div>
+  <div id="advanced-container" style="display:none">
+    <div class="docshub-header adv-header">
+      <div>
+        <h6 class="fw-bold mb-1"><i class="bi bi-lightning-fill me-2"></i>Ultra Advanced Topics</h6>
+        <p class="small mb-0">For Architect / Tech Lead level — draggable, collapsible, fully editable.</p>
+      </div>
+      <button class="btn btn-sm docshub-add-btn" onclick="openAdvChooser()"><i class="bi bi-plus-lg me-1"></i>Add topic</button>
+    </div>
+    <div id="adv-form-slot" class="mb-3"></div>
+    <div id="adv-container"></div>
+  </div>
+</div>
+
+<!-- ===================== TAB: INTERVIEW Q&A ===================== -->
+<div id="tab-interview" style="display:none">
+  <div class="page-head">
+    <div><h2><i class="bi bi-patch-question"></i>Interview Q&amp;A</h2><p>Practice questions grouped by topic. Tap a question to reveal the answer.</p></div>
+    <button class="btn btn-primary" onclick="openQAChooser()"><i class="bi bi-plus-lg me-1"></i>Add question</button>
+  </div>
+  <div class="subtab-scroll-row mb-2" id="qa-subtabs"></div>
+  <div class="search-filter-bar mb-3">
+    <i class="bi bi-search"></i>
+    <input type="search" id="qa-search-input" placeholder="Search questions…  ( / )" oninput="filterQAList()" autocomplete="off">
+  </div>
+  <div id="qa-items-container"></div>
+</div>
+
+<!-- ===================== TAB: PROFILE ===================== -->
+<div id="tab-profile" style="display:none">
+  <div class="seg seg-scroll mb-3" role="group">
+    <button class="profile-subtab active" onclick="setProfileSubtab('overview',this)"><i class="bi bi-person-circle me-1"></i>Overview</button>
+    <button class="profile-subtab" onclick="setProfileSubtab('summary',this)"><i class="bi bi-trophy me-1"></i>Timeline &amp; summary</button>
+    <button class="profile-subtab" onclick="setProfileSubtab('resume',this)"><i class="bi bi-file-earmark-person me-1"></i>Resume</button>
+  </div>
+  <div id="profile-overview-view"><div id="profile-container"></div></div>
+  <div id="profile-summary-view" style="display:none"><div id="sum-container"></div></div>
+  <div id="profile-resume-view" style="display:none"><div id="resume-builder-container"></div></div>
+</div>
+
+</div><!-- /main-col -->
+</div><!-- /app-layout -->
+
+<div class="drawer-backdrop" id="drawer-backdrop" onclick="toggleNotesDrawer(false)"></div>
+
+<div class="fab-stack">
+  <button id="scroll-top-btn" type="button" onclick="scrollToTop()" title="Back to top" aria-label="Scroll to top"><i class="bi bi-arrow-up-short"></i></button>
+</div>
+
+<div id="resume-print-root" class="resume-doc"></div>
+
+<div class="modal fade" id="appModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:540px">
+    <div class="modal-content">
+      <div class="modal-body p-0" id="appModalBody"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- boot.js checks the Firebase login, loads this user's data from Firestore, then loads js/app.js -->
+<script type="module" src="js/boot.js"></script>
+</body>
+</html>

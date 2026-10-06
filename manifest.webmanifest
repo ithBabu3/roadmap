@@ -1,0 +1,15 @@
+{
+  "name": ".NET Full Stack Roadmap",
+  "short_name": ".NET Roadmap",
+  "description": "175-day .NET + Angular roadmap tracker with streaks, analytics and cloud sync.",
+  "start_url": "index.html",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#f8f7ff",
+  "theme_color": "#4f46e5",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

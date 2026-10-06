@@ -1,0 +1,17 @@
+{
+  "name": "dotnet-roadmap",
+  "version": "1.0.0",
+  "private": true,
+  "description": ".NET Full Stack Roadmap tracker (Firebase Auth + Firestore)",
+  "scripts": {
+    "start": "npx --yes http-server . -p 8000 -c-1 -o",
+    "login": "firebase login",
+    "use": "firebase use --add",
+    "deploy": "firebase deploy --only firestore:rules,hosting",
+    "deploy:rules": "firebase deploy --only firestore:rules",
+    "deploy:hosting": "firebase deploy --only hosting"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.0.0"
+  }
+}

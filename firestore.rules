@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    function chunkOk(d) {
+      return d.keys().hasOnly(['v', 'n', 't'])
+        && (!('v' in d) || (d.v is string && d.v.size() <= 250000))
+        && (!('n' in d) || (d.n is int && d.n >= 0 && d.n <= 200))
+        && (!('t' in d) || d.t is number);
+    }
+
+    // Private data: only the owner, only well-formed documents.
+    match /users/{uid}/data/{key} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && key.matches('^dotnet_[a-z0-9_]{1,60}(~[0-9]{1,3})?$') && chunkOk(request.resource.data);
+    }
+    match /users/{uid}/media/{id} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && id.matches('^[A-Za-z0-9_.-]{1,100}(~[0-9]{1,3})?$') && chunkOk(request.resource.data);
+    }
+
+    // Opt-in public profile (leaderboard + share link). Aggregates only — never notes or files.
+    match /publicProfiles/{name} {
+      function valid(d) {
+        return d.keys().hasOnly(['uid','username','name','emoji','color','done','total','streak','best','updatedAt'])
+          && d.keys().hasAll(['uid','username','name','done','streak'])
+          && d.uid == request.auth.uid && d.username == name
+          && d.name is string && d.name.size() <= 40
+          && (!('emoji' in d) || (d.emoji is string && d.emoji.size() <= 16))
+          && (!('color' in d) || (d.color is string && d.color.matches('^#[0-9a-fA-F]{6}$')))
+          && d.done is int && d.done >= 0 && d.done <= 1000
+          && d.streak is int && d.streak >= 0 && d.streak <= 5000;
+      }
+      allow get: if true;
+      allow list: if request.query.limit <= 50;
+      allow create: if signedIn() && name.matches('^[a-z0-9_.-]{3,20}$')
+        && request.auth.token.email == name + '@users.dotnet-roadmap.app' && valid(request.resource.data);
+      allow update: if signedIn() && resource.data.uid == request.auth.uid && valid(request.resource.data);
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+    // Everything else is denied by default.
+  }
+}
