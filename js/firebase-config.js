@@ -1,4 +1,6 @@
-const firebaseConfig = {
+// Firebase web config (this is NOT a secret - it only identifies your project).
+// Real security comes from firestore.rules + Authorized domains + API-key restrictions.
+export const firebaseConfig = {
   apiKey: "AIzaSyBnGGcJFznyA0sukaFb7tDvL6w0LuOR4E8",
   authDomain: "roadmap-f72c1.firebaseapp.com",
   projectId: "roadmap-f72c1",
