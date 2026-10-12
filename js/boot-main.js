@@ -4,7 +4,7 @@ import { Cloud } from "./cloud-store.js";
 import "./pwa.js";
 
 const msg = t => { const m = document.getElementById("boot-msg"); if (m) m.textContent = t; };
-let started = false;
+let started = false, appLoaded = false;
 
 watchUser(async user => {
   if (!user) { location.replace("login.html"); return; }
@@ -16,20 +16,25 @@ watchUser(async user => {
     await Cloud.init(user, username);
     const nav = document.getElementById("nav-username");
     if (nav) nav.textContent = username;
-    const s = document.createElement("script");
-    s.src = "js/app.js";
-    s.onload = async () => {
-      try { await import("./features.js"); } catch (e) { console.error("features failed", e); }
-      try { await import("./ui.js"); } catch (e) { console.error("ui layer failed", e); }
-      document.getElementById("boot-overlay").remove();
-    };
-    s.onerror = () => msg("Could not load the app script.");
-    document.body.appendChild(s);
+    // Classic scripts, in order: safe.js (helpers) -> app.js (the app). Then the two ES-module layers.
+    const loadScript = src => new Promise((ok, fail) => {
+      const s = document.createElement("script");
+      s.src = src; s.onload = ok; s.onerror = () => fail(new Error("Could not load " + src));
+      document.body.appendChild(s);
+    });
+    if (!appLoaded) {              // never load app.js twice (its top-level `let`s would throw)
+      appLoaded = true;
+      await loadScript("js/safe.js");
+      await loadScript("js/app.js");
+    }
+    try { await import("./features.js"); } catch (e) { console.error("features failed", e); }
+    try { await import("./ui.js"); } catch (e) { console.error("ui layer failed", e); }
+    document.getElementById("boot-overlay")?.remove();
   } catch (e) {
     console.error(e);
-    msg("Could not reach Firebase: " + (e.message || e));
+    msg("Couldn't start the app: " + (e.message || e));
     document.querySelector(".boot-bar")?.remove();
-    document.getElementById("boot-actions").style.display = "block";
+    const act = document.getElementById("boot-actions"); if (act) act.style.display = "block";
     started = false;
   }
 });

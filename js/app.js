@@ -10,6 +10,28 @@ function closeModal(){
   if(appModalInstance) appModalInstance.hide();
 }
 
+// Accepts "example.com/page" as well as full URLs; returns '' for anything that isn't a web link.
+function normUrl(u){
+  u = String(u||'').trim();
+  if(!u) return '';
+  if(!/^[a-z][a-z0-9+.-]*:/i.test(u)) u = 'https://' + u;
+  return safeUrl(u)==='#' ? '' : u;
+}
+function authorIdFromName(name){
+  const base = String(name||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  if(base) return base;
+  let h = 0; for(const ch of String(name||'')) h = (h*31 + ch.codePointAt(0)) >>> 0;   // non-latin names still get a stable, unique id
+  return 'author-' + h.toString(36);
+}
+function initialsOf(name){
+  return String(name||'').trim().split(/\s+/).filter(Boolean).map(w=>Array.from(w)[0]).join('').toUpperCase().slice(0,2) || '?';
+}
+
+// The data below was written with bright rainbow colours. tone() maps them onto the muted royal palette.
+const ROYAL_TONES = {'#4f46e5':'#1f3a7a','#0891b2':'#1f6f78','#059669':'#2f6b4f','#d97706':'#8a6a1f','#dc2626':'#8a2a3a','#7c3aed':'#5b2a6e',
+  '#16a34a':'#2f6b4f','#0a66c2':'#1f3a7a','#be123c':'#8a2a3a','#6b7280':'#4b5568','#1f2937':'#1d2744','#a16207':'#8a6a1f'};
+const tone = hex => ROYAL_TONES[String(hex||'').toLowerCase()] || (/^#[0-9a-f]{6}$/i.test(hex||'') ? hex : '#1f3a7a');
+
 // ===================== DATA =====================
 const TOTAL = 175;
 
@@ -221,7 +243,7 @@ const PHASES = [
       {n:151,topic:'Microservices Qs',desc:'Service discovery, circuit breaker, saga vs 2PC, event sourcing vs CRUD, bounded contexts'},
       {n:152,topic:'System Design Practice',desc:'Twitter feed, Uber dispatch, Netflix streaming, WhatsApp — whiteboard design 4 systems'},
       {n:153,topic:'Coding Rounds',desc:'LeetCode Medium: arrays, strings, hash maps, trees, graphs, dynamic programming — 20 problems'},
-      {n:154,topic:'Full Mock Interview',desc:'1-hour full mock: system design + coding + behavioural + project walkthrough — YOU ARE READY! 🎉'},
+      {n:154,topic:'Full Mock Interview',desc:'1-hour full mock: system design + coding + behavioural + project walkthrough — YOU ARE READY!'},
     ]},
   ]},
 ];
@@ -277,7 +299,7 @@ const RESOURCES = [
     {type:'Blog',label:'Free',color:'#0891b2',name:'High Scalability Blog',url:'http://highscalability.com'},
   ]},
 ];
-let customResourceLinks = JSON.parse(localStorage.getItem('dotnet_custom_resources') || '[]');
+let customResourceLinks = lsJSON('dotnet_custom_resources', '[]');
 let editingResourceId = null;
 
 // ===================== COMMUNITY CONTENT DATA =====================
@@ -316,27 +338,28 @@ const CONTENT_AUTHORS = [
 const TYPE_ICON = {Roadmap:'bi-signpost-split',Post:'bi-linkedin',Link:'bi-link-45deg',Video:'bi-play-btn-fill',Note:'bi-sticky',Paragraph:'bi-text-paragraph',Bullets:'bi-list-ul',Image:'bi-image',PDF:'bi-file-earmark-pdf-fill',Diagram:'bi-diagram-3'};
 const TYPE_COLOR = {Roadmap:'#7c3aed',Post:'#0a66c2',Link:'#0891b2',Video:'#be123c',Note:'#6b7280',Paragraph:'#1f2937',Bullets:'#16a34a',Image:'#d97706',PDF:'#dc2626',Diagram:'#4f46e5'};
 const ITEM_PAGE_SIZE = 4;
-let authorOrder = JSON.parse(localStorage.getItem('dotnet_author_order') || 'null');
-let itemOrders = JSON.parse(localStorage.getItem('dotnet_item_orders') || '{}');
-let customAuthors = JSON.parse(localStorage.getItem('dotnet_custom_authors') || '[]');
-let expandedCount = JSON.parse(localStorage.getItem('dotnet_item_expanded') || '{}');
-let authorCollapsed = JSON.parse(localStorage.getItem('dotnet_author_collapsed') || '{}');
-let itemCollapsed = JSON.parse(localStorage.getItem('dotnet_item_collapsed') || '{}');
-let itemOverrides = JSON.parse(localStorage.getItem('dotnet_item_overrides') || '{}'); // persisted edits to built-in items
-let deletedItemIds = new Set(JSON.parse(localStorage.getItem('dotnet_deleted_items') || '[]')); // persisted deletes of built-in items
-let authorOverrides = JSON.parse(localStorage.getItem('dotnet_author_overrides') || '{}'); // persisted edits to built-in author profile (name/role/link)
+let authorOrder = lsJSON('dotnet_author_order', 'null');
+let itemOrders = lsJSON('dotnet_item_orders', '{}');
+let customAuthors = lsJSON('dotnet_custom_authors', '[]');
+let expandedCount = lsJSON('dotnet_item_expanded', '{}');
+let authorCollapsed = lsJSON('dotnet_author_collapsed', '{}');
+let itemCollapsed = lsJSON('dotnet_item_collapsed', '{}');
+let itemOverrides = lsJSON('dotnet_item_overrides', '{}'); // persisted edits to built-in items
+let deletedItemIds = new Set(lsJSON('dotnet_deleted_items', '[]')); // persisted deletes of built-in items
+let authorOverrides = lsJSON('dotnet_author_overrides', '{}'); // persisted edits to built-in author profile (name/role/link)
 let editingItem = null; // {authorId, itemId} or null when adding new
 let editingAuthorId = null; // author id being edited (name/role), or null
 
 // ---- Docs Hub: dynamic, scrollable sub-tabs (Community Docs / Curated Resources are built-in;
 // any number of custom ones can be created right from the "Add new content" flow) ----
-let docsSections = JSON.parse(localStorage.getItem('dotnet_docs_sections') || 'null') || [
+let docsSections = lsJSON('dotnet_docs_sections', 'null') || [
   {key:'community', label:'Community Docs', icon:'bi-people-fill', builtin:true},
   {key:'resources', label:'Curated Resources', icon:'bi-bookmark-star-fill', builtin:true}
 ];
 let activeDocsSection = localStorage.getItem('dotnet_active_docs_section') || 'community';
+if(!docsSections.some(s=>s.key===activeDocsSection)) activeDocsSection = 'community';
 function saveDocsSections(){ localStorage.setItem('dotnet_docs_sections', JSON.stringify(docsSections)); }
-function slugify(str){ return str.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || ('section-'+Date.now()); }
+function slugify(str){ return str.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || ('section-'+authorIdFromName(str).replace('author-','')); }
 
 // Shared drag-to-reorder for the scrollable sub-tab rows (Docs Hub + Interview Q&A).
 // `sectionsArr` is mutated in place via splice, so no return value is needed — both
@@ -364,6 +387,17 @@ function attachSubtabDragEvents(containerId, sectionsArr, saveFn, rerenderFn){
   });
 }
 let pendingMedia = null; // {dataUrl, name, mime} staged from file input before save
+const MAX_UPLOAD_MB = 8;
+// Reads a picked file for upload. Images are shrunk; anything over the limit is refused with a clear message.
+async function readUpload(file){
+  if(!file) return null;
+  if(file.size > MAX_UPLOAD_MB*1024*1024){ alert(`"${file.name}" is ${(file.size/1048576).toFixed(1)} MB. Please choose a file under ${MAX_UPLOAD_MB} MB.`); return null; }
+  try{
+    if(/^image\//.test(file.type)) return {dataUrl: await shrinkImage(file), name: file.name, mime: file.type};
+    const dataUrl = await new Promise((ok,fail)=>{ const r=new FileReader(); r.onload=()=>ok(r.result); r.onerror=()=>fail(r.error); r.readAsDataURL(file); });
+    return {dataUrl, name: file.name, mime: file.type};
+  }catch(e){ alert('Could not read that file: '+(e.message||e)); return null; }
+}
 
 // ---- IndexedDB (local cache for images/PDFs; Firebase Firestore is the real store) ----
 const IDB_NAME='dotnet_roadmap_media', IDB_STORE='media';
@@ -469,15 +503,15 @@ const ROADMAP_PLAN = [
 function roadmapAccordionHTML(){
   return `<div class="roadmap-embed">${ROADMAP_PLAN.map(w=>`
     <details class="week-details">
-      <summary>${w.week}</summary>
+      <summary>${esc(w.week)}</summary>
       <div class="days-list">
         ${w.days.map(d=>`<details class="day-details">
-          <summary>Day ${d.n} — ${d.topic}</summary>
+          <summary>Day ${d.n} — ${esc(d.topic)}</summary>
           <div class="sessions">
-            <div><b>Morning:</b> ${d.morning}</div>
-            <div><b>Midday:</b> ${d.midday}</div>
-            <div><b>Afternoon:</b> ${d.afternoon}</div>
-            <div><b>Evening:</b> ${d.evening}</div>
+            <div><b>Morning:</b> ${esc(d.morning)}</div>
+            <div><b>Midday:</b> ${esc(d.midday)}</div>
+            <div><b>Afternoon:</b> ${esc(d.afternoon)}</div>
+            <div><b>Evening:</b> ${esc(d.evening)}</div>
           </div>
         </details>`).join('')}
       </div>
@@ -488,32 +522,32 @@ function itemBodyHTML(item){
   let html = '';
   // PDF: keep the optional topic/notes text collapsible rather than always shown.
   if(item.type==='PDF' && item.summary){
-    html += `<details class="pdf-note-details"><summary style="cursor:pointer;font-size:0.8rem;color:var(--muted);font-weight:600">Topic / notes</summary><div class="item-summary mt-1">${item.summary}</div></details>`;
+    html += `<details class="pdf-note-details"><summary>Topic / notes</summary><div class="item-summary mt-1">${rich(item.summary)}</div></details>`;
   } else if(item.summary){
-    html += `<div class="item-summary">${item.summary}</div>`;
+    html += `<div class="item-summary">${rich(item.summary)}</div>`;
   }
-  if(item.points) html += `<ul class="item-points">${item.points.map(p=>`<li>${p}</li>`).join('')}</ul>`;
+  if(item.points) html += `<ul class="item-points">${item.points.map(p=>`<li>${esc(p)}</li>`).join('')}</ul>`;
   if(item.type==='Roadmap') html += roadmapAccordionHTML();
   if(item.type==='Diagram' && item.steps){
-    html += `<div class="diagram-flow">${item.steps.map((s,i)=>`<span class="diagram-step">${s}</span>${i<item.steps.length-1?'<i class="bi bi-arrow-right diagram-arrow"></i>':''}`).join('')}</div>`;
+    html += `<div class="diagram-flow">${item.steps.map((s,i)=>`<span class="diagram-step">${esc(s)}</span>${i<item.steps.length-1?'<i class="bi bi-arrow-right diagram-arrow" aria-hidden="true"></i>':''}`).join('')}</div>`;
   }
   if(item.type==='Image' && item.mediaKey){
-    html += `<img class="item-media-img" id="img-${item.id}" alt="${item.title}">
+    html += `<img class="item-media-img" id="img-${escA(item.id)}" alt="${escA(item.title)}">
       <div class="item-media-actions"><button class="btn btn-sm btn-outline-secondary" onclick="downloadStoredMedia('${item.id}')"><i class="bi bi-download me-1"></i>Download</button></div>`;
   }
   if(item.type==='PDF' && item.mediaKey){
-    html += `<div class="item-pdf-box"><i class="bi bi-file-earmark-pdf-fill"></i><span style="flex:1;font-size:0.82rem">${item.mediaName||'Attached PDF'}</span><button class="btn btn-sm btn-outline-primary" onclick="togglePdfPreview('${item.id}')"><i class="bi bi-eye me-1"></i>Preview</button><button class="btn btn-sm btn-outline-danger" onclick="downloadStoredMedia('${item.id}')"><i class="bi bi-download me-1"></i>Download</button></div><div id="pdf-preview-${item.id}" style="display:none"></div>`;
+    html += `<div class="item-pdf-box"><i class="bi bi-file-earmark-pdf-fill"></i><span class="item-pdf-name">${esc(item.mediaName||'Attached PDF')}</span><button class="btn btn-sm btn-outline-primary" onclick="togglePdfPreview('${item.id}')"><i class="bi bi-eye me-1"></i>Preview</button><button class="btn btn-sm btn-outline-danger" onclick="downloadStoredMedia('${item.id}')"><i class="bi bi-download me-1"></i>Download</button></div><div id="pdf-preview-${item.id}" style="display:none"></div>`;
   }
   if((item.type==='Video' || (item.type==='Link' && getVideoEmbedInfo(item.url))) && item.url){
     const vid = getVideoEmbedInfo(item.url);
     if(vid && vid.kind==='iframe'){
-      html += `<div class="item-video-wrap"><iframe src="${vid.src}" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`;
+      html += `<div class="item-video-wrap"><iframe src="${escA(vid.src)}" title="${escA(item.title||'Video')}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`;
     } else if(vid && vid.kind==='video'){
-      html += `<div class="item-video-wrap"><video src="${vid.src}" controls></video></div>`;
+      html += `<div class="item-video-wrap"><video src="${escA(vid.src)}" controls preload="metadata"></video></div>`;
     }
   } else if(item.url){
     const isLinkedIn = /linkedin\.com/i.test(item.url);
-    html += `<a class="item-open" href="${item.url}" target="_blank" rel="noopener">${isLinkedIn?'Open on LinkedIn':'Open link'} <i class="bi bi-box-arrow-up-right"></i></a>`;
+    html += `<a class="item-open" href="${escA(safeUrl(item.url))}" target="_blank" rel="noopener noreferrer">${isLinkedIn?'Open on LinkedIn':'Open link'} <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a>`;
   }
   return html;
 }
@@ -568,21 +602,21 @@ function renderAuthorPosts(){
 
     card.innerHTML = `
       <div class="author-topbar" draggable="true">
-        <button class="collapse-btn ${collapsed?'collapsed':''}" onclick="toggleAuthorCollapse('${author.id}')" title="Collapse/expand"><i class="bi bi-chevron-down"></i></button>
+        <button class="collapse-btn ${collapsed?'collapsed':''}" onclick="toggleAuthorCollapse('${escA(author.id)}')" title="Collapse/expand" aria-label="Collapse or expand author"><i class="bi bi-chevron-down"></i></button>
         <i class="bi bi-grip-vertical drag-handle"></i>
-        <div class="author-avatar">${author.avatar}</div>
+        <div class="author-avatar">${esc(author.avatar)}</div>
         <div class="author-meta">
-          <p class="name">${author.name} ${!collapsed?'':`<span style="font-weight:400;opacity:.8">· ${sectionItems.length} item${sectionItems.length!==1?'s':''}</span>`}</p>
-          <p class="role">${author.role}</p>
+          <p class="name">${esc(author.name)} ${!collapsed?'':`<span class="name-count">· ${sectionItems.length} item${sectionItems.length!==1?'s':''}</span>`}</p>
+          <p class="role">${esc(author.role)}</p>
         </div>
-        <a class="author-link" href="${author.linkedin}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>Profile</a>
+        <a class="author-link" href="${escA(safeUrl(author.linkedin)||'#')}" target="_blank" rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right me-1"></i>Profile</a>
         <div class="author-actions">
-          <button onclick="editAuthorMeta('${author.id}')" title="Edit author"><i class="bi bi-pencil"></i></button>
-          ${isCustom ? `<button onclick="deleteAuthor('${author.id}')" title="Delete author"><i class="bi bi-trash"></i></button>` : ''}
+          <button onclick="editAuthorMeta('${escA(author.id)}')" title="Edit author" aria-label="Edit author"><i class="bi bi-pencil"></i></button>
+          ${isCustom ? `<button onclick="deleteAuthor('${escA(author.id)}')" title="Delete author" aria-label="Delete author"><i class="bi bi-trash"></i></button>` : ''}
         </div>
       </div>
-      ${collapsed ? '' : `<div class="item-list" data-author-id="${author.id}"></div>
-      ${hasMore ? `<div class="d-flex pb-3"><button class="btn btn-sm btn-outline-secondary show-more-btn mx-auto" onclick="showMoreItems('${author.id}')"><i class="bi bi-chevron-down me-1"></i>Show ${sectionItems.length - shown} more</button></div>` : ''}`}
+      ${collapsed ? '' : `<div class="item-list" data-author-id="${escA(author.id)}"></div>
+      ${hasMore ? `<div class="d-flex pb-3"><button class="btn btn-sm btn-outline-secondary show-more-btn mx-auto" onclick="showMoreItems('${escA(author.id)}')"><i class="bi bi-chevron-down me-1"></i>Show ${sectionItems.length - shown} more</button></div>` : ''}`}
     `;
     board.appendChild(card);
 
@@ -599,12 +633,12 @@ function renderAuthorPosts(){
           <i class="bi bi-grip-vertical item-handle"></i>
           <div class="item-body">
             <div class="item-top">
-              <span class="item-badge" style="background:${(item.badgeColor||TYPE_COLOR[item.type])}18;color:${item.badgeColor||TYPE_COLOR[item.type]}"><i class="bi ${TYPE_ICON[item.type]||'bi-file-text'} me-1"></i>${item.type}</span>
-              <span class="item-title">${item.title}</span>
-              <button class="item-collapse-btn" onclick="toggleItemCollapse('${item.id}')" title="Collapse/expand"><i class="bi bi-chevron-${itemClosed?'down':'up'}"></i></button>
+              <span class="item-badge"><i class="bi ${TYPE_ICON[item.type]||'bi-file-text'} me-1" aria-hidden="true"></i>${esc(item.type)}</span>
+              <span class="item-title">${esc(item.title)}</span>
+              <button class="item-collapse-btn" onclick="toggleItemCollapse('${escA(item.id)}')" title="Collapse/expand" aria-label="Collapse or expand" aria-expanded="${!itemClosed}"><i class="bi bi-chevron-${itemClosed?'down':'up'}"></i></button>
               <div class="item-actions">
-                <button class="item-action-btn" onclick="editItem('${author.id}','${item.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
-                <button class="item-action-btn danger" onclick="deleteItem('${author.id}','${item.id}')" title="Delete"><i class="bi bi-trash"></i></button>
+                <button class="item-action-btn" onclick="editItem('${escA(author.id)}','${escA(item.id)}')" title="Edit" aria-label="Edit"><i class="bi bi-pencil"></i></button>
+                <button class="item-action-btn danger" onclick="deleteItem('${escA(author.id)}','${escA(item.id)}')" title="Delete" aria-label="Delete"><i class="bi bi-trash"></i></button>
               </div>
             </div>
             ${itemClosed ? '' : itemBodyHTML(item)}
@@ -633,10 +667,10 @@ function renderDocsSubtabs(){
   const el = document.getElementById('docs-subtabs');
   if(!el) return;
   el.innerHTML = docsSections.map(s=>`
-    <button class="subtab-pill ${s.key===activeDocsSection?'active':''}" data-key="${s.key}" draggable="true" onclick="setDocsSubtab('${s.key}')">
-      <i class="bi bi-grip-vertical" style="opacity:0.4;font-size:0.7rem"></i>
-      <i class="bi ${s.icon}"></i>${s.label}
-      ${!s.builtin ? `<i class="bi bi-x-circle del-section" onclick="event.stopPropagation();deleteDocsSection('${s.key}')" title="Delete this section"></i>` : ''}
+    <button class="subtab-pill ${s.key===activeDocsSection?'active':''}" data-key="${escA(s.key)}" draggable="true" onclick="setDocsSubtab('${escA(s.key)}')">
+      <i class="bi bi-grip-vertical grip" aria-hidden="true"></i>
+      <i class="bi ${escA(s.icon)}" aria-hidden="true"></i>${esc(s.label)}
+      ${!s.builtin ? `<span class="del-section" role="button" tabindex="0" aria-label="Delete this tab" onclick="event.stopPropagation();deleteDocsSection('${escA(s.key)}')" onkeydown="if(event.key==='Enter'){event.stopPropagation();deleteDocsSection('${escA(s.key)}')}"><i class="bi bi-x-circle"></i></span>` : ''}
     </button>`).join('')
     + `<button class="subtab-pill add-pill" onclick="promptNewDocsSection()"><i class="bi bi-plus-lg"></i>New tab</button>`;
   attachSubtabDragEvents('docs-subtabs', docsSections, saveDocsSections, renderDocsSubtabs);
@@ -651,7 +685,7 @@ function setDocsSubtab(key){
   filterDocsHub();
 }
 function promptNewDocsSection(){
-  const name = prompt('Name your new tab (e.g. "Certifications", "Cheat Sheets"):');
+  const name = (prompt('Name your new tab (e.g. "Certifications", "Cheat Sheets"):')||'').trim().slice(0,40);
   if(!name) return;
   const key = slugify(name);
   if(docsSections.some(s=>s.key===key)){ setDocsSubtab(key); return; }
@@ -662,7 +696,7 @@ function promptNewDocsSection(){
 function deleteDocsSection(key){
   const sec = docsSections.find(s=>s.key===key);
   if(!sec) return;
-  if(!confirm(`Delete the "${sec.label}" tab? Any items already in it will move back to Community Docs.`)) return;
+  if(!confirm('Delete the "'+sec.label+'" tab? Any items already in it will move back to Community Docs.')) return;
   customAuthors.forEach(author=> author.items.forEach(it=>{ if((it.section||'community')===key) it.section='community'; }));
   persistCustomAuthors();
   CONTENT_AUTHORS.forEach(author=> author.items.forEach(it=>{
@@ -684,7 +718,11 @@ function filterDocsHub(){
   if(isRes){ filterResources(); return; }
   const type = typeEl ? typeEl.value : '';
   let shown = 0;
+  const filtering = !!(term || type);
   document.querySelectorAll('.author-card').forEach(card=>{
+    // Not filtering: show every card. (A collapsed card has no item rows, so the old code decided it was "empty"
+    // and hid it - that is why Community Docs vanished after visiting Curated Resources and coming back.)
+    if(!filtering){ card.style.display = ''; card.querySelectorAll('.content-item').forEach(r=>{ r.style.display=''; }); return; }
     let anyVisible = false;
     card.querySelectorAll('.content-item').forEach(row=>{
       const matchesText = !term || row.textContent.toLowerCase().includes(term);
@@ -693,6 +731,7 @@ function filterDocsHub(){
       row.style.display = show ? '' : 'none';
       if(show){ anyVisible = true; shown++; }
     });
+    if(!card.querySelector('.content-item') && card.textContent.toLowerCase().includes(term||'\u0000')) anyVisible = true;   // collapsed card: match on its header
     card.style.display = anyVisible ? '' : 'none';
   });
   const empty = document.getElementById('docs-empty-msg');
@@ -720,16 +759,16 @@ function openAddChooser(){
   editingItem = null; editingAuthorId = null; pendingMedia = null; editingResourceId = null;
   openModal(`
     <div class="author-form docshub-form-compact mb-0">
-      <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>Where should this go?</h6>
+      <h6 class="form-title"><i class="bi bi-plus-circle me-1"></i>Where should this go?</h6>
       <div class="type-chooser-grid" style="grid-template-columns:repeat(2,1fr)">
-        ${docsSections.map(s=>`<button type="button" class="type-chooser-btn" onclick="${s.key==='resources'?`openResourceForm()`:`openContentTypeChooser('${s.key}')`}"><i class="bi ${s.icon}" style="color:${s.key==='resources'?'#d97706':'#4f46e5'}"></i><span class="tc-label">${s.label}</span></button>`).join('')}
+        ${docsSections.map(s=>`<button type="button" class="type-chooser-btn" onclick="${s.key==='resources'?`openResourceForm()`:`openContentTypeChooser('${escA(s.key)}')`}"><i class="bi ${escA(s.icon)}" aria-hidden="true"></i><span class="tc-label">${esc(s.label)}</span></button>`).join('')}
       </div>
       <button type="button" class="type-chooser-btn mt-2" style="border-style:dashed;width:100%" onclick="promptNewSectionThenAdd()"><i class="bi bi-plus-lg" style="color:#16a34a"></i><span class="tc-label">Create a new tab</span></button>
       <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Cancel</button>
     </div>`);
 }
 function promptNewSectionThenAdd(){
-  const name = prompt('Name your new tab (e.g. "Certifications", "Cheat Sheets"):');
+  const name = (prompt('Name your new tab (e.g. "Certifications", "Cheat Sheets"):')||'').trim().slice(0,40);
   if(!name) return;
   const key = slugify(name);
   if(!docsSections.some(s=>s.key===key)){
@@ -744,7 +783,7 @@ function openContentTypeChooser(sectionKey){
   pendingDocsSection = sectionKey || pendingDocsSection || 'community';
   openModal(`
     <div class="author-form docshub-form-compact mb-0">
-      <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>What would you like to add?</h6>
+      <h6 class="form-title"><i class="bi bi-plus-circle me-1"></i>What would you like to add?</h6>
       <div class="type-chooser-grid">
         <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'PDF')"><i class="bi bi-file-earmark-pdf-fill" style="color:#dc2626"></i><span class="tc-label">PDF</span></button>
         <button type="button" class="type-chooser-btn" onclick="openContentForm(null,null,'Image')"><i class="bi bi-image" style="color:#d97706"></i><span class="tc-label">Image</span></button>
@@ -766,12 +805,12 @@ function openResourceForm(resId){
   const existingCats = [...new Set([...RESOURCES.map(r=>r.phase), ...customResourceLinks.map(r=>r.category)])];
   openModal(`
     <div class="author-form docshub-form-compact mb-0">
-      <h6 class="fw-bold mb-2"><i class="bi ${isEdit?'bi-pencil-square':'bi-bookmark-star-fill'} me-1"></i>${isEdit?'Edit resource':'Add a curated resource'}</h6>
+      <h6 class="form-title"><i class="bi ${isEdit?'bi-pencil-square':'bi-bookmark-star-fill'} me-1"></i>${isEdit?'Edit resource':'Add a curated resource'}</h6>
       <div class="row g-2">
-        <div class="col-12"><label>Category</label><input id="res-cat" class="form-control" list="res-cat-list" placeholder="e.g. Phase 1 — C# Fundamentals" value="${isEdit?res.category:''}"><datalist id="res-cat-list">${existingCats.map(c=>`<option value="${c}">`).join('')}</datalist></div>
-        <div class="col-12"><label>Title <span class="text-danger">*</span></label><input id="res-name" class="form-control" placeholder="e.g. Nick Chapsas — ASP.NET Core Series" value="${isEdit?res.name:''}"></div>
-        <div class="col-12"><label>URL <span class="text-danger">*</span></label><input id="res-url" class="form-control" placeholder="https://..." value="${isEdit?res.url:''}"></div>
-        <div class="col-md-6"><label>Type tag</label><input id="res-type" class="form-control" placeholder="e.g. YouTube, Docs, Course" value="${isEdit?res.type:''}"></div>
+        <div class="col-12"><label>Category</label><input id="res-cat" class="form-control" list="res-cat-list" placeholder="e.g. Phase 1 — C# Fundamentals" value="${escA(isEdit?res.category:'')}"><datalist id="res-cat-list">${existingCats.map(c=>`<option value="${escA(c)}">`).join('')}</datalist></div>
+        <div class="col-12"><label>Title <span class="text-danger">*</span></label><input id="res-name" class="form-control" placeholder="e.g. Nick Chapsas — ASP.NET Core Series" value="${escA(isEdit?res.name:'')}"></div>
+        <div class="col-12"><label>URL <span class="text-danger">*</span></label><input id="res-url" class="form-control" placeholder="https://..." value="${escA(isEdit?res.url:'')}"></div>
+        <div class="col-md-6"><label>Type tag</label><input id="res-type" class="form-control" placeholder="e.g. YouTube, Docs, Course" value="${escA(isEdit?res.type:'')}"></div>
         <div class="col-md-6"><label>Price tag</label><select id="res-label" class="form-select"><option value="Free" ${isEdit&&res.label==='Free'?'selected':''}>Free</option><option value="Paid" ${isEdit&&res.label==='Paid'?'selected':''}>Paid</option></select></div>
       </div>
       <div class="d-flex gap-2 mt-2 flex-wrap">
@@ -784,10 +823,10 @@ function openResourceForm(resId){
 function submitResourceForm(){
   const category = document.getElementById('res-cat').value.trim() || 'My Resources';
   const name = document.getElementById('res-name').value.trim();
-  const url = document.getElementById('res-url').value.trim();
-  const type = document.getElementById('res-type').value.trim() || 'Link';
+  const url = normUrl(document.getElementById('res-url').value);
+  const type = document.getElementById('res-type').value.trim().slice(0,20) || 'Link';
   const label = document.getElementById('res-label').value;
-  if(!name || !url){ alert('Please add a title and URL.'); return; }
+  if(!name || !url){ alert('Please add a title and a valid web address (https://…).'); return; }
   const colorByType = {YouTube:'#dc2626',Docs:'#059669',Website:'#0891b2',Book:'#7c3aed',Course:'#7c3aed',Practice:'#d97706',GitHub:'#1f2937',Blog:'#0891b2',Tool:'#d97706'};
   const data = {category, name, url, type, label, color: colorByType[type] || '#0891b2'};
   if(editingResourceId){
@@ -932,15 +971,15 @@ function openContentForm(authorId, itemId, category){
   let typeSpecificHTML = '';
   if(category==='PDF'){
     typeSpecificHTML = `
-      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="naf-pdf-input" accept="application/pdf" style="display:none" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name-pdf">${isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):''}</div></div>
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="naf-pdf-input" accept="application/pdf" style="display:none" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
       <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional, collapsible)</span></label>${rteEditorHTML('naf-para','What\'s inside this PDF, briefly...', isEdit && item.type==='PDF'?item.summary||'':'')}</div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="naf-image-input" accept="image/*" style="display:none" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name">${isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):''}</div></div>
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="naf-image-input" accept="image/*" style="display:none" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
       <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('naf-summary','One or two lines of context', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Link URL <span class="text-danger">*</span> <span class="text-muted fw-normal">— video links play right here</span></label><input id="naf-url" class="form-control" placeholder="https://..." value="${isEdit && item.url?item.url:''}"></div>
+      <div class="col-12"><label>Link URL <span class="text-danger">*</span> <span class="text-muted fw-normal">— video links play right here</span></label><input id="naf-url" class="form-control" placeholder="https://..." value="${escA(isEdit && item.url?item.url:'')}"></div>
       <div class="col-12"><label>Summary <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('naf-summary','One or two lines of context', isEdit?item.summary||'':'')}</div>`;
   } else { // Content
     typeSpecificHTML = `
@@ -953,9 +992,9 @@ function openContentForm(authorId, itemId, category){
         </select>
       </div>
       <div class="col-12 type-field" data-type="Paragraph"><label>Paragraph</label>${rteEditorHTML('naf-para','Write your paragraph here...', isEdit && item.type==='Paragraph'?item.summary||'':'')}</div>
-      <div class="col-12 type-field" data-type="Bullets"><label>Bullet points (one per line)</label><textarea id="naf-bullets" class="form-control" rows="3" placeholder="First point\nSecond point\nThird point">${isEdit && item.type==='Bullets' && item.points?item.points.join('\n'):''}</textarea></div>
-      <div class="col-12 type-field" data-type="Diagram"><label>Roadmap steps (one per line)</label><textarea id="naf-steps" class="form-control" rows="3" placeholder="Setup\nBuild API\nAdd Auth\nDeploy">${isEdit && item.type==='Diagram' && item.steps?item.steps.join('\n'):''}</textarea></div>
-      <div class="col-12 type-field" data-type="Post"><label>Link URL</label><input id="naf-url" class="form-control" placeholder="https://..." value="${isEdit && item.url?item.url:''}"></div>
+      <div class="col-12 type-field" data-type="Bullets"><label>Bullet points (one per line)</label><textarea id="naf-bullets" class="form-control" rows="3" placeholder="First point\nSecond point\nThird point">${esc(isEdit && item.type==='Bullets' && item.points?item.points.join('\n'):'')}</textarea></div>
+      <div class="col-12 type-field" data-type="Diagram"><label>Roadmap steps (one per line)</label><textarea id="naf-steps" class="form-control" rows="3" placeholder="Setup\nBuild API\nAdd Auth\nDeploy">${esc(isEdit && item.type==='Diagram' && item.steps?item.steps.join('\n'):'')}</textarea></div>
+      <div class="col-12 type-field" data-type="Post"><label>Link URL</label><input id="naf-url" class="form-control" placeholder="https://..." value="${escA(isEdit && item.url?item.url:'')}"></div>
       <div class="col-12"><label>Summary <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('naf-summary','One or two lines of context', isEdit && item.type!=='Paragraph'?item.summary||'':'')}</div>`;
   }
 
@@ -963,15 +1002,15 @@ function openContentForm(authorId, itemId, category){
 
   openModal(`
     <div class="author-form docshub-form-compact mb-0">
-      <h6 class="fw-bold mb-2"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit content':'Add '+catMeta.label}</h6>
+      <h6 class="form-title"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit content':'Add '+catMeta.label}</h6>
       <div class="row g-2">
-        <div class="col-12"><label>Heading / title <span class="text-danger">*</span></label><input id="naf-title" class="form-control" placeholder="e.g. Minimal APIs in .NET 8" value="${isEdit?item.title:''}" oninput="checkTopicOverlap()"><div id="naf-topic-hint"></div></div>
+        <div class="col-12"><label>Heading / title <span class="text-danger">*</span></label><input id="naf-title" class="form-control" placeholder="e.g. Minimal APIs in .NET 8" value="${escA(isEdit?item.title:'')}" oninput="checkTopicOverlap()"><div id="naf-topic-hint"></div></div>
         ${typeSpecificHTML}
         <div class="col-12">
           <button type="button" class="optional-toggle" onclick="toggleOptionalAuthorFields(this)"><i class="bi bi-chevron-right"></i> Author details (optional)</button>
           <div class="optional-fields row g-2 mt-1">
-            <div class="col-md-6"><label>Author name</label><input id="naf-author" class="form-control" placeholder="e.g. Nick Chapsas (leave blank for 'You')" value="${authorNameVal}" ${isEdit?'readonly':''}></div>
-            <div class="col-md-6"><label>Role / headline</label><input id="naf-role" class="form-control" placeholder="e.g. .NET Content Creator" value="${authorRoleVal}" ${isEdit?'readonly':''}></div>
+            <div class="col-md-6"><label>Author name</label><input id="naf-author" class="form-control" placeholder="e.g. Nick Chapsas (leave blank for 'You')" value="${escA(authorNameVal)}" ${isEdit?'readonly':''}></div>
+            <div class="col-md-6"><label>Role / headline</label><input id="naf-role" class="form-control" placeholder="e.g. .NET Content Creator" value="${escA(authorRoleVal)}" ${isEdit?'readonly':''}></div>
           </div>
         </div>
       </div>
@@ -1012,7 +1051,10 @@ function rteToolbarHTML(id){
   </div>`;
 }
 function rteEditorHTML(id, placeholder, existingHTML){
-  return `${rteToolbarHTML(id)}<div id="${id}" class="rte-editor" contenteditable="true" data-placeholder="${placeholder}">${existingHTML||''}</div>`;
+  // existing content may be rich text from the editor OR plain text (older notes, built-in answers such as "List<T>")
+  let body = '';
+  if(existingHTML) body = isRich(existingHTML) ? sanitizeHTML(existingHTML) : esc(existingHTML).replace(/\n/g,'<br>');
+  return `${rteToolbarHTML(id)}<div id="${escA(id)}" class="rte-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="${escA(placeholder)}" data-placeholder="${escA(placeholder)}">${body}</div>`;
 }
 function rteExec(id, cmd){
   const el = document.getElementById(id); if(!el) return;
@@ -1025,23 +1067,33 @@ function rteHighlight(id, color){
   document.execCommand('styleWithCSS', false, true);
   if(!document.execCommand('hiliteColor', false, color)) document.execCommand('backColor', false, color);
 }
-function rteInsertImage(id, e){
-  const file = e.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = ()=>{
+async function rteInsertImage(id, e){
+  const file = e.target.files[0]; e.target.value = ''; if(!file) return;
+  if(!/^image\//.test(file.type)){ alert('Please choose an image file.'); return; }
+  try{
+    const dataUrl = await shrinkImage(file, 1000, 0.8);     // keeps notes small enough to store and sync
     const el = document.getElementById(id); if(!el) return;
     el.focus();
-    document.execCommand('insertImage', false, reader.result);
-  };
-  reader.readAsDataURL(file);
+    document.execCommand('insertImage', false, dataUrl);
+  }catch(err){ alert('Could not insert that image: '+(err.message||err)); }
 }
 // Reads an editor's content back out — empty editors (just a stray <br>) come back as ''.
 function rteGetHTML(id){
   const el = document.getElementById(id);
   if(!el) return '';
-  const html = el.innerHTML.trim();
-  return (html==='<br>' || html==='') ? '' : html;
+  const html = sanitizeHTML(el.innerHTML).trim();
+  return (html==='<br>' || html==='' || stripTags(html).trim()==='' && !/<img/i.test(html)) ? '' : html;
 }
+
+document.addEventListener('paste', async e=>{
+  const ed = e.target && e.target.closest ? e.target.closest('.rte-editor') : null;
+  if(!ed) return;
+  e.preventDefault();
+  const cd = e.clipboardData || window.clipboardData;
+  const img = [...(cd.files||[])].find(f=>/^image\//.test(f.type));
+  if(img){ try{ document.execCommand('insertImage', false, await shrinkImage(img, 1000, 0.8)); }catch(err){ alert('Could not paste that image.'); } return; }
+  document.execCommand('insertText', false, cd.getData('text/plain'));
+});
 
 // Lightweight, non-blocking duplicate/overlap check: warns if a new title looks like it
 // already exists in the day-by-day Roadmap or elsewhere in Community Content, so you can
@@ -1070,22 +1122,20 @@ function checkTopicOverlap(){
       if(match) break;
     }
   }
-  hintEl.innerHTML = match ? `<div class="small mt-1" style="color:#d97706"><i class="bi bi-exclamation-triangle me-1"></i>Looks similar to "<strong>${match.label}</strong>" already in ${match.type} — add it anyway, or consider linking to that instead of duplicating.</div>` : '';
+  hintEl.innerHTML = match ? `<div class="form-hint warn"><i class="bi bi-exclamation-triangle me-1"></i>Looks similar to "<strong>${esc(match.label)}</strong>" already in ${esc(match.type)} — add it anyway, or consider linking to that instead of duplicating.</div>` : '';
 }
 function renderTypeFields(){
   const type = document.getElementById('naf-type').value;
   document.querySelectorAll('.type-field').forEach(f=> f.classList.toggle('active', f.dataset.type===type));
 }
-function handleMediaFile(e){
+async function handleMediaFile(e){
   const file = e.target.files[0];
   if(!file) return;
-  const reader = new FileReader();
-  reader.onload = ()=>{
-    pendingMedia = {dataUrl: reader.result, name: file.name, mime: file.type};
-    const nameEl = document.getElementById('naf-media-name') || document.getElementById('naf-media-name-pdf');
-    if(nameEl) nameEl.textContent = '✓ ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)';
-  };
-  reader.readAsDataURL(file);
+  const up = await readUpload(file);
+  if(!up){ e.target.value=''; return; }
+  pendingMedia = up;
+  const nameEl = document.getElementById('naf-media-name') || document.getElementById('naf-media-name-pdf');
+  if(nameEl) nameEl.textContent = '✓ ' + file.name + ' (' + Math.round(up.dataUrl.length*0.75/1024) + ' KB)';
 }
 
 // Detects YouTube/Vimeo/direct video-file links and returns an embeddable player URL, or null.
@@ -1096,7 +1146,7 @@ function getVideoEmbedInfo(url){
     if(yt) return {kind:'iframe', src:`https://www.youtube.com/embed/${yt[1]}`};
     const vm = url.match(/vimeo\.com\/(\d+)/);
     if(vm) return {kind:'iframe', src:`https://player.vimeo.com/video/${vm[1]}`};
-    if(/\.(mp4|webm|ogg)(\?.*)?$/i.test(url)) return {kind:'video', src:url};
+    if(/\.(mp4|webm|ogg)(\?.*)?$/i.test(url) && safeUrl(url)!=='#') return {kind:'video', src:url};
   }catch(e){}
   return null;
 }
@@ -1117,14 +1167,14 @@ async function submitContentForm(category){
   if(category==='PDF') type='PDF';
   else if(category==='Image') type='Image';
   else if(category==='Link'){
-    const url = document.getElementById('naf-url').value.trim();
+    const url = normUrl(document.getElementById('naf-url').value);
     type = getVideoEmbedInfo(url) ? 'Video' : 'Link';
   } else {
     type = document.getElementById('naf-type').value;
   }
 
   const authors = getAllAuthors();
-  const authorId = editingItem ? editingItem.authorId : name.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+  const authorId = editingItem ? editingItem.authorId : authorIdFromName(name);
   let author = authors.find(a=>a.id===authorId);
 
   let itemData = {type, title, badgeColor: TYPE_COLOR[type]};
@@ -1134,7 +1184,7 @@ async function submitContentForm(category){
   if(type==='PDF') itemData.summary = rteGetHTML('naf-para');
   if(type==='Bullets') itemData.points = document.getElementById('naf-bullets').value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(type==='Diagram') itemData.steps = document.getElementById('naf-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  if(type==='Post' || type==='Link' || type==='Video') itemData.url = document.getElementById('naf-url').value.trim();
+  if(type==='Post' || type==='Link' || type==='Video') itemData.url = normUrl(document.getElementById('naf-url').value);
 
   if((type==='Image' || type==='PDF') && pendingMedia){
     const mediaKey = 'media-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
@@ -1144,34 +1194,41 @@ async function submitContentForm(category){
   }
   if(!editingItem && type==='PDF' && !pendingMedia){ alert('Please choose a PDF file to upload.'); return; }
   if(!editingItem && type==='Image' && !pendingMedia){ alert('Please choose an image file to upload.'); return; }
-  if((type==='Link'||type==='Video'||type==='Post') && !itemData.url){ alert('Please enter a link URL.'); return; }
+  if((type==='Link'||type==='Video'||type==='Post') && !itemData.url){ alert('Please enter a valid web link (https://…).'); return; }
 
   if(editingItem){
-    const idx = author.items.findIndex(i=>i.id===editingItem.itemId);
-    const old = author.items[idx];
+    const old = author && author.items.find(i=>i.id===editingItem.itemId);
+    if(!old){ alert('That item no longer exists.'); closeContentForm(); renderAuthorPosts(); return; }
     if((type==='Image'||type==='PDF') && !pendingMedia && old.mediaKey){ itemData.mediaKey = old.mediaKey; itemData.mediaName = old.mediaName; }
     if(old.mediaKey && itemData.mediaKey && old.mediaKey!==itemData.mediaKey) idbDelete(old.mediaKey);
-    const merged = {...old, ...itemData, id: old.id};
-    author.items[idx] = merged;
-    if(customAuthors.some(a=>a.id===authorId)){
+    const custom = customAuthors.find(a=>a.id===authorId);
+    if(custom){
+      // edit the REAL stored author - getAllAuthors() hands back copies, so changing those was never saved
+      const i = custom.items.findIndex(x=>x.id===old.id);
+      if(i>-1) custom.items[i] = {...custom.items[i], ...itemData, id: old.id};
       persistCustomAuthors();
     } else {
-      itemOverrides[old.id] = itemData; // store only the changed fields as an override for built-in items
-      localStorage.setItem('dotnet_item_overrides', JSON.stringify(itemOverrides));
+      itemOverrides[old.id] = itemData; // built-in item: store only the changed fields as an override
+      lsSave('dotnet_item_overrides', itemOverrides);
     }
   } else {
     const newItem = {id: authorId+'-'+Date.now(), ...itemData};
-    if(author){
-      author.items.unshift(newItem);
-      if(customAuthors.some(a=>a.id===authorId)) persistCustomAuthors();
+    const custom = customAuthors.find(a=>a.id===authorId);
+    if(custom){
+      custom.items.unshift(newItem);               // real stored author (the old code pushed onto a copy, so item #2+ vanished)
+      persistCustomAuthors();
+    } else if(author){
+      // author is a built-in card: keep new items under a custom twin so they persist
+      customAuthors.push({id: authorId+'-mine', name: author.name, role: author.role, avatar: author.avatar, linkedin: author.linkedin || '#', items:[newItem]});
+      persistCustomAuthors();
     } else {
-      author = {id:authorId, name, role, avatar:name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2), linkedin: itemData.url || '#', items:[newItem]};
-      customAuthors.push(author);
+      customAuthors.push({id:authorId, name, role, avatar: initialsOf(name), linkedin: itemData.url || '#', items:[newItem]});
       persistCustomAuthors();
     }
   }
+  const wasEdit = !!editingItem;
   closeContentForm();
-  if(!editingItem && activeDocsSection !== (itemData.section||'community')){
+  if(!wasEdit && activeDocsSection !== (itemData.section||'community')){
     setDocsSubtab(itemData.section||'community');
   } else {
     renderAuthorPosts();
@@ -1185,11 +1242,11 @@ function editAuthorMeta(authorId){
   if(!author) return;
   openModal(`
     <div class="author-form mb-0">
-      <h6 class="fw-bold mb-3"><i class="bi bi-pencil-square me-1"></i>Edit author</h6>
+      <h6 class="form-title"><i class="bi bi-pencil-square me-1"></i>Edit author</h6>
       <div class="row g-2">
-        <div class="col-md-6"><label>Name</label><input id="naf-ea-name" class="form-control" value="${author.name}"></div>
-        <div class="col-md-6"><label>Role / headline</label><input id="naf-ea-role" class="form-control" value="${author.role}"></div>
-        <div class="col-12"><label>LinkedIn / profile URL</label><input id="naf-ea-url" class="form-control" value="${author.linkedin||''}" placeholder="https://www.linkedin.com/in/..."></div>
+        <div class="col-md-6"><label>Name</label><input id="naf-ea-name" class="form-control" value="${escA(author.name)}"></div>
+        <div class="col-md-6"><label>Role / headline</label><input id="naf-ea-role" class="form-control" value="${escA(author.role)}"></div>
+        <div class="col-12"><label>LinkedIn / profile URL</label><input id="naf-ea-url" class="form-control" value="${escA(author.linkedin||'')}" placeholder="https://www.linkedin.com/in/..."></div>
       </div>
       <div class="d-flex gap-2 mt-2">
         <button class="btn btn-primary btn-sm" onclick="saveAuthorMeta('${authorId}')"><i class="bi bi-check2 me-1"></i>Save changes</button>
@@ -1200,8 +1257,8 @@ function editAuthorMeta(authorId){
 function saveAuthorMeta(authorId){
   const name = document.getElementById('naf-ea-name').value.trim();
   const role = document.getElementById('naf-ea-role').value.trim();
-  const linkedin = document.getElementById('naf-ea-url').value.trim();
-  const avatar = (name || getAllAuthors().find(a=>a.id===authorId).name).split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const linkedin = normUrl(document.getElementById('naf-ea-url').value);
+  const avatar = initialsOf(name || getAllAuthors().find(a=>a.id===authorId).name);
   const custom = customAuthors.find(a=>a.id===authorId);
   if(custom){
     custom.name = name || custom.name;
@@ -1471,7 +1528,7 @@ const SUMMARY = {
     {month:'Month 2',color:'#d97706',bg:'#fef3c7',title:'Angular Full Stack',skills:['TypeScript & HTML/CSS','Angular 17 (standalone)','RxJS & NgRx','HTTP interceptors','Full stack integration']},
     {month:'Month 3',color:'#dc2626',bg:'#fee2e2',title:'Senior Architecture',skills:['Clean Architecture','CQRS + MediatR','Microservices','Docker + Kubernetes','Azure deployment']},
     {month:'Month 4',color:'#7c3aed',bg:'#f3e8ff',title:'Expert + Capstone',skills:['System Design','SignalR + gRPC','Capstone project build','Interview preparation','Mock interviews']},
-    {month:'Month 5',color:'#059669',bg:'#dcfce7',title:'Ultra Advanced',skills:['Kafka / Event Streaming','Elasticsearch','Multi-tenancy SaaS','Architect-level patterns','Job hunting & offers 🎉']},
+    {month:'Month 5',color:'#059669',bg:'#dcfce7',title:'Ultra Advanced',skills:['Kafka / Event Streaming','Elasticsearch','Multi-tenancy SaaS','Architect-level patterns','Job hunting & offers']},
   ],
   salaries:[], // removed from UI per request; kept as empty array in case other code references SUMMARY.salaries
   dailySchedule:[
@@ -1485,66 +1542,53 @@ const SUMMARY = {
 
 // ===================== RESUME BUILDER (Profile tab) =====================
 // Seeded from the resume the user uploaded — fully editable part-by-part below.
+// A neutral, ATS-friendly starting point that suits any role. Replace the [bracketed] text with your own details.
 const DEFAULT_RESUME = {
-  name: "V M Ajith Babu",
-  title: "Senior Software Engineer",
-  email: "ajithbabuvm@gmail.com",
-  phone: "+91 9626843243",
-  summary: "Dedicated Software Engineer with over 5+ years of experience in .NET technologies. Skilled at developing robust applications using .NET and SQL while focusing on coding standards and security guidelines. Strong object-oriented programming background enables efficient, tailored solutions to user requirements.",
+  name: "Your Full Name",
+  title: "Your Professional Title",
+  email: "you@example.com",
+  phone: "+00 00000 00000",
+  summary: "[Job title] with [X] years of experience in [industry or field]. Known for [two or three strengths, e.g. problem solving, stakeholder communication, delivering on deadlines]. Proven record of [your biggest measurable result]. Looking to bring this to a [target role] position at [type of organisation].",
   skills: [
-    {cat:"Programming Languages", items:"C#, Java, VB.NET, JavaScript"},
-    {cat:"Frameworks & Libraries", items:".NET, Angular"},
-    {cat:"Database Management", items:"MS SQL, Entity Framework, SQL Query Optimization"},
-    {cat:"Development Processes", items:"DevOps, SCRUM/Agile, CI/CD"},
-    {cat:"Tools & Technologies", items:"Git, TFS (Team Foundation Server), SSRS"}
-  ],
-  education: [
-    {degree:"Master of Computer Application", school:"Anna University", year:"2020", detail:"Graduated with 73.56%, demonstrating a solid understanding of computer applications."},
-    {degree:"B.Sc (Computer Science)", school:"Kamaraj University", year:"2018", detail:"Completed with 58.83%, laying the foundation for a career in software development."}
+    {cat:"Core Skills", items:"[Skill 1], [Skill 2], [Skill 3], [Skill 4]"},
+    {cat:"Tools & Software", items:"[Tool 1], [Tool 2], [Tool 3]"},
+    {cat:"Methods & Practices", items:"[e.g. Agile, project planning, data analysis, customer service]"},
+    {cat:"Soft Skills", items:"Communication, Teamwork, Time management, Attention to detail"}
   ],
   experience: [
-    {company:"Eurofins IT Delivery Center", role:"Software Engineer", date:"Jan 2022 – Present", bullets:[
-      "Owned development and maintenance of the eLIMS application used for evaluation and testing of food and soil samples.",
-      "Built key functionalities using VB and .NET for precise test result processing, integrating Angular and SSRS to improve user interaction and system performance.",
-      "Crafted and optimized SQL queries, achieving a 25% improvement in database efficiency for large datasets.",
-      "Collaborated with lab technicians to refine testing processes, reducing manual entry errors by 40%.",
-      "Established CI/CD pipelines using TFS, cutting deployment time by 70%.",
-      "Resolved complex software issues, reducing critical bug reports by 30% and improving system reliability."
+    {company:"[Company Name]", role:"[Your Job Title]", date:"Mon YYYY – Present", bullets:[
+      "[Action verb] [what you did] by [how], resulting in [measurable result, e.g. 25% faster, 40 clients, $50K saved].",
+      "Led or contributed to [project or responsibility], working with [team or stakeholders] to deliver [outcome].",
+      "Improved [process, product or metric] by [number or %], by [what you changed].",
+      "Managed [scope: people, budget, accounts, systems] and met [target or deadline]."
     ]},
-    {company:"20Cube Logistics Pvt. Ltd", role:"Software Developer → Senior Software Engineer", date:"Jun 2021 – Jan 2022", bullets:[
-      "Developed an Android application for warehouse distribution, giving logistics stakeholders real-time visibility and tracking.",
-      "Expanded into C# backend development and Angular to enhance key platform features.",
-      "Engineered C# solutions that increased order processing efficiency by 15% through improved warehouse management and real-time data integration.",
-      "Collaborated on seamless Android/C# integration, improving system performance and user experience.",
-      "Advanced the platform with new technologies for end-to-end visibility and traceability in global logistics operations."
+    {company:"[Previous Company Name]", role:"[Previous Job Title]", date:"Mon YYYY – Mon YYYY", bullets:[
+      "[Action verb] [task or achievement] that [business impact].",
+      "Collaborated with [team] to [goal], achieving [result]."
     ]}
   ],
   projects: [
-    {title:"Chat Application (Native App)", tech:"Android, Firebase", date:"Jan 2021 – Jun 2021", bullets:[
-      "Independently developed a real-time Chat Application with private chat, timed messaging, and dynamic status updates."
-    ]},
-    {title:"Food Ordering App (Native App)", tech:"", date:"Jun 2021 – Sep 2021", bullets:[
-      "Built a dual-purpose Food Ordering App with separate apps for end-users to place orders and canteen owners to manage them."
-    ]},
-    {title:"Marriage Invitation Platform", tech:"", date:"Apr 2024 – Jul 2024", bullets:[
-      "Designed and distributed digital marriage invitations covering venue, food menu, visitor arrangements, and site visit scheduling.",
-      "Implemented CRUD-based wedding greeting messages for efficient management of guest messages and details."
+    {title:"[Project or Portfolio Piece]", tech:"[Tools or methods used]", date:"YYYY", bullets:[
+      "Built / designed / organised [what] to solve [problem], achieving [result]."
     ]}
+  ],
+  education: [
+    {degree:"[Degree or Qualification]", school:"[University or Institution]", year:"YYYY", detail:"[Optional: grade, honours, relevant coursework]"}
   ],
   achievements: [
-    {title:"Star Performer Award", org:"Eurofins IT Delivery Center", date:"May 2023", bullets:[
-      "Recognized for improving SQL query performance, delivering 25% quicker processing times in line with organizational goals.",
-      "Honored as the top performer overall."
-    ]}
+    {title:"[Award or Recognition]", org:"[Organisation]", date:"YYYY", bullets:["[One line on why you received it]"]}
   ],
-  certifications: [],
+  certifications: [
+    {name:"[Certification Name]", issuer:"[Issuing Body]", date:"YYYY", url:""}
+  ],
   languages: [
     {name:"English", level:"Professional working proficiency"}
   ],
-  customSections: [] // [{id, title, bullets:[]}] — freeform sections the user names themselves (Volunteering, Publications, Awards, Hobbies, anything)
+  customSections: [], // [{id, title, bullets:[]}] - freeform sections the user names themselves (Volunteering, Publications, Awards, Hobbies, anything)
+  sectionOrder: ['summary','skills','experience','projects','education','achievements','certifications','languages','customSections']
 };
 let resumeData = null;
-try{ resumeData = JSON.parse(localStorage.getItem('dotnet_resume_data')||'null'); }catch(e){}
+try{ resumeData = lsJSON('dotnet_resume_data', 'null'); }catch(e){}
 if(!resumeData) resumeData = JSON.parse(JSON.stringify(DEFAULT_RESUME));
 // Migrate resumes saved before certifications/languages/customSections/sectionOrder existed.
 if(!resumeData.certifications) resumeData.certifications = [];
@@ -1576,20 +1620,45 @@ function resumeSectionSummary(key, count, extraLabel){
 }
 
 // ---- Named resume versions, so you can keep a tailored copy per job application ----
-let resumeVersions = JSON.parse(localStorage.getItem('dotnet_resume_versions') || '[]'); // [{id,name,data,savedAt}]
+let resumeVersions = lsJSON('dotnet_resume_versions', '[]'); // [{id,name,data,savedAt}]
 let activeResumeVersionId = localStorage.getItem('dotnet_resume_active_version') || null;
 
-function saveResumeData(){ localStorage.setItem('dotnet_resume_data', JSON.stringify(resumeData)); }
-function saveAndPreview(){ saveResumeData(); updateResumePreview(); }
+function saveResumeData(){
+  if(!lsSave('dotnet_resume_data', resumeData)) return false;
+  const el = document.getElementById('resume-save-status');
+  if(el){ el.textContent = 'All changes saved · ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); el.classList.remove('is-dirty'); }
+  return true;
+}
+let _resumeSaveTimer = null;
+function saveAndPreview(){
+  saveResumeData(); updateResumePreview();
+}
+// Explicit "Save" button: writes locally, then pushes to the cloud and confirms.
+async function saveResumeNow(){
+  if(!saveResumeData()) return;
+  try{ if(window.Cloud) await Cloud.flush(); }catch(e){}
+  if(window.UI) UI.toast('Resume saved');
+}
+function restoreResumeDefault(){
+  if(!confirm('Replace your current resume with the blank starting template?\n\nYour current version is saved first as "Backup before restore", so you can switch back to it from Tailored versions.')) return;
+  resumeVersions.push({id:'v'+Date.now(), name:'Backup before restore ' + new Date().toLocaleDateString(), data: JSON.parse(JSON.stringify(resumeData)), savedAt: Date.now()});
+  lsSave('dotnet_resume_versions', resumeVersions);
+  resumeData = JSON.parse(JSON.stringify(DEFAULT_RESUME));
+  activeResumeVersionId = '';
+  lsSave('dotnet_resume_active_version', '');
+  saveResumeData();
+  renderResumeBuilder();
+  if(window.UI) UI.toast('Default template restored');
+}
 
 function renderResumeBuilder(){
   const wrap = document.getElementById('resume-builder-container');
   if(wrap && !wrap.dataset.built){
     wrap.dataset.built = '1';
     wrap.innerHTML = `
-      <div class="docshub-header" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
+      <div class="docshub-header">
         <div>
-          <h5 class="docshub-title"><i class="bi bi-file-earmark-person-fill me-2"></i>Resume Builder</h5>
+          <h5 class="docshub-title">Resume Builder</h5>
           <p class="docshub-sub mb-0">Edit any section, match it against a job description, then download.</p>
         </div>
       </div>
@@ -1611,10 +1680,30 @@ function renderResumeBuilder(){
         <div id="resume-ats-result"><p class="small text-muted mb-0">Paste a job description above, then tap "Check ATS Match".</p></div>
       </div>
 
-      <div class="d-flex gap-2 mb-3 flex-wrap">
-        <button class="btn btn-sm btn-primary" onclick="downloadResumePDF()"><i class="bi bi-file-earmark-pdf me-1"></i>Download PDF</button>
-        <button class="btn btn-sm btn-outline-primary" onclick="downloadResumeTxt()"><i class="bi bi-filetype-txt me-1"></i>Download ATS-safe .txt</button>
+      <div class="resume-toolbar">
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+          <button class="btn btn-sm btn-primary" onclick="saveResumeNow()"><i class="bi bi-check2-circle me-1"></i>Save</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="restoreResumeDefault()"><i class="bi bi-arrow-counterclockwise me-1"></i>Restore default</button>
+          <span id="resume-save-status" class="small text-muted" role="status">Changes save automatically</span>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-sm btn-outline-primary" onclick="downloadResumePDF()"><i class="bi bi-file-earmark-pdf me-1"></i>Download PDF</button>
+          <button class="btn btn-sm btn-outline-primary" onclick="downloadResumeTxt()"><i class="bi bi-filetype-txt me-1"></i>Plain text (ATS)</button>
+        </div>
       </div>
+
+      <details class="phase-card mb-3 profile-details">
+        <summary class="card-title-sum"><span><i class="bi bi-lightbulb"></i>Writing a resume that works for any job</span><i class="bi bi-chevron-down"></i></summary>
+        <ul class="resume-tips">
+          <li><b>Lead with a clear title and a 2–3 line summary</b> aimed at the job you want, not everything you have done.</li>
+          <li><b>Start every bullet with a strong verb</b> (Led, Built, Reduced, Delivered, Negotiated) and finish with a result.</li>
+          <li><b>Use numbers</b>: %, money, team size, volume, time saved. If you cannot measure it, name the scope.</li>
+          <li><b>Mirror the job description.</b> Use its exact keywords for skills and tools, then check the match below.</li>
+          <li><b>Keep it plain.</b> Standard headings, one column, no tables, images or icons, so recruiters and ATS software read it correctly.</li>
+          <li><b>Newest first.</b> Keep dates consistent (Mon YYYY) and aim for one page, two at most with 10+ years of experience.</li>
+          <li><b>Proofread</b> for tense (past for old roles, present for current), spelling and a professional email address.</li>
+        </ul>
+      </details>
 
       <div class="row g-3">
         <div class="col-lg-6">
@@ -1637,7 +1726,7 @@ function renderResumeBuilder(){
 function renderResumeVersionSelect(){
   const sel = document.getElementById('resume-version-select');
   if(!sel) return;
-  sel.innerHTML = `<option value="">Untitled (current)</option>` + resumeVersions.map(v=>`<option value="${v.id}" ${v.id===activeResumeVersionId?'selected':''}>${esc(v.name)}</option>`).join('');
+  sel.innerHTML = `<option value="">Untitled (current)</option>` + resumeVersions.map(v=>`<option value="${escA(v.id)}" ${v.id===activeResumeVersionId?'selected':''}>${esc(v.name)}</option>`).join('');
   if(!activeResumeVersionId) sel.value = '';
 }
 function saveResumeVersion(){
@@ -1693,7 +1782,7 @@ function renderResumeEditor(){
   const sectionHTML = {
     summary: `<details class="resume-edit-section" open>
       ${resumeSectionSummary('summary')}
-      <div class="p-2"><textarea class="form-control form-control-sm" rows="3" oninput="resumeData.summary=this.value;saveAndPreview()">${d.summary}</textarea></div>
+      <div class="p-2"><textarea class="form-control form-control-sm" rows="3" aria-label="Professional summary" oninput="resumeData.summary=this.value;saveAndPreview()">${esc(d.summary)}</textarea></div>
     </details>`,
 
     skills: `<details class="resume-edit-section">
@@ -1701,8 +1790,8 @@ function renderResumeEditor(){
       <div class="p-2">
         ${d.skills.map((s,i)=>`<div class="resume-entry-row">
           <div class="flex-1">
-            <input class="form-control form-control-sm mb-1" placeholder="Category, e.g. Frameworks" value="${s.cat}" oninput="resumeData.skills[${i}].cat=this.value;saveAndPreview()">
-            <input class="form-control form-control-sm" placeholder="Comma-separated skills" value="${s.items}" oninput="resumeData.skills[${i}].items=this.value;saveAndPreview()">
+            <input class="form-control form-control-sm mb-1" placeholder="Category, e.g. Frameworks" value="${escA(s.cat)}" oninput="resumeData.skills[${i}].cat=this.value;saveAndPreview()">
+            <input class="form-control form-control-sm" placeholder="Comma-separated skills" value="${escA(s.items)}" oninput="resumeData.skills[${i}].items=this.value;saveAndPreview()">
           </div>
           <div class="resume-entry-btns">
             <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.skills.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.skills[${i}])));saveResumeData();renderResumeBuilder()" title="Duplicate"><i class="bi bi-copy"></i></button>
@@ -1718,9 +1807,9 @@ function renderResumeEditor(){
       <div class="p-2">
         ${d.experience.map((x,i)=>`<div class="resume-entry-block">
           <div class="row g-2">
-            <div class="col-md-6"><label>Company</label><input class="form-control form-control-sm" value="${x.company}" oninput="resumeData.experience[${i}].company=this.value;saveAndPreview()"></div>
-            <div class="col-md-6"><label>Role</label><input class="form-control form-control-sm" value="${x.role}" oninput="resumeData.experience[${i}].role=this.value;saveAndPreview()"></div>
-            <div class="col-12"><label>Dates</label><input class="form-control form-control-sm" placeholder="e.g. Jan 2022 – Present" value="${x.date}" oninput="resumeData.experience[${i}].date=this.value;saveAndPreview()"></div>
+            <div class="col-md-6"><label>Company</label><input class="form-control form-control-sm" value="${escA(x.company)}" oninput="resumeData.experience[${i}].company=this.value;saveAndPreview()"></div>
+            <div class="col-md-6"><label>Role</label><input class="form-control form-control-sm" value="${escA(x.role)}" oninput="resumeData.experience[${i}].role=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Dates</label><input class="form-control form-control-sm" placeholder="e.g. Jan 2022 – Present" value="${escA(x.date)}" oninput="resumeData.experience[${i}].date=this.value;saveAndPreview()"></div>
             <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="4" oninput="resumeData.experience[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${x.bullets.join('\n')}</textarea></div>
           </div>
           <div class="resume-entry-btns mt-1">
@@ -1737,9 +1826,9 @@ function renderResumeEditor(){
       <div class="p-2">
         ${d.projects.map((p,i)=>`<div class="resume-entry-block">
           <div class="row g-2">
-            <div class="col-md-6"><label>Project title</label><input class="form-control form-control-sm" value="${p.title}" oninput="resumeData.projects[${i}].title=this.value;saveAndPreview()"></div>
-            <div class="col-md-6"><label>Tech stack</label><input class="form-control form-control-sm" value="${p.tech}" oninput="resumeData.projects[${i}].tech=this.value;saveAndPreview()"></div>
-            <div class="col-12"><label>Dates</label><input class="form-control form-control-sm" value="${p.date}" oninput="resumeData.projects[${i}].date=this.value;saveAndPreview()"></div>
+            <div class="col-md-6"><label>Project title</label><input class="form-control form-control-sm" value="${escA(p.title)}" oninput="resumeData.projects[${i}].title=this.value;saveAndPreview()"></div>
+            <div class="col-md-6"><label>Tech stack</label><input class="form-control form-control-sm" value="${escA(p.tech)}" oninput="resumeData.projects[${i}].tech=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Dates</label><input class="form-control form-control-sm" value="${escA(p.date)}" oninput="resumeData.projects[${i}].date=this.value;saveAndPreview()"></div>
             <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="3" oninput="resumeData.projects[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${p.bullets.join('\n')}</textarea></div>
           </div>
           <div class="resume-entry-btns mt-1">
@@ -1756,10 +1845,10 @@ function renderResumeEditor(){
       <div class="p-2">
         ${d.education.map((e,i)=>`<div class="resume-entry-block">
           <div class="row g-2">
-            <div class="col-md-6"><label>Degree</label><input class="form-control form-control-sm" value="${e.degree}" oninput="resumeData.education[${i}].degree=this.value;saveAndPreview()"></div>
-            <div class="col-md-4"><label>School</label><input class="form-control form-control-sm" value="${e.school}" oninput="resumeData.education[${i}].school=this.value;saveAndPreview()"></div>
-            <div class="col-md-2"><label>Year</label><input class="form-control form-control-sm" value="${e.year}" oninput="resumeData.education[${i}].year=this.value;saveAndPreview()"></div>
-            <div class="col-12"><label>Detail <span class="text-muted fw-normal">(optional)</span></label><input class="form-control form-control-sm" value="${e.detail||''}" oninput="resumeData.education[${i}].detail=this.value;saveAndPreview()"></div>
+            <div class="col-md-6"><label>Degree</label><input class="form-control form-control-sm" value="${escA(e.degree)}" oninput="resumeData.education[${i}].degree=this.value;saveAndPreview()"></div>
+            <div class="col-md-4"><label>School</label><input class="form-control form-control-sm" value="${escA(e.school)}" oninput="resumeData.education[${i}].school=this.value;saveAndPreview()"></div>
+            <div class="col-md-2"><label>Year</label><input class="form-control form-control-sm" value="${escA(e.year)}" oninput="resumeData.education[${i}].year=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Detail <span class="text-muted fw-normal">(optional)</span></label><input class="form-control form-control-sm" value="${escA(e.detail||'')}" oninput="resumeData.education[${i}].detail=this.value;saveAndPreview()"></div>
           </div>
           <div class="resume-entry-btns mt-1">
             <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.education.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.education[${i}])));saveResumeData();renderResumeBuilder()"><i class="bi bi-copy me-1"></i>Duplicate</button>
@@ -1775,9 +1864,9 @@ function renderResumeEditor(){
       <div class="p-2">
         ${d.achievements.map((a,i)=>`<div class="resume-entry-block">
           <div class="row g-2">
-            <div class="col-md-6"><label>Title</label><input class="form-control form-control-sm" value="${a.title}" oninput="resumeData.achievements[${i}].title=this.value;saveAndPreview()"></div>
-            <div class="col-md-4"><label>Organization</label><input class="form-control form-control-sm" value="${a.org}" oninput="resumeData.achievements[${i}].org=this.value;saveAndPreview()"></div>
-            <div class="col-md-2"><label>Date</label><input class="form-control form-control-sm" value="${a.date}" oninput="resumeData.achievements[${i}].date=this.value;saveAndPreview()"></div>
+            <div class="col-md-6"><label>Title</label><input class="form-control form-control-sm" value="${escA(a.title)}" oninput="resumeData.achievements[${i}].title=this.value;saveAndPreview()"></div>
+            <div class="col-md-4"><label>Organization</label><input class="form-control form-control-sm" value="${escA(a.org)}" oninput="resumeData.achievements[${i}].org=this.value;saveAndPreview()"></div>
+            <div class="col-md-2"><label>Date</label><input class="form-control form-control-sm" value="${escA(a.date)}" oninput="resumeData.achievements[${i}].date=this.value;saveAndPreview()"></div>
             <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="2" oninput="resumeData.achievements[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${a.bullets.join('\n')}</textarea></div>
           </div>
           <div class="resume-entry-btns mt-1">
@@ -1794,10 +1883,10 @@ function renderResumeEditor(){
       <div class="p-2">
         ${d.certifications.map((cert,i)=>`<div class="resume-entry-block">
           <div class="row g-2">
-            <div class="col-md-6"><label>Certification name</label><input class="form-control form-control-sm" placeholder="e.g. AWS Certified Developer" value="${cert.name}" oninput="resumeData.certifications[${i}].name=this.value;saveAndPreview()"></div>
-            <div class="col-md-4"><label>Issuer</label><input class="form-control form-control-sm" placeholder="e.g. Amazon Web Services" value="${cert.issuer}" oninput="resumeData.certifications[${i}].issuer=this.value;saveAndPreview()"></div>
-            <div class="col-md-2"><label>Date</label><input class="form-control form-control-sm" placeholder="e.g. 2024" value="${cert.date}" oninput="resumeData.certifications[${i}].date=this.value;saveAndPreview()"></div>
-            <div class="col-12"><label>Credential URL <span class="text-muted fw-normal">(optional)</span></label><input class="form-control form-control-sm" placeholder="https://..." value="${cert.url||''}" oninput="resumeData.certifications[${i}].url=this.value;saveAndPreview()"></div>
+            <div class="col-md-6"><label>Certification name</label><input class="form-control form-control-sm" placeholder="e.g. AWS Certified Developer" value="${escA(cert.name)}" oninput="resumeData.certifications[${i}].name=this.value;saveAndPreview()"></div>
+            <div class="col-md-4"><label>Issuer</label><input class="form-control form-control-sm" placeholder="e.g. Amazon Web Services" value="${escA(cert.issuer)}" oninput="resumeData.certifications[${i}].issuer=this.value;saveAndPreview()"></div>
+            <div class="col-md-2"><label>Date</label><input class="form-control form-control-sm" placeholder="e.g. 2024" value="${escA(cert.date)}" oninput="resumeData.certifications[${i}].date=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Credential URL <span class="text-muted fw-normal">(optional)</span></label><input class="form-control form-control-sm" placeholder="https://..." value="${escA(cert.url||'')}" oninput="resumeData.certifications[${i}].url=this.value;saveAndPreview()"></div>
           </div>
           <div class="resume-entry-btns mt-1">
             <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.certifications.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.certifications[${i}])));saveResumeData();renderResumeBuilder()"><i class="bi bi-copy me-1"></i>Duplicate</button>
@@ -1813,8 +1902,8 @@ function renderResumeEditor(){
       <div class="p-2">
         ${d.languages.map((lang,i)=>`<div class="resume-entry-row">
           <div class="flex-1">
-            <input class="form-control form-control-sm mb-1" placeholder="Language, e.g. Spanish" value="${lang.name}" oninput="resumeData.languages[${i}].name=this.value;saveAndPreview()">
-            <input class="form-control form-control-sm" placeholder="Proficiency, e.g. Conversational" value="${lang.level}" oninput="resumeData.languages[${i}].level=this.value;saveAndPreview()">
+            <input class="form-control form-control-sm mb-1" placeholder="Language, e.g. Spanish" value="${escA(lang.name)}" oninput="resumeData.languages[${i}].name=this.value;saveAndPreview()">
+            <input class="form-control form-control-sm" placeholder="Proficiency, e.g. Conversational" value="${escA(lang.level)}" oninput="resumeData.languages[${i}].level=this.value;saveAndPreview()">
           </div>
           <div class="resume-entry-btns">
             <button class="btn btn-sm btn-outline-secondary" onclick="resumeData.languages.splice(${i}+1,0,JSON.parse(JSON.stringify(resumeData.languages[${i}])));saveResumeData();renderResumeBuilder()" title="Duplicate"><i class="bi bi-copy"></i></button>
@@ -1830,7 +1919,7 @@ function renderResumeEditor(){
       <div class="p-2">
         ${d.customSections.map((sec,i)=>`<div class="resume-entry-block">
           <div class="row g-2">
-            <div class="col-12"><label>Section title</label><input class="form-control form-control-sm" placeholder="e.g. Volunteer Experience" value="${sec.title}" oninput="resumeData.customSections[${i}].title=this.value;saveAndPreview()"></div>
+            <div class="col-12"><label>Section title</label><input class="form-control form-control-sm" placeholder="e.g. Volunteer Experience" value="${escA(sec.title)}" oninput="resumeData.customSections[${i}].title=this.value;saveAndPreview()"></div>
             <div class="col-12"><label>Bullet points (one per line)</label><textarea class="form-control form-control-sm" rows="3" oninput="resumeData.customSections[${i}].bullets=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);saveAndPreview()">${(sec.bullets||[]).join('\n')}</textarea></div>
           </div>
           <div class="resume-entry-btns mt-1">
@@ -1846,26 +1935,17 @@ function renderResumeEditor(){
   const contactHTML = `<details class="resume-edit-section" open>
       <summary>Contact &amp; Title</summary>
       <div class="row g-2 p-2">
-        <div class="col-md-6"><label>Full name</label><input class="form-control form-control-sm" value="${d.name}" oninput="resumeData.name=this.value;saveAndPreview()"></div>
-        <div class="col-md-6"><label>Title / role</label><input class="form-control form-control-sm" value="${d.title||''}" oninput="resumeData.title=this.value;saveAndPreview()"></div>
-        <div class="col-md-6"><label>Email</label><input class="form-control form-control-sm" value="${d.email}" oninput="resumeData.email=this.value;saveAndPreview()"></div>
-        <div class="col-md-6"><label>Phone</label><input class="form-control form-control-sm" value="${d.phone}" oninput="resumeData.phone=this.value;saveAndPreview()"></div>
+        <div class="col-md-6"><label>Full name</label><input class="form-control form-control-sm" value="${escA(d.name)}" oninput="resumeData.name=this.value;saveAndPreview()"></div>
+        <div class="col-md-6"><label>Title / role</label><input class="form-control form-control-sm" value="${escA(d.title||'')}" oninput="resumeData.title=this.value;saveAndPreview()"></div>
+        <div class="col-md-6"><label>Email</label><input class="form-control form-control-sm" value="${escA(d.email)}" oninput="resumeData.email=this.value;saveAndPreview()"></div>
+        <div class="col-md-6"><label>Phone</label><input class="form-control form-control-sm" value="${escA(d.phone)}" oninput="resumeData.phone=this.value;saveAndPreview()"></div>
       </div>
     </details>`;
 
   c.innerHTML = contactHTML
     + resumeData.sectionOrder.map(key => sectionHTML[key] || '').join('')
-    + `<button class="btn btn-sm btn-outline-secondary mt-2" onclick="resetResumeToUploaded()"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset to originally uploaded resume</button>`;
+    + `<button class="btn btn-sm btn-outline-secondary mt-2" onclick="restoreResumeDefault()"><i class="bi bi-arrow-counterclockwise me-1"></i>Restore default template</button>`;
 }
-
-function resetResumeToUploaded(){
-  if(!confirm('Discard your edits and restore the originally uploaded resume?')) return;
-  resumeData = JSON.parse(JSON.stringify(DEFAULT_RESUME));
-  saveResumeData();
-  renderResumeBuilder();
-}
-
-function esc(s){ return (s||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
 function resumePreviewHTML(){
   const d = resumeData;
@@ -1967,15 +2047,16 @@ function downloadResumeTxt(){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 3000);
 }
-let done = new Set(JSON.parse(localStorage.getItem('dotnet_done2') || '[]'));
+let done = new Set((lsJSON('dotnet_done2', '[]') || []).map(Number).filter(n => n >= 1 && n <= 175));
 let filter = 'all';
 let searchTerm = '';
 
-function save(){ localStorage.setItem('dotnet_done2', JSON.stringify([...done])); }
+function save(){ lsSave('dotnet_done2', [...done].sort((a,b)=>a-b)); }
 function toggle(n){ if(done.has(n)) done.delete(n); else done.add(n); save(); render(); updateStats(); }
 function setFilter(f,btn){ filter=f; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); render(); }
 function filterDays(){ searchTerm=document.getElementById('search-box').value.toLowerCase(); render(); }
-function resetAll(){ if(confirm('Reset all progress?')){ done.clear(); save(); render(); updateStats(); } }
+function clearSearchBox(){ const sb=document.getElementById('search-box'); if(sb){ sb.value=''; filterDays(); } }
+function resetAll(){ if(done.size && confirm('Reset all '+done.size+' completed days? This cannot be undone.')){ done.clear(); save(); render(); updateStats(); } }
 
 function updateStats(){
   const d=done.size, l=TOTAL-d, pct=Math.round(d/TOTAL*100);
@@ -2004,30 +2085,30 @@ function showStatDetail(which){
   let html = '';
   if(which==='elapsed'){
     const startStr = new Date(t.startStr+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
-    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-calendar3 me-2 text-primary"></i>${t.elapsedDays} Days Elapsed</h6>
+    html = `<div class="author-form mb-0"><h6 class="form-title"><i class="bi bi-calendar3 me-2 text-primary"></i>${t.elapsedDays} days elapsed</h6>
       <p class="small text-muted mb-2">Since you started on <strong>${startStr}</strong>.</p>
       <p class="small mb-0">You've completed <strong>${d}</strong> of ${TOTAL} roadmap days so far — current pace: <strong>${t.currentPace}</strong> days/week.</p>
-      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
+      <button class="btn btn-outline-secondary btn-sm mt-3" onclick="closeModal()">Close</button></div>`;
   } else if(which==='left'){
     const leftDays = [];
     PHASES.forEach(phase=> phase.weeks.forEach(w=> w.days.forEach(dd=>{ if(!done.has(dd.n)) leftDays.push(dd); })));
-    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-hourglass-split me-2 text-primary"></i>${l} Tasks Left</h6>
-      <div style="max-height:340px;overflow-y:auto">
-        ${leftDays.length ? leftDays.map(dd=>`<div class="small py-1" style="border-bottom:1px solid #f3f4f6">Day ${dd.n} — ${dd.topic}</div>`).join('') : '<p class="small text-muted">All caught up!</p>'}
+    html = `<div class="author-form mb-0"><h6 class="form-title"><i class="bi bi-hourglass-split me-2 text-primary"></i>${l} Tasks Left</h6>
+      <div class="stat-scroll">
+        ${leftDays.length ? leftDays.map(dd=>`<div class="small py-1 stat-line">Day ${dd.n} — ${esc(dd.topic)}</div>`).join('') : '<p class="small text-muted">All caught up!</p>'}
       </div>
-      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
+      <button class="btn btn-outline-secondary btn-sm mt-3" onclick="closeModal()">Close</button></div>`;
   } else if(which==='enddate'){
     const endStr = t.target.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
-    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-flag-fill me-2 text-primary"></i>Target: ${endStr}</h6>
-      <p class="small mb-0" style="color:${t.overdue?'#dc2626':'var(--muted)'}">
+    html = `<div class="author-form mb-0"><h6 class="form-title"><i class="bi bi-flag-fill me-2 text-primary"></i>Target: ${endStr}</h6>
+      <p class="small mb-0 ${t.overdue?'text-bad':'text-muted'}">
         ${t.overdue ? "You're past this date — consider setting a new start date, or just keep going at your own pace." :
           `That's <strong>${t.remainingDays} days</strong> away. To finish on time you need about <strong>${t.requiredPace} days/week</strong>.`}
       </p>
-      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
+      <button class="btn btn-outline-secondary btn-sm mt-3" onclick="closeModal()">Close</button></div>`;
   } else if(which==='target'){
     const startStr = new Date(t.startStr+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
     const endStr = t.target.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
-    html = `<div class="author-form mb-0"><h6 class="fw-bold mb-2"><i class="bi bi-flag me-2 text-primary"></i>${t.overdue?'Past target date':t.remainingDays+' Days Left'}</h6>
+    html = `<div class="author-form mb-0"><h6 class="form-title"><i class="bi bi-flag me-2 text-primary"></i>${t.overdue?'Past target date':t.remainingDays+' Days Left'}</h6>
       <table class="table table-sm mb-2" style="font-size:0.82rem">
         <tbody>
           <tr><td class="text-muted">Start date</td><td>${startStr}</td></tr>
@@ -2037,12 +2118,15 @@ function showStatDetail(which){
         </tbody>
       </table>
       <p class="small text-muted mb-0">Change your start date any time from Profile → Timeline &amp; Summary.</p>
-      <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Close</button></div>`;
+      <button class="btn btn-outline-secondary btn-sm mt-3" onclick="closeModal()">Close</button></div>`;
   }
   openModal(html);
 }
 
+const TAB_TITLES = {roadmap:'Roadmap', author:'Docs Hub', projects:'Projects', interview:'Interview Prep', profile:'Profile'};
+function setPageTitle(tab){ document.title = (TAB_TITLES[tab] || 'Roadmap') + ' · .NET Roadmap'; }
 function showTab(tab, btn){
+  setPageTitle(tab);
   document.querySelectorAll('[id^="tab-"]').forEach(t=>t.style.display='none');
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+tab).style.display='';
@@ -2076,26 +2160,62 @@ function setProfileSubtab(which, btn){
 }
 
 // ===================== DAY NOTES =====================
-let dayNotes = JSON.parse(localStorage.getItem('dotnet_day_notes') || '{}'); // {dayNum: {type, text|points, mediaKey, mediaName, updatedAt}}
+let dayNotes = lsJSON('dotnet_day_notes', '{}'); // {dayNum: {type, text|points, mediaKey, mediaName, updatedAt}}
 let pendingNoteImages = {}; // keyed by day number (or 'quick') -> {dataUrl, name}
-let noteCollapsed = JSON.parse(localStorage.getItem('dotnet_note_collapsed') || '{}');
+let noteCollapsed = lsJSON('dotnet_note_collapsed', '{}');
 
+function noteBoxHTML(n){
+  const note = dayNotes[n];
+  const existing = note ? (note.type==='bullets' ? '<ul>'+(note.points||[]).map(p=>`<li>${esc(p)}</li>`).join('')+'</ul>' : (note.text||'')) : '';
+  return `${rteEditorHTML('note-text-'+n, 'What did you learn or struggle with on Day '+n+'?', existing)}
+    <div class="note-attach-row">
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('note-img-input-${n}').click()"><i class="bi bi-paperclip me-1"></i>Attach image</button>
+      <input type="file" id="note-img-input-${n}" accept="image/*" style="display:none" onchange="handleNoteImage(event,${n})">
+      <span class="small text-success" id="note-img-name-${n}">${dayNotes[n]&&dayNotes[n].mediaName?'✓ '+esc(dayNotes[n].mediaName):''}</span>
+    </div>
+    <div class="note-actions">
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleNoteBox(${n})">Close</button>
+      <button type="button" class="btn btn-sm btn-primary" onclick="saveNote(${n})"><i class="bi bi-check2 me-1"></i>Save note</button>
+    </div>`;
+}
+// Note editors are built the first time a day's note is opened (the old code built 175 editors on every redraw).
+function openNoteBox(n){
+  const box = document.getElementById('note-box-'+n); if(!box) return null;
+  if(!box.dataset.built){ box.innerHTML = noteBoxHTML(n); box.dataset.built = '1'; }
+  box.style.display = 'block';
+  const btn = document.querySelector(`.day-row[data-day="${n}"] .day-note-btn`); if(btn) btn.setAttribute('aria-expanded','true');
+  return box;
+}
 function toggleNoteBox(n){
   const box = document.getElementById('note-box-'+n);
   if(!box) return;
-  box.style.display = box.style.display==='block' ? 'none' : 'block';
-  if(box.style.display==='block'){ const ed = document.getElementById('note-text-'+n); if(ed) ed.focus(); }
+  if(box.style.display==='block'){
+    box.style.display = 'none';
+    const btn = document.querySelector(`.day-row[data-day="${n}"] .day-note-btn`); if(btn) btn.setAttribute('aria-expanded','false');
+    return;
+  }
+  openNoteBox(n);
+  const ed = document.getElementById('note-text-'+n); if(ed) ed.focus();
 }
-function handleNoteImage(e, n){
-  const file = e.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = ()=>{
-    pendingNoteImages[n] = {dataUrl: reader.result, name: file.name};
-    const el = document.getElementById('note-img-name-'+n) || document.getElementById('quick-note-img-name');
-    if(el) el.textContent = '✓ ' + file.name;
-  };
-  reader.readAsDataURL(file);
+// Text typed into an open note must survive a redraw (ticking another day used to wipe it).
+function captureNoteDrafts(){
+  const out = {};
+  document.querySelectorAll('#phases-container .day-note-box').forEach(box=>{
+    if(box.style.display!=='block') return;
+    const n = box.id.replace('note-box-','');
+    const ed = document.getElementById('note-text-'+n);
+    out[n] = ed ? ed.innerHTML : null;
+  });
+  return out;
 }
+function restoreNoteDrafts(d){
+  Object.keys(d).forEach(n=>{
+    if(!openNoteBox(n)) return;
+    const ed = document.getElementById('note-text-'+n);
+    if(ed && d[n]!==null) ed.innerHTML = sanitizeHTML(d[n]);
+  });
+}
+
 async function saveNote(n){
   const raw = rteGetHTML('note-text-'+n);
   const old = dayNotes[n];
@@ -2113,9 +2233,10 @@ async function saveNote(n){
     if(old?.mediaKey) idbDelete(old.mediaKey);
     delete dayNotes[n];
   }
-  localStorage.setItem('dotnet_day_notes', JSON.stringify(dayNotes));
-  render(); // re-render Roadmap so the note icon (has-note state) updates
+  if(!lsSave('dotnet_day_notes', dayNotes)) return;     // keep the editor open if storage is full
+  render();
   refreshAllNoteViews();
+  if(window.UI) UI.toast('Note saved');
 }
 function findDayTopic(n){
   for(const phase of PHASES) for(const w of phase.weeks) for(const d of w.days) if(d.n===Number(n)) return d.topic;
@@ -2136,34 +2257,33 @@ function deleteNote(n){
   refreshAllNoteViews();
 }
 function renderAllNotes(searchTerm){
-  const term = (searchTerm||'').toLowerCase();
+  const term = (searchTerm||'').trim().toLowerCase();
   const entries = Object.keys(dayNotes)
     .map(n=>({n:Number(n), ...dayNotes[n], topic: findDayTopic(n)}))
     .filter(e=>{
       if(!term) return true;
-      const hay = (e.text||(e.points||[]).join(' ')||'').toLowerCase() + ' ' + e.topic.toLowerCase();
+      const hay = (e.type==='bullets' ? (e.points||[]).join(' ') : stripTags(e.text||'')).toLowerCase() + ' ' + e.topic.toLowerCase() + ' day ' + e.n;
       return hay.includes(term);
     })
-    .sort((a,b)=>b.updatedAt-a.updatedAt);
+    .sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
   if(entries.length===0) return `<div class="text-muted small text-center py-3">No notes ${term?'match your search':'yet'} — add one from any day, or use Quick Add.</div>`;
   return entries.map(e=>{
     const key = 'note-'+e.n;
-    const lengthGuess = e.text ? e.text.length : (e.points||[]).join('').length;
+    const lengthGuess = e.type==='bullets' ? (e.points||[]).join('').length : stripTags(e.text||'').length;
     const isLong = lengthGuess > 160 || (e.points||[]).length > 4;
-    // Default folded for long notes the first time they're seen; after that, remember whatever the user chose.
     const collapsed = noteCollapsed[key] !== undefined ? noteCollapsed[key] : isLong;
     const bodyHtml = e.type==='bullets'
-      ? `<ul class="note-bullets note-text">${(e.points||[]).map(p=>`<li>${p}</li>`).join('')}</ul>`
-      : `<div class="note-text">${e.text||''}</div>`;
+      ? `<ul class="note-bullets note-text">${(e.points||[]).map(p=>`<li>${esc(p)}</li>`).join('')}</ul>`
+      : `<div class="note-text">${rich(e.text||'')}</div>`;
     return `<div class="note-card">
-      <div class="note-meta" style="cursor:pointer" onclick="toggleNoteFold('${key}')">
-        <span><i class="bi bi-chevron-${collapsed?'right':'down'} me-1" style="font-size:0.62rem"></i><i class="bi bi-calendar3 me-1"></i>Day ${e.n} — ${e.topic}</span>
+      <div class="note-meta">
+        <button type="button" class="note-fold" onclick="toggleNoteFold('${key}')" aria-expanded="${!collapsed}"><i class="bi bi-chevron-${collapsed?'right':'down'}" aria-hidden="true"></i>Day ${e.n} — ${esc(e.topic)}</button>
         <span class="d-flex align-items-center gap-2">
-          <span>${new Date(e.updatedAt).toLocaleDateString()}</span>
-          <i class="bi bi-trash" style="color:#b45309;font-size:0.75rem" onclick="event.stopPropagation();deleteNote(${e.n})" title="Delete note"></i>
+          <span>${e.updatedAt ? new Date(e.updatedAt).toLocaleDateString() : ''}</span>
+          <button type="button" class="item-action-btn danger" onclick="deleteNote(${e.n})" title="Delete note" aria-label="Delete note for day ${e.n}"><i class="bi bi-trash"></i></button>
         </span>
       </div>
-      ${collapsed ? '' : bodyHtml + (e.mediaKey ? `<img class="note-img" id="noteimg-${key}" alt="attachment">` : '')}
+      ${collapsed ? '' : bodyHtml + (e.mediaKey ? `<img class="note-img" id="noteimg-${key}" alt="Note attachment">` : '')}
     </div>`;
   }).join('');
 }
@@ -2191,7 +2311,7 @@ function populateQuickNoteDaySelect(){
   if(!sel) return;
   let opts = '<option value="">Choose a day...</option>';
   PHASES.forEach(phase=> phase.weeks.forEach(w=> w.days.forEach(d=>{
-    opts += `<option value="${d.n}">Day ${d.n} — ${d.topic}</option>`;
+    opts += `<option value="${escA(d.n)}">Day ${d.n} — ${esc(d.topic)}</option>`;
   })));
   sel.innerHTML = opts;
 }
@@ -2203,29 +2323,36 @@ async function quickAddNote(){
   const n = document.getElementById('quick-note-day').value;
   const raw = rteGetHTML('quick-note-text');
   if(!n || (!raw && !pendingNoteImages['quick'])){ alert('Pick a day and write something (or attach an image) first.'); return; }
-  let mediaKey, mediaName;
+  const old = dayNotes[n];
+  let mediaKey = old?.mediaKey, mediaName = old?.mediaName;
   if(pendingNoteImages['quick']){
+    if(mediaKey) idbDelete(mediaKey);
     mediaKey = 'media-note-'+Date.now();
     await idbPut(mediaKey, pendingNoteImages['quick'].dataUrl);
     mediaName = pendingNoteImages['quick'].name;
     delete pendingNoteImages['quick'];
   }
-  dayNotes[n] = {type:'rich', text: raw, updatedAt: Date.now(), mediaKey, mediaName};
-  localStorage.setItem('dotnet_day_notes', JSON.stringify(dayNotes));
+  let text = raw;
+  if(old && old.text && raw) text = old.text + '<br>' + raw;        // add to the day's note instead of replacing it
+  else if(old && old.text) text = old.text;
+  if(old && old.type==='bullets' && !old.text) text = '<ul>'+(old.points||[]).map(p=>`<li>${esc(p)}</li>`).join('')+'</ul>' + (raw ? '<br>'+raw : '');
+  dayNotes[n] = {type:'rich', text, updatedAt: Date.now(), mediaKey, mediaName};
+  if(!lsSave('dotnet_day_notes', dayNotes)) return;
   document.getElementById('quick-note-text').innerHTML='';
   document.getElementById('quick-note-day').value='';
   const imgNameEl = document.getElementById('quick-note-img-name'); if(imgNameEl) imgNameEl.textContent='';
   document.getElementById('quick-note-form').style.display='none';
   refreshAllNoteViews();
   if(document.getElementById('tab-roadmap').style.display!=='none') render();
+  if(window.UI) UI.toast(old ? 'Added to your Day '+n+' note' : 'Note saved');
 }
 
 // ===================== CUSTOM PHASES (user-added, CRUD) =====================
-let customPhases = JSON.parse(localStorage.getItem('dotnet_custom_phases') || '[]'); // [{id,title,unit,color,tasks:[{id,label,title,points:[]}]}]
-let customPhaseDone = new Set(JSON.parse(localStorage.getItem('dotnet_custom_phase_done') || '[]'));
+let customPhases = lsJSON('dotnet_custom_phases', '[]'); // [{id,title,unit,color,tasks:[{id,label,title,points:[]}]}]
+let customPhaseDone = new Set(lsJSON('dotnet_custom_phase_done', '[]'));
 let editingPhaseId = null;
 let taskRowCounter = 0;
-const PHASE_COLORS = ['#4f46e5','#16a34a','#d97706','#dc2626','#0891b2','#7c3aed'];
+const PHASE_COLORS = ['#1f3a7a','#2f6b4f','#8a6a1f','#8a2a3a','#1f6f78','#5b2a6e'];
 
 function saveCustomPhases(){ localStorage.setItem('dotnet_custom_phases', JSON.stringify(customPhases)); }
 function saveCustomPhaseDone(){ localStorage.setItem('dotnet_custom_phase_done', JSON.stringify([...customPhaseDone])); }
@@ -2237,9 +2364,9 @@ function openPhaseForm(phaseId){
   const slot = document.getElementById('phase-form-slot');
   slot.innerHTML = `
     <div class="author-form">
-      <h6 class="fw-bold mb-3"><i class="bi ${phase?'bi-pencil-square':'bi-plus-circle'} me-1"></i>${phase?'Edit phase':'Add a new phase'}</h6>
+      <h6 class="form-title"><i class="bi ${phase?'bi-pencil-square':'bi-plus-circle'} me-1"></i>${phase?'Edit phase':'Add a new phase'}</h6>
       <div class="row g-2 mb-2">
-        <div class="col-md-8"><label class="small text-muted d-block">Phase title</label><input id="phase-title" class="form-control" placeholder="e.g. Phase 6 — Portfolio Prep" value="${phase?phase.title:''}"></div>
+        <div class="col-md-8"><label class="small text-muted d-block">Phase title</label><input id="phase-title" class="form-control" placeholder="e.g. Phase 6 — Portfolio Prep" value="${escA(phase?phase.title:'')}"></div>
         <div class="col-md-4"><label class="small text-muted d-block">Organize by</label>
           <select id="phase-unit">
             <option value="Day" ${phase&&phase.unit==='Day'?'selected':''}>Day</option>
@@ -2273,10 +2400,11 @@ function addTaskRow(existing){
   const row = document.createElement('div');
   row.className = 'task-row-form';
   row.id = id;
+  if(existing && existing.id) row.dataset.taskId = existing.id;      // keep ids so completed ticks stay with the right item
   row.innerHTML = `
-    <button class="remove-task-btn" onclick="document.getElementById('${id}').remove()" title="Remove"><i class="bi bi-x-lg"></i></button>
-    <input class="form-control task-title" placeholder="Title (e.g. Setup & First App)" value="${existing?existing.title:''}">
-    <textarea class="form-control task-points" rows="2" placeholder="Bullet points, one per line (e.g. Morning: ..., Afternoon: ...)">${existing&&existing.points?existing.points.join('\n'):''}</textarea>
+    <button type="button" class="remove-task-btn" onclick="document.getElementById('${id}').remove()" title="Remove" aria-label="Remove item"><i class="bi bi-x-lg"></i></button>
+    <input class="form-control task-title" aria-label="Item title" placeholder="Title (e.g. Setup & First App)" value="${escA(existing?existing.title:'')}">
+    <textarea class="form-control task-points" rows="2" placeholder="Bullet points, one per line (e.g. Morning: ..., Afternoon: ...)">${esc(existing&&existing.points?existing.points.join('\n'):'')}</textarea>
   `;
   container.appendChild(row);
 }
@@ -2287,9 +2415,8 @@ function submitPhaseForm(){
   if(!title){ alert('Please give the phase a title.'); return; }
   const rows = [...document.querySelectorAll('#task-rows-container .task-row-form')];
   const tasks = rows.map((row,i)=>{
-    const existingId = editingPhaseId && customPhases.find(p=>p.id===editingPhaseId)?.tasks[i]?.id;
     return {
-      id: existingId || ('task-'+Date.now()+'-'+i),
+      id: row.dataset.taskId || ('task-'+Date.now()+'-'+i),
       label: unit==='Task' ? '' : unit+' '+(i+1),
       title: row.querySelector('.task-title').value.trim() || '(untitled)',
       points: row.querySelector('.task-points').value.split('\n').map(s=>s.trim()).filter(Boolean)
@@ -2299,6 +2426,9 @@ function submitPhaseForm(){
 
   if(editingPhaseId){
     const phase = customPhases.find(p=>p.id===editingPhaseId);
+    const keep = new Set(tasks.map(t=>t.id));
+    phase.tasks.forEach(t=>{ if(!keep.has(t.id)) customPhaseDone.delete(phase.id+':'+t.id); });   // drop ticks for removed items
+    saveCustomPhaseDone();
     phase.title = title; phase.unit = unit; phase.tasks = tasks;
   } else {
     customPhases.push({id:'phase-'+Date.now(), title, unit, color: PHASE_COLORS[customPhases.length % PHASE_COLORS.length], tasks});
@@ -2325,40 +2455,36 @@ function toggleCustomTask(phaseId, taskId){
 
 function renderCustomPhases(){
   const c = document.getElementById('custom-phases-container'); if(!c) return;
-  c.innerHTML = '';
-  customPhases.forEach(phase=>{
+  c.innerHTML = customPhases.map(phase=>{
     const total = phase.tasks.length;
     const done_ = phase.tasks.filter(t=>customPhaseDone.has(phase.id+':'+t.id)).length;
     const pct = total ? Math.round(done_/total*100) : 0;
-    const card = document.createElement('div');
-    card.className = 'phase-card';
-    card.innerHTML = `
-      <div class="phase-header" style="background:${phase.color}12;border-bottom:2px solid ${phase.color}">
-        <span class="fw-bold" style="color:${phase.color}"><i class="bi bi-stars me-1"></i>${phase.title} <span class="text-muted fw-normal small">(custom)</span></span>
-        <div class="d-flex align-items-center gap-2">
-          <span class="phase-badge" style="background:${phase.color};color:#fff">${done_}/${total}</span>
-          <button class="btn btn-sm btn-outline-secondary" onclick="editPhase('${phase.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
-          <button class="btn btn-sm btn-outline-danger" onclick="deletePhase('${phase.id}')" title="Delete"><i class="bi bi-trash"></i></button>
+    return `<section class="phase-card custom" style="--phc:${tone(phase.color)}">
+      <div class="phase-header static">
+        <div class="phase-title"><span class="phase-dot" aria-hidden="true"></span><span class="phase-name">${esc(phase.title)}</span><span class="phase-badge">${done_}/${total}</span><span class="phase-tag">Custom</span></div>
+        <div class="phase-meta">
+          <button type="button" class="item-action-btn" onclick="editPhase('${escA(phase.id)}')" title="Edit" aria-label="Edit phase"><i class="bi bi-pencil"></i></button>
+          <button type="button" class="item-action-btn danger" onclick="deletePhase('${escA(phase.id)}')" title="Delete" aria-label="Delete phase"><i class="bi bi-trash"></i></button>
         </div>
       </div>
+      <div class="phase-progress" aria-hidden="true"><i style="width:${pct}%"></i></div>
       ${phase.tasks.map(t=>{
         const isDone = customPhaseDone.has(phase.id+':'+t.id);
-        return `<div class="custom-task-row">
-          <div class="day-check ${isDone?'done':''}" onclick="toggleCustomTask('${phase.id}','${t.id}')"></div>
+        return `<div class="custom-task-row ${isDone?'is-done':''}">
+          <button type="button" class="day-check ${isDone?'done':''}" role="checkbox" aria-checked="${isDone}" aria-label="${escA(t.title)}" onclick="toggleCustomTask('${escA(phase.id)}','${escA(t.id)}')"></button>
           <div class="day-topic">
-            <strong style="${isDone?'text-decoration:line-through;color:var(--muted)':''}">${t.label?t.label+' — ':''}${t.title}</strong>
-            ${t.points.length ? `<ul style="margin:4px 0 0;padding-left:1.1rem;font-size:0.8rem;color:var(--muted)">${t.points.map(p=>`<li>${p}</li>`).join('')}</ul>` : ''}
+            <strong>${t.label?esc(t.label)+' — ':''}${esc(t.title)}</strong>
+            ${t.points.length ? `<ul class="task-points">${t.points.map(p=>`<li>${esc(p)}</li>`).join('')}</ul>` : ''}
           </div>
         </div>`;
       }).join('')}
-    `;
-    c.appendChild(card);
-  });
+    </section>`;
+  }).join('');
 }
 
 let NEXT_DAY = null;
 let weekState = {};
-try{ weekState = JSON.parse(localStorage.getItem('dn_weeks')||'{}'); }catch(e){ weekState = {}; }
+try{ weekState = lsJSON('dn_weeks', '{}'); }catch(e){ weekState = {}; }
 function findNextDay(){
   for(const ph of PHASES) for(const w of ph.weeks) for(const d of w.days) if(!done.has(d.n)) return d.n;
   return null;
@@ -2366,96 +2492,88 @@ function findNextDay(){
 function toggleWeek(el){
   const card = el.closest('.week-card'); if(!card) return;
   const collapsed = card.classList.toggle('collapsed');
+  el.setAttribute('aria-expanded', String(!collapsed));
   weekState[card.dataset.wk] = !collapsed;
   try{ localStorage.setItem('dn_weeks', JSON.stringify(weekState)); }catch(e){}
 }
 function setAllWeeks(open){
-  document.querySelectorAll('#phases-container .week-card').forEach(c=>{ c.classList.toggle('collapsed', !open); weekState[c.dataset.wk]=open; });
+  document.querySelectorAll('#phases-container .week-card').forEach(c=>{
+    c.classList.toggle('collapsed', !open); weekState[c.dataset.wk]=open;
+    const h = c.querySelector('.week-header'); if(h) h.setAttribute('aria-expanded', String(open));
+  });
   try{ localStorage.setItem('dn_weeks', JSON.stringify(weekState)); }catch(e){}
 }
+const keyAct = (e, fn) => { if(e.key==='Enter' || e.key===' '){ e.preventDefault(); fn(); } };
+const closedPhases = new Set();
 function render(){
   NEXT_DAY = findNextDay();
-  const c=document.getElementById('phases-container'); c.innerHTML='';
+  const drafts = captureNoteDrafts();
+  const c=document.getElementById('phases-container');
+  const parts = [];
   let shownWeeks = 0;
   PHASES.forEach(phase=>{
     let pd=0,pt=0;
     phase.weeks.forEach(w=>w.days.forEach(d=>{pt++;if(done.has(d.n))pd++;}));
     const pp=pt?Math.round(pd/pt*100):0;
-    const div=document.createElement('div'); div.className='phase-card'; div.style.setProperty('--phc',phase.color);
     const weeksHtml = phase.weeks.map(w=>renderWeek(w,phase.color)).join('');
     if(!weeksHtml) return;
     shownWeeks++;
-    div.innerHTML=`
-      <div class="phase-header" style="background:${phase.bg}" onclick="togglePhase('${phase.id}')">
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-          <span style="width:10px;height:10px;border-radius:50%;background:${phase.color};display:inline-block;flex-shrink:0"></span>
-          <span class="fw-bold" style="color:${phase.color};font-size:0.9rem">${phase.title}</span>
-          <span class="phase-badge" style="background:${phase.color};color:white">${pd}/${pt}</span>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-          <span style="font-size:0.8rem;color:${phase.color};font-weight:600">${pp}%</span>
-          <i class="bi bi-chevron-down" id="chev-${phase.id}" style="color:${phase.color};transition:transform 0.25s"></i>
-        </div>
+    const isClosed = closedPhases.has(phase.id);
+    parts.push(`<section class="phase-card" style="--phc:${tone(phase.color)}">
+      <div class="phase-header" role="button" tabindex="0" aria-expanded="${!isClosed}" onclick="togglePhase('${phase.id}')" onkeydown="keyAct(event,()=>togglePhase('${phase.id}'))">
+        <div class="phase-title"><span class="phase-dot" aria-hidden="true"></span><span class="phase-name">${esc(phase.title)}</span><span class="phase-badge">${pd}/${pt}</span></div>
+        <div class="phase-meta"><span class="phase-pct">${pp}%</span><i class="bi bi-chevron-down" id="chev-${phase.id}" style="${isClosed?'transform:rotate(-90deg)':''}" aria-hidden="true"></i></div>
       </div>
-      <div id="body-${phase.id}" style="padding:0.65rem">
-        ${weeksHtml}
-      </div>`;
-    c.appendChild(div);
+      <div class="phase-progress" aria-hidden="true"><i style="width:${pp}%"></i></div>
+      <div id="body-${phase.id}" class="phase-body" style="${isClosed?'display:none':''}">${weeksHtml}</div>
+    </section>`);
   });
+  c.innerHTML = parts.join('');
   const emptyEl = document.getElementById('roadmap-empty');
   if(emptyEl) emptyEl.style.display = shownWeeks ? 'none' : '';
+  restoreNoteDrafts(drafts);
 }
 
 function renderWeek(w,color){
   const wd=w.days.filter(d=>done.has(d.n)).length, wt=w.days.length;
   const pct=Math.round(wd/wt*100);
+  const term = searchTerm.trim();
   const days=w.days.filter(d=>{
     if(filter==='done'&&!done.has(d.n)) return false;
     if(filter==='pending'&&done.has(d.n)) return false;
-    if(searchTerm&&!d.topic.toLowerCase().includes(searchTerm)&&!d.desc.toLowerCase().includes(searchTerm)) return false;
+    if(term && !d.topic.toLowerCase().includes(term) && !d.desc.toLowerCase().includes(term) && !('day '+d.n).includes(term)) return false;
     return true;
   });
   if(!days.length) return '';
-  const resHtml = w.res ? `<div class="wk-res">
-    <i class="bi bi-book me-1"></i><strong>Resources:</strong> ${w.res.map(r=>`<span class="chip">${r}</span>`).join('')}
-  </div>` : '';
+  const resHtml = w.res ? `<div class="wk-res"><i class="bi bi-book me-1" aria-hidden="true"></i><strong>Resources:</strong> ${w.res.map(r=>`<span class="chip">${esc(r)}</span>`).join('')}</div>` : '';
   const wkKey = 'w'+w.days[0].n;
   const hasNext = w.days.some(d=>d.n===NEXT_DAY);
   let collapsed;
-  if(searchTerm || filter!=='all') collapsed = false;
+  if(term || filter!=='all') collapsed = false;
   else if(weekState[wkKey]!==undefined) collapsed = !weekState[wkKey];
   else collapsed = !hasNext;
-  return `<div class="week-card mb-2 ${collapsed?'collapsed':''}" data-wk="${wkKey}">
-    <div class="week-header" onclick="toggleWeek(this)">
-      <span><i class="bi bi-chevron-down wk-chev"></i> <span style="color:${color}">${w.week}</span> — ${w.title}</span>
-      <div class="d-flex align-items-center gap-2 flex-wrap">
-        <span class="deadline-badge"><i class="bi bi-flag-fill me-1"></i>${w.deadline}</span>
-        <div class="week-prog"><div class="week-prog-fill" style="width:${pct}%;background:${color}"></div></div>
-        <span style="font-size:0.72rem;color:var(--muted)">${wd}/${wt}</span>
+  return `<div class="week-card ${collapsed?'collapsed':''}" data-wk="${wkKey}">
+    <div class="week-header" role="button" tabindex="0" aria-expanded="${!collapsed}" onclick="toggleWeek(this)" onkeydown="keyAct(event,()=>toggleWeek(this))">
+      <span class="week-title"><i class="bi bi-chevron-down wk-chev" aria-hidden="true"></i><span class="week-no">${esc(w.week)}</span><span class="week-name">${esc(w.title)}</span></span>
+      <div class="week-meta">
+        <span class="deadline-badge">${esc(w.deadline)}</span>
+        <div class="week-prog" aria-hidden="true"><div class="week-prog-fill" style="width:${pct}%"></div></div>
+        <span class="week-count">${wd}/${wt}</span>
       </div>
     </div>
-    ${days.map(d=>`
-    <div class="day-row ${d.n===NEXT_DAY?'is-next':''}" data-day="${d.n}" style="flex-wrap:wrap">
+    ${days.map(d=>{
+      const isDone = done.has(d.n), hasNote = !!dayNotes[d.n];
+      return `
+    <div class="day-row ${d.n===NEXT_DAY?'is-next':''} ${isDone?'is-done':''}" data-day="${d.n}">
       <span class="day-num">Day ${d.n}</span>
-      <div class="day-check ${done.has(d.n)?'done':''}" onclick="toggle(${d.n})"></div>
+      <button type="button" class="day-check ${isDone?'done':''}" role="checkbox" aria-checked="${isDone}" aria-label="Day ${d.n}: ${escA(d.topic)}" onclick="toggle(${d.n})"></button>
       <div class="day-topic">
-        <strong style="${done.has(d.n)?'text-decoration:line-through;color:var(--muted)':''}">${d.topic}${d.n===NEXT_DAY?'<span class="next-pill">Up next</span>':''}</strong>
-        <span>${d.desc}</span>
+        <strong>${esc(d.topic)}${d.n===NEXT_DAY?'<span class="next-pill">Up next</span>':''}</strong>
+        <span>${esc(d.desc)}</span>
       </div>
-      <button class="day-note-btn ${dayNotes[d.n]?'has-note':''}" onclick="toggleNoteBox(${d.n})" title="Add/view note"><i class="bi bi-sticky${dayNotes[d.n]?'-fill':''}"></i></button>
-      <div class="day-note-box" id="note-box-${d.n}" style="width:100%">
-        ${rteEditorHTML('note-text-'+d.n, 'What did you learn or struggle with on Day '+d.n+'?', dayNotes[d.n] ? (dayNotes[d.n].type==='bullets' ? '<ul>'+(dayNotes[d.n].points||[]).map(p=>`<li>${p}</li>`).join('')+'</ul>' : (dayNotes[d.n].text||'')) : '')}
-        <div class="note-attach-row">
-          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('note-img-input-${d.n}').click()"><i class="bi bi-paperclip me-1"></i>Attach image</button>
-          <input type="file" id="note-img-input-${d.n}" accept="image/*" style="display:none" onchange="handleNoteImage(event,${d.n})">
-          <span class="small text-success" id="note-img-name-${d.n}">${dayNotes[d.n]&&dayNotes[d.n].mediaName?'✓ '+dayNotes[d.n].mediaName:''}</span>
-        </div>
-        <div class="note-actions">
-          <button class="btn btn-sm btn-outline-secondary" onclick="toggleNoteBox(${d.n})">Close</button>
-          <button class="btn btn-sm btn-primary" onclick="saveNote(${d.n})"><i class="bi bi-check2 me-1"></i>Save note</button>
-        </div>
-      </div>
-    </div>`).join('')}
+      <button type="button" class="day-note-btn ${hasNote?'has-note':''}" onclick="toggleNoteBox(${d.n})" title="${hasNote?'View or edit note':'Add a note'}" aria-label="${hasNote?'View or edit note':'Add a note'} for day ${d.n}" aria-expanded="false"><i class="bi bi-sticky${hasNote?'-fill':''}"></i></button>
+      <div class="day-note-box" id="note-box-${d.n}"></div>
+    </div>`;}).join('')}
     ${resHtml}
   </div>`;
 }
@@ -2463,12 +2581,15 @@ function renderWeek(w,color){
 function togglePhase(id){
   const body=document.getElementById('body-'+id);
   const chev=document.getElementById('chev-'+id);
+  if(!body) return;
   const hidden=body.style.display==='none';
   body.style.display=hidden?'':'none';
-  chev.style.transform=hidden?'':'rotate(-90deg)';
+  if(chev) chev.style.transform=hidden?'':'rotate(-90deg)';
+  hidden ? closedPhases.delete(id) : closedPhases.add(id);
+  const hd = body.parentElement.querySelector('.phase-header'); if(hd) hd.setAttribute('aria-expanded', String(hidden));
 }
 
-let resCatOrder = JSON.parse(localStorage.getItem('dotnet_res_cat_order') || 'null');
+let resCatOrder = lsJSON('dotnet_res_cat_order', 'null');
 function saveResCatOrder(names){ resCatOrder = names; localStorage.setItem('dotnet_res_cat_order', JSON.stringify(names)); }
 let draggedResCat = null;
 function attachResCardDragEvents(col, catName){
@@ -2491,58 +2612,31 @@ function attachResCardDragEvents(col, catName){
   });
 }
 
+function resLinkHTML(i, editable){
+  const tag = `<span class="res-type">${esc(i.type)}</span>`;
+  const price = `<span class="res-type ${i.label==='Free'?'is-free':'is-paid'}">${esc(i.label)}</span>`;
+  const href = escA(safeUrl(i.url)||'#');
+  if(!editable) return `<a class="res-link" href="${href}" target="_blank" rel="noopener noreferrer">${tag}<span class="res-name">${esc(i.name)}</span>${price}<i class="bi bi-box-arrow-up-right res-ext" aria-hidden="true"></i></a>`;
+  return `<div class="res-link has-actions"><a href="${href}" target="_blank" rel="noopener noreferrer" class="res-main">${tag}<span class="res-name">${esc(i.name)}</span>${price}</a>
+    <button type="button" class="item-action-btn" onclick="openResourceForm('${escA(i.id)}')" aria-label="Edit resource"><i class="bi bi-pencil"></i></button>
+    <button type="button" class="item-action-btn danger" onclick="deleteResourceLink('${escA(i.id)}')" aria-label="Remove resource"><i class="bi bi-trash"></i></button></div>`;
+}
 function renderResources(){
   const c=document.getElementById('res-container'); c.innerHTML='';
   const customByCat = {};
   customResourceLinks.forEach(r=>{ (customByCat[r.category] = customByCat[r.category]||[]).push(r); });
-
-  const cards = []; // {catName, node}
-
+  const cards = [];
+  const mk = (catName, color, inner)=>{
+    const col=document.createElement('div'); col.className='col-12 col-md-6'; col.dataset.catName=catName;
+    col.innerHTML=`<div class="res-card" style="--phc:${tone(color)}"><h6><i class="bi bi-grip-vertical grip" aria-hidden="true"></i>${esc(catName)}</h6>${inner}</div>`;
+    cards.push({catName, col});
+  };
   RESOURCES.forEach(r=>{
     const extra = customByCat[r.phase] || [];
     delete customByCat[r.phase];
-    const col=document.createElement('div'); col.className='col-12 col-md-6'; col.dataset.catName=r.phase;
-    col.innerHTML=`<div class="res-card" style="border-top:3px solid ${r.color}">
-      <h6 style="color:${r.color}"><i class="bi bi-grip-vertical me-1" style="color:${r.color}66"></i>${r.phase}</h6>
-      ${r.items.map(i=>`<a class="res-link" href="${i.url}" target="_blank">
-        <span class="res-type" style="background:${i.color}22;color:${i.color}">${i.type}</span>
-        <span style="flex:1">${i.name}</span>
-        <span class="res-type" style="background:${i.label==='Free'?'#dcfce7':'#ede9fe'};color:${i.label==='Free'?'#16a34a':'#7c3aed'}">${i.label}</span>
-        <i class="bi bi-box-arrow-up-right" style="font-size:0.7rem;color:var(--muted)"></i>
-      </a>`).join('')}
-      ${extra.map(i=>`<div class="res-link" style="align-items:center">
-        <a href="${i.url}" target="_blank" class="d-flex align-items-center gap-2" style="flex:1;min-width:0;color:inherit;text-decoration:none">
-          <span class="res-type" style="background:${i.color}22;color:${i.color}">${i.type}</span>
-          <span style="flex:1">${i.name}</span>
-          <span class="res-type" style="background:${i.label==='Free'?'#dcfce7':'#ede9fe'};color:${i.label==='Free'?'#16a34a':'#7c3aed'}">${i.label}</span>
-        </a>
-        <i class="bi bi-pencil text-primary" style="font-size:0.72rem;cursor:pointer" onclick="event.preventDefault();openResourceForm('${i.id}')"></i>
-        <i class="bi bi-trash text-danger" style="font-size:0.72rem;cursor:pointer" onclick="event.preventDefault();deleteResourceLink('${i.id}')"></i>
-      </div>`).join('')}
-    </div>`;
-    cards.push({catName:r.phase, col});
+    mk(r.phase, r.color, r.items.map(i=>resLinkHTML(i,false)).join('') + extra.map(i=>resLinkHTML(i,true)).join(''));
   });
-
-  // Any custom categories that don't match a built-in phase get their own card.
-  Object.keys(customByCat).forEach(catName=>{
-    const items = customByCat[catName];
-    const col=document.createElement('div'); col.className='col-12 col-md-6'; col.dataset.catName=catName;
-    col.innerHTML=`<div class="res-card" style="border-top:3px solid #16a34a">
-      <h6 style="color:#16a34a"><i class="bi bi-grip-vertical me-1" style="color:#16a34a66"></i>${catName}</h6>
-      ${items.map(i=>`<div class="res-link" style="align-items:center">
-        <a href="${i.url}" target="_blank" class="d-flex align-items-center gap-2" style="flex:1;min-width:0;color:inherit;text-decoration:none">
-          <span class="res-type" style="background:${i.color}22;color:${i.color}">${i.type}</span>
-          <span style="flex:1">${i.name}</span>
-          <span class="res-type" style="background:${i.label==='Free'?'#dcfce7':'#ede9fe'};color:${i.label==='Free'?'#16a34a':'#7c3aed'}">${i.label}</span>
-        </a>
-        <i class="bi bi-pencil text-primary" style="font-size:0.72rem;cursor:pointer" onclick="event.preventDefault();openResourceForm('${i.id}')"></i>
-        <i class="bi bi-trash text-danger" style="font-size:0.72rem;cursor:pointer" onclick="event.preventDefault();deleteResourceLink('${i.id}')"></i>
-      </div>`).join('')}
-    </div>`;
-    cards.push({catName, col});
-  });
-
-  // Apply saved order (unordered/new categories fall to the end).
+  Object.keys(customByCat).forEach(catName=> mk(catName, '#2f6b4f', customByCat[catName].map(i=>resLinkHTML(i,true)).join('')));
   let ordered = cards;
   if(resCatOrder){
     const map = new Map(cards.map(x=>[x.catName,x]));
@@ -2550,55 +2644,42 @@ function renderResources(){
     cards.forEach(x=>{ if(!resCatOrder.includes(x.catName)) ordered.push(x); });
   }
   ordered.forEach(x=>{ c.appendChild(x.col); attachResCardDragEvents(x.col, x.catName); });
-
   const rsEl = document.getElementById('docs-search-input');
   if(rsEl && rsEl.value) filterResources();
 }
 
 function renderProjects(){
-  const c=document.getElementById('proj-container'); c.innerHTML='';
-  PROJECTS.forEach(p=>{
-    c.innerHTML+=`<div class="proj-card ${p.featured?'featured':''}">
-      <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-2">
+  const c=document.getElementById('proj-container');
+  c.innerHTML = PROJECTS.map(p=>`<article class="proj-card ${p.featured?'featured':''}">
+      <div class="proj-head">
         <div>
-          <h5 class="mb-1" style="font-size:1rem;font-weight:700">${p.name}</h5>
-          <span style="font-size:0.75rem;color:var(--muted)">${p.phase} &nbsp;•&nbsp; ⏱ ${p.time}</span>
+          <h5>${esc(p.name)}</h5>
+          <span class="proj-sub">${esc(p.phase)} &nbsp;·&nbsp; ${esc(p.time)}</span>
         </div>
-        <span class="proj-level" style="background:${p.levelBg};color:${p.levelColor}">${p.level}</span>
+        <span class="proj-level lvl-${esc(String(p.level).toLowerCase())}">${esc(p.level)}</span>
       </div>
-      <p style="font-size:0.83rem;color:#374151;margin-bottom:0.5rem">${p.desc}</p>
-      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:0.6rem"><strong>Goal:</strong> ${p.goal}</p>
-      <div class="mb-2">
-        <div style="font-size:0.78rem;font-weight:600;margin-bottom:4px">Features:</div>
-        <ul style="font-size:0.78rem;color:#374151;margin:0;padding-left:1.2rem">
-          ${p.features.map(f=>`<li>${f}</li>`).join('')}
-        </ul>
-      </div>
-      <div>${p.tech.map(t=>`<span class="proj-tech">${t}</span>`).join('')}</div>
-    </div>`;
-  });
+      <p class="proj-desc">${esc(p.desc)}</p>
+      <p class="proj-goal"><strong>Goal:</strong> ${esc(p.goal)}</p>
+      <div class="proj-feat-title">Features</div>
+      <ul class="proj-feat">${p.features.map(f=>`<li>${esc(f)}</li>`).join('')}</ul>
+      <div class="proj-tech-row">${p.tech.map(t=>`<span class="proj-tech">${esc(t)}</span>`).join('')}</div>
+    </article>`).join('');
 }
 
 function renderStructure(){
-  const c=document.getElementById('struct-container'); c.innerHTML='';
-  STRUCTURES.forEach(s=>{
-    c.innerHTML+=`<div class="phase-card mb-3">
-      <div class="phase-header" style="background:#f9fafb;border-bottom:2px solid ${s.color}">
-        <span class="fw-bold" style="color:${s.color}"><i class="bi bi-diagram-3 me-2"></i>${s.name}</span>
-      </div>
-      <div style="padding:1rem">
-        <div class="struct-tree">${s.tree}</div>
-      </div>
-    </div>`;
-  });
+  const c=document.getElementById('struct-container');
+  c.innerHTML = STRUCTURES.map(s=>`<section class="phase-card mb-3" style="--phc:${tone(s.color)}">
+      <div class="phase-header static"><div class="phase-title"><span class="phase-dot" aria-hidden="true"></span><span class="phase-name">${esc(s.name)}</span></div></div>
+      <div class="struct-wrap"><div class="struct-tree" tabindex="0" role="region" aria-label="${escA(s.name)} folder tree">${s.tree}</div></div>
+    </section>`).join('');
 }
 
 // ===================== ADVANCED+ TOPIC BOARD (add/edit/delete/drag/collapse) =====================
-let advOrder = JSON.parse(localStorage.getItem('dotnet_adv_order') || 'null');
-let advCollapsed = JSON.parse(localStorage.getItem('dotnet_adv_collapsed') || '{}');
-let advOverrides = JSON.parse(localStorage.getItem('dotnet_adv_overrides') || '{}');
-let advDeleted = new Set(JSON.parse(localStorage.getItem('dotnet_adv_deleted') || '[]'));
-let advCustom = JSON.parse(localStorage.getItem('dotnet_adv_custom') || '[]');
+let advOrder = lsJSON('dotnet_adv_order', 'null');
+let advCollapsed = lsJSON('dotnet_adv_collapsed', '{}');
+let advOverrides = lsJSON('dotnet_adv_overrides', '{}');
+let advDeleted = new Set(lsJSON('dotnet_adv_deleted', '[]'));
+let advCustom = lsJSON('dotnet_adv_custom', '[]');
 let editingAdvItem = null;
 let pendingAdvMedia = null;
 
@@ -2631,12 +2712,12 @@ function renderAdvanced(){
       <i class="bi bi-grip-vertical item-handle"></i>
       <div class="item-body">
         <div class="item-top">
-          <span class="item-badge" style="background:${(item.badgeColor||TYPE_COLOR[item.type])}18;color:${item.badgeColor||TYPE_COLOR[item.type]}"><i class="bi ${TYPE_ICON[item.type]||'bi-file-text'} me-1"></i>${item.type}</span>
-          <span class="item-title">${item.title}</span>
-          <button class="item-collapse-btn" onclick="toggleAdvCollapse('${item.id}')" title="Collapse/expand"><i class="bi bi-chevron-${closed?'down':'up'}"></i></button>
+          <span class="item-badge"><i class="bi ${TYPE_ICON[item.type]||'bi-file-text'} me-1" aria-hidden="true"></i>${esc(item.type)}</span>
+          <span class="item-title">${esc(item.title)}</span>
+          <button class="item-collapse-btn" onclick="toggleAdvCollapse('${escA(item.id)}')" title="Collapse/expand" aria-label="Collapse or expand" aria-expanded="${!closed}"><i class="bi bi-chevron-${closed?'down':'up'}"></i></button>
           <div class="item-actions">
-            <button class="item-action-btn" onclick="editAdvItem('${item.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
-            <button class="item-action-btn danger" onclick="deleteAdvItem('${item.id}')" title="Delete"><i class="bi bi-trash"></i></button>
+            <button class="item-action-btn" onclick="editAdvItem('${escA(item.id)}')" title="Edit" aria-label="Edit"><i class="bi bi-pencil"></i></button>
+            <button class="item-action-btn danger" onclick="deleteAdvItem('${escA(item.id)}')" title="Delete" aria-label="Delete"><i class="bi bi-trash"></i></button>
           </div>
         </div>
         ${closed ? '' : itemBodyHTML(item)}
@@ -2689,7 +2770,7 @@ function openAdvChooser(){
   const slot = document.getElementById('adv-form-slot');
   slot.innerHTML = `
     <div class="author-form">
-      <h6 class="fw-bold mb-1"><i class="bi bi-plus-circle me-1"></i>What kind of advanced topic?</h6>
+      <h6 class="form-title"><i class="bi bi-plus-circle me-1"></i>What kind of advanced topic?</h6>
       <p class="small text-muted mb-3">Pick a type — the form below will only ask what's relevant.</p>
       <div class="type-chooser-grid">
         <button type="button" class="type-chooser-btn" onclick="openAdvForm(null,'PDF')"><i class="bi bi-file-earmark-pdf-fill" style="color:#dc2626"></i><span class="tc-label">PDF</span><span class="tc-desc">Upload &amp; preview a PDF</span></button>
@@ -2712,34 +2793,34 @@ function openAdvForm(itemId, category){
   let typeSpecificHTML = '';
   if(category==='PDF'){
     typeSpecificHTML = `
-      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="adv-pdf-input" accept="application/pdf" style="display:none" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name-pdf">${isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):''}</div></div>
-      <div class="col-12"><label>Topic / notes <span class="text-muted fw-normal">(optional, collapsible)</span></label><textarea id="adv-para" class="form-control" rows="2">${isEdit && item.type==='PDF'?item.summary||'':''}</textarea></div>`;
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="adv-pdf-input" accept="application/pdf" style="display:none" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
+      <div class="col-12"><label>Topic / notes <span class="text-muted fw-normal">(optional, collapsible)</span></label><textarea id="adv-para" class="form-control" rows="2">${esc(isEdit && item.type==='PDF'?item.summary||'':'')}</textarea></div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="adv-image-input" accept="image/*" style="display:none" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name">${isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):''}</div></div>
-      <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label><textarea id="adv-summary" class="form-control" rows="2">${isEdit && item.type==='Image'?item.summary||'':''}</textarea></div>`;
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="adv-image-input" accept="image/*" style="display:none" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
+      <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label><textarea id="adv-summary" class="form-control" rows="2">${esc(isEdit && item.type==='Image'?item.summary||'':'')}</textarea></div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Link URL <span class="text-danger">*required</span> <span class="text-muted fw-normal">— video links play right here</span></label><input id="adv-url" class="form-control" value="${isEdit && item.url?item.url:''}" placeholder="https://..."></div>
-      <div class="col-12"><label>Short summary <span class="text-muted fw-normal">(optional)</span></label><textarea id="adv-summary" class="form-control" rows="2">${isEdit?item.summary||'':''}</textarea></div>`;
+      <div class="col-12"><label>Link URL <span class="text-danger">*required</span> <span class="text-muted fw-normal">— video links play right here</span></label><input id="adv-url" class="form-control" value="${escA(isEdit && item.url?item.url:'')}" placeholder="https://..."></div>
+      <div class="col-12"><label>Short summary <span class="text-muted fw-normal">(optional)</span></label><textarea id="adv-summary" class="form-control" rows="2">${esc(isEdit?item.summary||'':'')}</textarea></div>`;
   } else {
     typeSpecificHTML = `
       <div class="col-md-5"><label>Content type</label><select id="adv-type" class="form-select" onchange="renderAdvTypeFields()">
         <option value="Bullets">Bullets</option><option value="Paragraph">Paragraph</option><option value="Diagram">Mini Roadmap Diagram</option>
       </select></div>
-      <div class="col-12 adv-type-field" data-type="Paragraph"><label>Paragraph text</label><textarea id="adv-para" class="form-control" rows="3">${isEdit && item.type==='Paragraph'?item.summary||'':''}</textarea></div>
-      <div class="col-12 adv-type-field" data-type="Bullets"><label>Bullet points (one per line)</label><textarea id="adv-bullets" class="form-control" rows="3">${isEdit && item.points?item.points.join('\n'):''}</textarea></div>
-      <div class="col-12 adv-type-field" data-type="Diagram"><label>Steps (one per line)</label><textarea id="adv-steps" class="form-control" rows="3">${isEdit && item.steps?item.steps.join('\n'):''}</textarea></div>
-      <div class="col-12"><label>Short summary <span class="text-muted fw-normal">(optional)</span></label><textarea id="adv-summary" class="form-control" rows="2">${isEdit && item.type!=='Paragraph'?item.summary||'':''}</textarea></div>`;
+      <div class="col-12 adv-type-field" data-type="Paragraph"><label>Paragraph text</label><textarea id="adv-para" class="form-control" rows="3">${esc(isEdit && item.type==='Paragraph'?item.summary||'':'')}</textarea></div>
+      <div class="col-12 adv-type-field" data-type="Bullets"><label>Bullet points (one per line)</label><textarea id="adv-bullets" class="form-control" rows="3">${esc(isEdit && item.points?item.points.join('\n'):'')}</textarea></div>
+      <div class="col-12 adv-type-field" data-type="Diagram"><label>Steps (one per line)</label><textarea id="adv-steps" class="form-control" rows="3">${esc(isEdit && item.steps?item.steps.join('\n'):'')}</textarea></div>
+      <div class="col-12"><label>Short summary <span class="text-muted fw-normal">(optional)</span></label><textarea id="adv-summary" class="form-control" rows="2">${esc(isEdit && item.type!=='Paragraph'?item.summary||'':'')}</textarea></div>`;
   }
 
   const catMeta = {PDF:{icon:'bi-file-earmark-pdf-fill',label:'PDF'},Image:{icon:'bi-image',label:'Image'},Link:{icon:'bi-link-45deg',label:'Link'},Content:{icon:'bi-text-paragraph',label:'Content'}}[category];
   const slot = document.getElementById('adv-form-slot');
   slot.innerHTML = `
     <div class="author-form">
-      <h6 class="fw-bold mb-3"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit topic':'Add '+catMeta.label+' topic'}</h6>
+      <h6 class="form-title"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit topic':'Add '+catMeta.label+' topic'}</h6>
       <div class="row g-2">
-        <div class="col-12"><label>Topic title <span class="text-danger">*required</span></label><input id="adv-title" class="form-control" value="${isEdit?item.title:''}" placeholder="e.g. Rate Limiting Strategies"></div>
+        <div class="col-12"><label>Topic title <span class="text-danger">*required</span></label><input id="adv-title" class="form-control" value="${escA(isEdit?item.title:'')}" placeholder="e.g. Rate Limiting Strategies"></div>
         ${typeSpecificHTML}
       </div>
       <div class="d-flex gap-2 mt-3 flex-wrap">
@@ -2756,15 +2837,13 @@ function renderAdvTypeFields(){
   const type = document.getElementById('adv-type').value;
   document.querySelectorAll('.adv-type-field').forEach(f=>f.classList.toggle('active', f.dataset.type===type));
 }
-function handleAdvMediaFile(e){
+async function handleAdvMediaFile(e){
   const file = e.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = ()=>{
-    pendingAdvMedia = {dataUrl:reader.result, name:file.name};
-    const el = document.getElementById('adv-media-name') || document.getElementById('adv-media-name-pdf');
-    if(el) el.textContent = '✓ ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)';
-  };
-  reader.readAsDataURL(file);
+  const up = await readUpload(file);
+  if(!up){ e.target.value=''; return; }
+  pendingAdvMedia = up;
+  const el = document.getElementById('adv-media-name') || document.getElementById('adv-media-name-pdf');
+  if(el) el.textContent = '✓ ' + file.name + ' (' + Math.round(up.dataUrl.length*0.75/1024) + ' KB)';
 }
 async function submitAdvForm(category){
   const title = document.getElementById('adv-title').value.trim();
@@ -2773,7 +2852,7 @@ async function submitAdvForm(category){
   let type;
   if(category==='PDF') type='PDF';
   else if(category==='Image') type='Image';
-  else if(category==='Link'){ const url=document.getElementById('adv-url').value.trim(); type = getVideoEmbedInfo(url) ? 'Video' : 'Link'; }
+  else if(category==='Link'){ const url=normUrl(document.getElementById('adv-url').value); type = getVideoEmbedInfo(url) ? 'Video' : 'Link'; }
   else type = document.getElementById('adv-type').value;
 
   let data = {type, title, badgeColor: TYPE_COLOR[type]};
@@ -2783,7 +2862,7 @@ async function submitAdvForm(category){
   if(type==='PDF'){ const p=document.getElementById('adv-para'); if(p) data.summary = p.value.trim(); }
   if(type==='Bullets') data.points = document.getElementById('adv-bullets').value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(type==='Diagram') data.steps = document.getElementById('adv-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  if(type==='Link' || type==='Video') data.url = document.getElementById('adv-url').value.trim();
+  if(type==='Link' || type==='Video') data.url = normUrl(document.getElementById('adv-url').value);
   if((type==='Image'||type==='PDF') && pendingAdvMedia){
     const key = 'media-adv-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
     await idbPut(key, pendingAdvMedia.dataUrl);
@@ -2791,7 +2870,7 @@ async function submitAdvForm(category){
   }
   if(!editingAdvItem && type==='PDF' && !pendingAdvMedia){ alert('Please choose a PDF file to upload.'); return; }
   if(!editingAdvItem && type==='Image' && !pendingAdvMedia){ alert('Please choose an image file to upload.'); return; }
-  if((type==='Link'||type==='Video') && !data.url){ alert('Please enter a link URL.'); return; }
+  if((type==='Link'||type==='Video') && !data.url){ alert('Please enter a valid web link (https://…).'); return; }
 
   if(editingAdvItem){
     const old = getAllAdvItems().find(i=>i.id===editingAdvItem);
@@ -2801,6 +2880,7 @@ async function submitAdvForm(category){
       localStorage.setItem('dotnet_adv_overrides', JSON.stringify(advOverrides));
     } else {
       const idx = advCustom.findIndex(i=>i.id===editingAdvItem);
+      if(idx<0){ alert('That topic no longer exists.'); closeAdvForm(); renderAdvanced(); return; }
       advCustom[idx] = {...old, ...data, id:old.id};
       localStorage.setItem('dotnet_adv_custom', JSON.stringify(advCustom));
     }
@@ -2813,19 +2893,20 @@ async function submitAdvForm(category){
   renderAdvanced();
 }
 
-let customQA = JSON.parse(localStorage.getItem('dotnet_custom_qa') || '[]'); // [{id, cat, q, a}] or rich {id, cat, q, type, summary/points/steps/url/mediaKey/mediaName}
-let qaOverrides = JSON.parse(localStorage.getItem('dotnet_qa_overrides') || '{}'); // edits to hardcoded (seed) questions, keyed by seed id
-let qaDeleted = new Set(JSON.parse(localStorage.getItem('dotnet_qa_deleted') || '[]')); // deleted hardcoded question ids
+let customQA = lsJSON('dotnet_custom_qa', '[]'); // [{id, cat, q, a}] or rich {id, cat, q, type, summary/points/steps/url/mediaKey/mediaName}
+let qaOverrides = lsJSON('dotnet_qa_overrides', '{}'); // edits to hardcoded (seed) questions, keyed by seed id
+let qaDeleted = new Set(lsJSON('dotnet_qa_deleted', '[]')); // deleted hardcoded question ids
 let editingQAItem = null; // id being edited, or null when adding
 let pendingQAMedia = null;
 
 // ---- Interview Q&A: dynamic, scrollable sub-tabs (Built-in Topics / My Questions are built-in;
 // any number of custom ones can be created right from the "Add question" flow) ----
-let qaSections = JSON.parse(localStorage.getItem('dotnet_qa_sections') || 'null') || [
+let qaSections = lsJSON('dotnet_qa_sections', 'null') || [
   {key:'builtin', label:'Built-in Topics', icon:'bi-collection', builtin:true},
   {key:'custom', label:'My Questions', icon:'bi-person-lines-fill', builtin:true}
 ];
 let activeQASection = localStorage.getItem('dotnet_active_qa_section') || 'builtin';
+if(!qaSections.some(s=>s.key===activeQASection)) activeQASection = 'builtin';
 function saveQASections(){ localStorage.setItem('dotnet_qa_sections', JSON.stringify(qaSections)); }
 
 // Hardcoded QA_DATA questions get stable ids and flow through the same
@@ -2839,23 +2920,21 @@ function getAllQAItems(){
     .map(it=> qaOverrides[it.id] ? {...it, ...qaOverrides[it.id]} : it);
 }
 
+let _relCache = null;
 function findRelatedContent(question){
   const words = question.toLowerCase().split(/\W+/).filter(w=>w.length>4);
+  if(!words.length) return [];
+  if(!_relCache){ _relCache = {days:[], docs:[]};
+    PHASES.forEach(p=>p.weeks.forEach(w=>w.days.forEach(d=>_relCache.days.push({d, t:d.topic.toLowerCase()}))));
+    getAllAuthors().forEach(a=>a.items.forEach(it=>_relCache.docs.push({it, t:String(it.title||'').toLowerCase()})));
+    setTimeout(()=>{ _relCache = null; }, 0);
+  }
   const hits = [];
-  for(const phase of PHASES){
-    for(const w of phase.weeks){
-      for(const d of w.days){
-        if(words.some(word=>d.topic.toLowerCase().includes(word))){ hits.push({label:`Day ${d.n} — ${d.topic}`, kind:'Roadmap'}); }
-      }
-    }
-  }
-  for(const author of getAllAuthors()){
-    for(const it of author.items){
-      if(words.some(word=>it.title.toLowerCase().includes(word))){ hits.push({label:it.title, kind:'Docs Hub'}); }
-    }
-  }
-  const seen = new Set(); 
-  return hits.filter(h=>{ const k=h.kind+h.label; if(seen.has(k)) return false; seen.add(k); return true; }).slice(0,2);
+  _relCache.days.forEach(({d,t})=>{ if(words.some(w=>t.includes(w))) hits.push({label:`Day ${d.n} — ${d.topic}`, kind:'Roadmap'}); });
+  _relCache.docs.forEach(({it,t})=>{ if(words.some(w=>t.includes(w))) hits.push({label:it.title, kind:'Docs Hub'}); });
+  const seen0 = new Set();
+  return hits.filter(h=>{ const k=h.kind+h.label; if(seen0.has(k)) return false; seen0.add(k); return true; }).slice(0,2);
+
 }
 
 // Renders a QA answer body: rich items (PDF/Image/Link/Video) reuse itemBodyHTML just like
@@ -2865,24 +2944,24 @@ function findRelatedContent(question){
 function qaAnswerHTML(q){
   if(q.type) return itemBodyHTML(q);
   const text = q.a || '';
-  const isRich = /<[a-z][\s\S]*>/i.test(text);
-  if(isRich || text.length <= 220) return `<div class="item-summary mb-0">${text}</div>`;
+  // Only editor output counts as rich text. Plain answers such as "Span<T> is a ref struct" must be escaped, not parsed.
+  if(isRich(text) || text.length <= 220) return `<div class="item-summary mb-0">${rich(text)}</div>`;
   const short = text.slice(0,220).trim();
-  return `<div class="item-summary mb-0 qa-long-text" data-full="${encodeURIComponent(text)}" data-short="${encodeURIComponent(short)}" data-expanded="0">${short}… <button type="button" class="qa-showmore-btn" onclick="event.stopPropagation();toggleQALongText(this.parentElement)">Show more</button></div>`;
+  return `<div class="item-summary mb-0 qa-long-text" data-full="${encodeURIComponent(text)}" data-short="${encodeURIComponent(short)}" data-expanded="0">${esc(short)}… <button type="button" class="qa-showmore-btn" onclick="event.stopPropagation();toggleQALongText(this.parentElement)">Show more</button></div>`;
 }
 function toggleQALongText(p){
   const expanded = p.dataset.expanded==='1';
   const full = decodeURIComponent(p.dataset.full);
   const short = decodeURIComponent(p.dataset.short);
   p.innerHTML = expanded
-    ? `${short}… <button type="button" class="qa-showmore-btn" onclick="event.stopPropagation();toggleQALongText(this.parentElement)">Show more</button>`
-    : `${full} <button type="button" class="qa-showmore-btn" onclick="event.stopPropagation();toggleQALongText(this.parentElement)">Show less</button>`;
+    ? `${esc(short)}… <button type="button" class="qa-showmore-btn" onclick="event.stopPropagation();toggleQALongText(this.parentElement)">Show more</button>`
+    : `${esc(full)} <button type="button" class="qa-showmore-btn" onclick="event.stopPropagation();toggleQALongText(this.parentElement)">Show less</button>`;
   p.dataset.expanded = expanded ? '0' : '1';
 }
 
 // Builds one category card's HTML (used by both the Built-in and My Questions views).
 // ---- Drag & drop: reorder questions within a category (persisted, mirrors Docs Hub) ----
-let qaCatOrders = JSON.parse(localStorage.getItem('dotnet_qa_cat_orders') || '{}');
+let qaCatOrders = lsJSON('dotnet_qa_cat_orders', '{}');
 function saveQACatOrder(catName, ids){ qaCatOrders[catName] = ids; localStorage.setItem('dotnet_qa_cat_orders', JSON.stringify(qaCatOrders)); }
 function applyQAOrder(catName, qs){
   const ord = qaCatOrders[catName];
@@ -2928,36 +3007,36 @@ function filterQAList(){
 function qaCategoryCardHTML(catName, qs, color, qiStart){
   let qi = qiStart;
   qs = applyQAOrder(catName, qs);
-  return {qi: qi + qs.length, html: `<div class="phase-card mb-3" data-cat-name="${catName}">
-      <div class="phase-header" draggable="true" style="background:${color}15;border-bottom:2px solid ${color};cursor:grab">
-        <span class="fw-bold d-flex align-items-center gap-2" style="color:${color}"><i class="bi bi-grip-vertical" style="color:${color}66" title="Drag to reorder this whole category"></i>${catName}</span>
-        <span class="phase-badge" style="background:${color};color:white">${qs.length} Questions</span>
+  return {qi: qi + qs.length, html: `<section class="phase-card mb-3" data-cat-name="${escA(catName)}" style="--phc:${tone(color)}">
+      <div class="phase-header static" draggable="true" title="Drag to reorder this whole category">
+        <div class="phase-title"><i class="bi bi-grip-vertical grip" aria-hidden="true"></i><span class="phase-name">${esc(catName)}</span></div>
+        <span class="phase-badge">${qs.length} ${qs.length===1?'question':'questions'}</span>
       </div>
-      <div style="padding:0.6rem">
+      <div class="qa-list">
         ${qs.map(q=>{
           const id='qa-'+(qi++);
           const related = findRelatedContent(q.q);
-          return `<div class="interview-q" draggable="true" data-item-id="${q.id}" data-cat="${catName}" style="cursor:pointer;border-color:${color};position:relative">
-            <div onclick="toggleQA('${id}','${q.id}',this)" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-              <span class="d-flex align-items-center gap-2"><i class="bi bi-grip-vertical" style="color:#c7ccd8;cursor:grab" title="Drag to reorder"></i>${q.type?`<span class="item-badge" style="background:${(q.badgeColor||TYPE_COLOR[q.type])}18;color:${q.badgeColor||TYPE_COLOR[q.type]}"><i class="bi ${TYPE_ICON[q.type]||'bi-file-text'} me-1"></i>${q.type}</span>`:''}<span>${q.q}</span></span>
-              <span class="d-flex align-items-center gap-2">
-                <i class="bi bi-pencil text-primary" style="font-size:0.8rem" onclick="event.stopPropagation();editQAItem('${q.id}')"></i>
-                <i class="bi bi-trash text-danger" style="font-size:0.8rem" onclick="event.stopPropagation();deleteQAItem('${q.id}')"></i>
-                <i class="bi bi-chevron-down" style="font-size:0.75rem;flex-shrink:0;color:${color}"></i>
+          return `<div class="interview-q" draggable="true" data-item-id="${escA(q.id)}" data-cat="${escA(catName)}">
+            <div class="qa-row" role="button" tabindex="0" aria-expanded="false" onclick="toggleQA('${id}','${escA(q.id)}',this)" onkeydown="if(event.target===this)keyAct(event,()=>toggleQA('${id}','${escA(q.id)}',this))">
+              <span class="qa-q"><i class="bi bi-grip-vertical grip" aria-hidden="true" title="Drag to reorder"></i>${q.type?`<span class="item-badge"><i class="bi ${TYPE_ICON[q.type]||'bi-file-text'} me-1" aria-hidden="true"></i>${esc(q.type)}</span>`:''}<span>${esc(q.q)}</span></span>
+              <span class="qa-tools">
+                <button type="button" class="item-action-btn" onclick="event.stopPropagation();editQAItem('${escA(q.id)}')" aria-label="Edit question"><i class="bi bi-pencil"></i></button>
+                <button type="button" class="item-action-btn danger" onclick="event.stopPropagation();deleteQAItem('${escA(q.id)}')" aria-label="Delete question"><i class="bi bi-trash"></i></button>
+                <i class="bi bi-chevron-down qa-chev" aria-hidden="true"></i>
               </span>
             </div>
             <div id="${id}" class="qa-answer">
               ${qaAnswerHTML(q)}
-              ${related.length ? `<div class="mt-2 pt-2" style="border-top:1px dashed #cbd5e1">${related.map(r=>`<span class="badge rounded-pill" style="background:#e0e7ff;color:#4338ca;font-size:0.68rem;font-weight:600;margin-right:4px"><i class="bi bi-link-45deg"></i> ${r.label} (${r.kind})</span>`).join('')}</div>` : ''}
+              ${related.length ? `<div class="qa-related">${related.map(r=>`<span class="rel-chip"><i class="bi bi-link-45deg" aria-hidden="true"></i> ${esc(r.label)} (${esc(r.kind)})</span>`).join('')}</div>` : ''}
             </div>
           </div>`;
         }).join('')}
       </div>
-    </div>`};
+    </section>`};
 }
 
 // ---- Drag & drop: reorder entire category sections (Built-in Topics / My Questions, tracked separately) ----
-let qaCatOrder = JSON.parse(localStorage.getItem('dotnet_qa_cat_order') || '{}'); // {builtin:[catName,...], custom:[catName,...]}
+let qaCatOrder = lsJSON('dotnet_qa_cat_order', '{}'); // {builtin:[catName,...], custom:[catName,...]}
 function applyCatOrder(viewKey, cats){
   const ord = qaCatOrder[viewKey];
   if(!ord) return cats;
@@ -3001,16 +3080,18 @@ function renderInterview(){
   if(sectionItems.length===0){
     c.innerHTML = `<p class="small text-muted text-center py-3"><i class="bi bi-info-circle me-1"></i>Nothing in this tab yet — tap "Add question" above to add one here.</p>`;
   } else {
+    let html = '';
     let cats = [...new Set(sectionItems.map(i=>i.cat))];
     cats = applyCatOrder(activeQASection, cats);
     let qi=0;
     cats.forEach(catName=>{
       const qs = sectionItems.filter(i=>i.cat===catName);
       if(qs.length===0) return;
-      const color = catColorMap[catName] || (activeQASection==='builtin' ? '#4f46e5' : '#16a34a');
+      const color = catColorMap[catName] || (activeQASection==='builtin' ? '#1f3a7a' : '#2f6b4f');
       const res = qaCategoryCardHTML(catName, qs, color, qi); qi = res.qi;
-      c.innerHTML += res.html;
+      html += res.html;
     });
+    c.innerHTML = html;
   }
 
   document.querySelectorAll('#qa-items-container > .phase-card').forEach(el=> attachQACategoryDragEvents(el, activeQASection));
@@ -3024,10 +3105,10 @@ function renderQASubtabs(){
   const el = document.getElementById('qa-subtabs');
   if(!el) return;
   el.innerHTML = qaSections.map(s=>`
-    <button class="subtab-pill ${s.key===activeQASection?'active':''}" data-key="${s.key}" draggable="true" onclick="setQASubtab('${s.key}')">
-      <i class="bi bi-grip-vertical" style="opacity:0.4;font-size:0.7rem"></i>
-      <i class="bi ${s.icon}"></i>${s.label}
-      ${!s.builtin ? `<i class="bi bi-x-circle del-section" onclick="event.stopPropagation();deleteQASection('${s.key}')" title="Delete this tab"></i>` : ''}
+    <button class="subtab-pill ${s.key===activeQASection?'active':''}" data-key="${escA(s.key)}" draggable="true" onclick="setQASubtab('${escA(s.key)}')">
+      <i class="bi bi-grip-vertical grip" aria-hidden="true"></i>
+      <i class="bi ${escA(s.icon)}" aria-hidden="true"></i>${esc(s.label)}
+      ${!s.builtin ? `<span class="del-section" role="button" tabindex="0" aria-label="Delete this tab" onclick="event.stopPropagation();deleteQASection('${escA(s.key)}')" onkeydown="if(event.key==='Enter'){event.stopPropagation();deleteQASection('${escA(s.key)}')}"><i class="bi bi-x-circle"></i></span>` : ''}
     </button>`).join('')
     + `<button class="subtab-pill add-pill" onclick="promptNewQASection()"><i class="bi bi-plus-lg"></i>New tab</button>`;
   attachSubtabDragEvents('qa-subtabs', qaSections, saveQASections, renderQASubtabs);
@@ -3038,7 +3119,7 @@ function setQASubtab(key){
   renderInterview();
 }
 function promptNewQASection(){
-  const name = prompt('Name your new tab (e.g. "Behavioral Questions", "System Design"):');
+  const name = (prompt('Name your new tab (e.g. "Behavioral Questions", "System Design"):')||'').trim().slice(0,40);
   if(!name) return;
   const key = slugify(name);
   if(!qaSections.some(s=>s.key===key)){
@@ -3050,7 +3131,7 @@ function promptNewQASection(){
 function deleteQASection(key){
   const sec = qaSections.find(s=>s.key===key);
   if(!sec) return;
-  if(!confirm(`Delete the "${sec.label}" tab? Any questions in it will move back to My Questions.`)) return;
+  if(!confirm('Delete the "'+sec.label+'" tab? Any questions in it will move back to My Questions.')) return;
   customQA.forEach(q=>{ if((q.section||'custom')===key) q.section='custom'; });
   localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
   qaSections = qaSections.filter(s=>s.key!==key);
@@ -3082,16 +3163,16 @@ function openQAChooser(){
   editingQAItem = null; pendingQAMedia = null;
   openModal(`
     <div class="author-form qa-form-compact mb-0">
-      <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>Where should this go?</h6>
+      <h6 class="form-title"><i class="bi bi-plus-circle me-1"></i>Where should this go?</h6>
       <div class="type-chooser-grid" style="grid-template-columns:repeat(2,1fr)">
-        ${qaSections.map(s=>`<button type="button" class="type-chooser-btn" onclick="openQATypeChooser('${s.key}')"><i class="bi ${s.icon}" style="color:${s.builtin?'#4f46e5':'#16a34a'}"></i><span class="tc-label">${s.label}</span></button>`).join('')}
+        ${qaSections.map(s=>`<button type="button" class="type-chooser-btn" onclick="openQATypeChooser('${escA(s.key)}')"><i class="bi ${escA(s.icon)}" aria-hidden="true"></i><span class="tc-label">${esc(s.label)}</span></button>`).join('')}
       </div>
       <button type="button" class="type-chooser-btn mt-2" style="border-style:dashed;width:100%" onclick="promptNewQASectionThenAdd()"><i class="bi bi-plus-lg" style="color:#16a34a"></i><span class="tc-label">Create a new tab</span></button>
       <button class="btn btn-outline-secondary btn-sm mt-2" onclick="closeModal()">Cancel</button>
     </div>`);
 }
 function promptNewQASectionThenAdd(){
-  const name = prompt('Name your new tab (e.g. "Behavioral Questions", "System Design"):');
+  const name = (prompt('Name your new tab (e.g. "Behavioral Questions", "System Design"):')||'').trim().slice(0,40);
   if(!name) return;
   const key = slugify(name);
   if(!qaSections.some(s=>s.key===key)){
@@ -3105,7 +3186,7 @@ function openQATypeChooser(destination){
   pendingQADestination = destination;
   openModal(`
     <div class="author-form qa-form-compact mb-0">
-      <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle me-1"></i>Add a question</h6>
+      <h6 class="form-title"><i class="bi bi-plus-circle me-1"></i>Add a question</h6>
       <div class="type-chooser-grid">
         <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'PDF')"><i class="bi bi-file-earmark-pdf-fill" style="color:#dc2626"></i><span class="tc-label">PDF</span></button>
         <button type="button" class="type-chooser-btn" onclick="openQAForm(null,'Image')"><i class="bi bi-image" style="color:#d97706"></i><span class="tc-label">Image</span></button>
@@ -3130,15 +3211,15 @@ function openQAForm(itemId, category){
   let typeSpecificHTML = '';
   if(category==='PDF'){
     typeSpecificHTML = `
-      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="qa-pdf-input" accept="application/pdf" style="display:none" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name-pdf">${isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):''}</div></div>
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="qa-pdf-input" accept="application/pdf" style="display:none" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
       <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-para','Optional notes', isEdit && item.type==='PDF'?item.summary||'':'')}</div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="qa-image-input" accept="image/*" style="display:none" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name">${isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):''}</div></div>
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="qa-image-input" accept="image/*" style="display:none" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
       <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-summary','Optional notes', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Link URL <span class="text-danger">*</span></label><input id="qa-url" class="form-control" value="${isEdit && item.url?item.url:''}" placeholder="https://..."></div>
+      <div class="col-12"><label>Link URL <span class="text-danger">*</span></label><input id="qa-url" class="form-control" value="${escA(isEdit && item.url?item.url:'')}" placeholder="https://..."></div>
       <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-summary','Optional notes', isEdit?item.summary||'':'')}</div>`;
   } else {
     typeSpecificHTML = `<div class="col-12"><label>Answer <span class="text-danger">*</span></label>${rteEditorHTML('qa-a','Write the answer', isEdit?(item.a||item.summary||''):'')}</div>`;
@@ -3147,10 +3228,10 @@ function openQAForm(itemId, category){
   const catMeta = {PDF:{icon:'bi-file-earmark-pdf-fill',label:'PDF'},Image:{icon:'bi-image',label:'Image'},Link:{icon:'bi-link-45deg',label:'Link'},Content:{icon:'bi-text-paragraph',label:'Text'}}[category];
   openModal(`
     <div class="author-form qa-form-compact mb-0">
-      <h6 class="fw-bold mb-2"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit question':catMeta.label+' answer'}</h6>
+      <h6 class="form-title"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit question':catMeta.label+' answer'}</h6>
       <div class="row g-2">
-        <div class="col-md-6"><label>Category</label><input id="qa-cat" class="form-control" list="qa-cat-list" placeholder="e.g. C# Core" value="${isEdit?item.cat:''}"><datalist id="qa-cat-list">${existingCats.map(cn=>`<option value="${cn}">`).join('')}</datalist></div>
-        <div class="col-md-6"><label>Question <span class="text-danger">*</span></label><input id="qa-q" class="form-control" placeholder="e.g. What is ref vs out?" value="${isEdit?item.q:''}"></div>
+        <div class="col-md-6"><label>Category</label><input id="qa-cat" class="form-control" list="qa-cat-list" placeholder="e.g. C# Core" value="${escA(isEdit?item.cat:'')}"><datalist id="qa-cat-list">${existingCats.map(cn=>`<option value="${escA(cn)}">`).join('')}</datalist></div>
+        <div class="col-md-6"><label>Question <span class="text-danger">*</span></label><input id="qa-q" class="form-control" placeholder="e.g. What is ref vs out?" value="${escA(isEdit?item.q:'')}"></div>
         ${typeSpecificHTML}
       </div>
       <div class="d-flex gap-2 mt-2 flex-wrap">
@@ -3161,15 +3242,13 @@ function openQAForm(itemId, category){
     </div>`);
 }
 function closeQAForm(){ closeModal(); editingQAItem=null; pendingQAMedia=null; }
-function handleQAMediaFile(e){
+async function handleQAMediaFile(e){
   const file = e.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = ()=>{
-    pendingQAMedia = {dataUrl:reader.result, name:file.name};
-    const el = document.getElementById('qa-media-name') || document.getElementById('qa-media-name-pdf');
-    if(el) el.textContent = '✓ ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)';
-  };
-  reader.readAsDataURL(file);
+  const up = await readUpload(file);
+  if(!up){ e.target.value=''; return; }
+  pendingQAMedia = up;
+  const el = document.getElementById('qa-media-name') || document.getElementById('qa-media-name-pdf');
+  if(el) el.textContent = '✓ ' + file.name + ' (' + Math.round(up.dataUrl.length*0.75/1024) + ' KB)';
 }
 async function submitQAForm(category){
   const cat = document.getElementById('qa-cat').value.trim() || 'Custom Questions';
@@ -3179,14 +3258,14 @@ async function submitQAForm(category){
   let type = null;
   if(category==='PDF') type='PDF';
   else if(category==='Image') type='Image';
-  else if(category==='Link'){ const url=document.getElementById('qa-url').value.trim(); type = getVideoEmbedInfo(url) ? 'Video' : 'Link'; }
+  else if(category==='Link'){ const url=normUrl(document.getElementById('qa-url').value); type = getVideoEmbedInfo(url) ? 'Video' : 'Link'; }
 
   let data = {cat, q};
   if(type){
     data.type = type; data.badgeColor = TYPE_COLOR[type];
     data.summary = rteGetHTML('qa-summary');
     if(type==='PDF') data.summary = rteGetHTML('qa-para');
-    if(type==='Link' || type==='Video') data.url = document.getElementById('qa-url').value.trim();
+    if(type==='Link' || type==='Video') data.url = normUrl(document.getElementById('qa-url').value);
     if((type==='Image'||type==='PDF') && pendingQAMedia){
       const key = 'media-qa-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
       await idbPut(key, pendingQAMedia.dataUrl);
@@ -3194,7 +3273,7 @@ async function submitQAForm(category){
     }
     if(!editingQAItem && type==='PDF' && !pendingQAMedia){ alert('Please choose a PDF file to upload.'); return; }
     if(!editingQAItem && type==='Image' && !pendingQAMedia){ alert('Please choose an image file to upload.'); return; }
-    if((type==='Link'||type==='Video') && !data.url){ alert('Please enter a link URL.'); return; }
+    if((type==='Link'||type==='Video') && !data.url){ alert('Please enter a valid web link (https://…).'); return; }
   } else {
     const a = rteGetHTML('qa-a');
     if(!a){ alert('Please write the answer.'); return; }
@@ -3210,6 +3289,7 @@ async function submitQAForm(category){
       localStorage.setItem('dotnet_qa_overrides', JSON.stringify(qaOverrides));
     } else {
       const idx = customQA.findIndex(i=>i.id===editingQAItem);
+      if(idx<0){ alert('That question no longer exists.'); closeQAForm(); renderInterview(); return; }
       customQA[idx] = {...old, ...data, id:old.id};
       if(!type){ delete customQA[idx].type; delete customQA[idx].badgeColor; delete customQA[idx].url; delete customQA[idx].mediaKey; delete customQA[idx].mediaName; }
       localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
@@ -3231,6 +3311,7 @@ function toggleQA(id, itemId, el){
   const icon=el.querySelector('.bi-chevron-down');
   const shown=ans.style.display==='block';
   ans.style.display=shown?'none':'block';
+  el.setAttribute('aria-expanded', String(!shown));
   if(icon) icon.style.transform=shown?'':'rotate(180deg)';
   if(!shown && itemId){
     const item = getAllQAItems().find(i=>i.id===itemId);
@@ -3241,47 +3322,30 @@ function toggleQA(id, itemId, el){
 }
 
 function renderSummary(){
-  const c=document.getElementById('sum-container'); c.innerHTML='';
-
-  c.innerHTML+=`<div class="docshub-header" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">
+  const c=document.getElementById('sum-container');
+  const t = getTimelineInfo();
+  c.innerHTML = `
+  <div class="docshub-header">
     <div>
-      <h5 class="docshub-title"><i class="bi bi-trophy-fill me-2"></i>Timeline &amp; Summary</h5>
+      <h5 class="docshub-title">Timeline &amp; Summary</h5>
       <p class="docshub-sub mb-0">Your pace, the month-by-month plan, an ideal daily schedule, and every note you've written.</p>
     </div>
-  </div>`;
-
-  // Timeline / pace card
-  c.innerHTML += renderTimelineCard();
-
-  // Month-by-month
-  c.innerHTML+=`<h5 style="font-weight:700;margin-bottom:1rem"><i class="bi bi-calendar3 me-2 text-primary"></i>Month-by-Month Timeline</h5>`;
-  SUMMARY.timeline.forEach(m=>{
-    c.innerHTML+=`<div class="summary-phase mb-2" style="background:${m.bg};border-left:4px solid ${m.color}">
-      <h6 style="color:${m.color};margin-bottom:0.35rem">${m.month} — ${m.title}</h6>
-      <div>${m.skills.map(s=>`<span class="skill-pill" style="background:${m.color}22;color:${m.color}">${s}</span>`).join('')}</div>
-    </div>`;
-  });
-
-  // Daily schedule
-  c.innerHTML+=`<h5 style="font-weight:700;margin:1.5rem 0 1rem"><i class="bi bi-clock me-2 text-warning"></i>Ideal Daily Schedule</h5>
-  <div class="card border-0 shadow-sm p-3 mb-3">
-    ${SUMMARY.dailySchedule.map((s,i)=>`<div style="display:flex;gap:12px;padding:7px 0;${i>0?'border-top:1px solid #f3f4f6':''}">
-      <span style="min-width:150px;font-size:0.78rem;font-weight:600;color:var(--primary)">${s.time}</span>
-      <span style="font-size:0.82rem;color:#374151">${s.task}</span>
+  </div>
+  ${renderTimelineCard()}
+  <h6 class="section-label"><i class="bi bi-calendar3"></i>Month-by-month timeline</h6>
+  ${SUMMARY.timeline.map(m=>`<div class="summary-phase" style="--phc:${tone(m.color)}">
+      <h6>${esc(m.month)} — ${esc(m.title)}</h6>
+      <div>${m.skills.map(s=>`<span class="skill-pill">${esc(s.replace(/\s*/g,''))}</span>`).join('')}</div>
     </div>`).join('')}
-  </div>`;
-
-  // My Notes
-  c.innerHTML+=`<h5 style="font-weight:700;margin:1.5rem 0 1rem"><i class="bi bi-stickies me-2" style="color:#d97706"></i>My Notes</h5>
-  <input id="notes-search-input" class="form-control notes-search mb-2" placeholder="🔍 Search your notes..." oninput="filterNotes()">
-  <div id="all-notes-list">${renderAllNotes('')}</div>`;
-
-  // Final note — real, live countdown instead of a hardcoded number
-  const t = getTimelineInfo();
-  c.innerHTML+=`<div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:14px;padding:1.2rem;color:white;text-align:center;margin-top:1.5rem">
-    <div style="font-size:1.6rem;margin-bottom:0.3rem">🚀</div>
-    <p style="font-size:0.85rem;opacity:0.95;margin:0">${t.overdue ? 'Past target date' : t.remainingDays+' days left'} · Every day counts. Track your streak, ship your projects.</p>
-  </div>`;
+  <h6 class="section-label mt-4"><i class="bi bi-clock"></i>Ideal daily schedule</h6>
+  <div class="phase-card mb-3 pad sched">
+    ${SUMMARY.dailySchedule.map(s=>`<div class="sched-row"><span class="sched-time">${esc(s.time)}</span><span class="sched-task">${esc(s.task)}</span></div>`).join('')}
+  </div>
+  <h6 class="section-label mt-4"><i class="bi bi-stickies"></i>My notes</h6>
+  <input id="notes-search-input" class="form-control notes-search mb-2" aria-label="Search your notes" placeholder="Search your notes…" oninput="filterNotes()">
+  <div id="all-notes-list">${renderAllNotes('')}</div>
+  <div class="closing-note">${t.overdue ? 'Past target date' : t.remainingDays+' days left'} — every day counts. Track your streak, ship your projects.</div>`;
+  hydrateNoteImages();
 }
 
 // ===================== FIREBASE BRIDGE =====================
@@ -3309,11 +3373,12 @@ function toggleProfileItem(id, el){
   const icon = el.querySelector('.bi-chevron-down');
   const shown = ans.style.display==='block';
   ans.style.display = shown ? 'none' : 'block';
+  el.setAttribute('aria-expanded', String(!shown));
   if(icon) icon.style.transform = shown ? '' : 'rotate(180deg)';
 }
 
 function saveDisplayName(){
-  const name = document.getElementById('display-name-input').value.trim();
+  const name = document.getElementById('display-name-input').value.trim().slice(0,40);
   if(name) localStorage.setItem('dotnet_display_name', name);
   else localStorage.removeItem('dotnet_display_name');
   updateGreeting();
@@ -3322,12 +3387,14 @@ function saveDisplayName(){
 function updateGreeting(){
   const name = localStorage.getItem('dotnet_display_name');
   const el = document.getElementById('roadmap-greeting');
-  if(el) el.textContent = name ? `Welcome back, ${name} 👋` : '';
+  if(el) el.textContent = name ? `Welcome back, ${name}` : '';
 }
 
 function saveStartDate(){
   const val = document.getElementById('start-date-input').value;
-  if(val) localStorage.setItem('dotnet_start_date', val);
+  if(!val){ alert('Pick a start date first.'); return; }
+  localStorage.setItem('dotnet_start_date', val);
+  if(window.UI) UI.toast('Start date updated');
   renderProfile();
   updateCalendarCaption();
 }
@@ -3335,9 +3402,10 @@ function saveStartDate(){
 // always agree on start date, target end date, and days remaining.
 function getTimelineInfo(){
   const TOTAL_DAYS = 175;
-  const startStr = localStorage.getItem('dotnet_start_date') || new Date().toISOString().slice(0,10);
-  const start = new Date(startStr+'T00:00:00');
-  const target = new Date(start.getTime() + TOTAL_DAYS*24*60*60*1000);
+  const startStr = localStorage.getItem('dotnet_start_date') || ymd(new Date());          // local date (toISOString is UTC: wrong day in IST)
+  let start = new Date(startStr+'T00:00:00');
+  if(isNaN(start)) start = new Date(ymd(new Date())+'T00:00:00');
+  const target = new Date(start); target.setDate(target.getDate() + TOTAL_DAYS);
   const now = new Date();
   const msPerDay = 24*60*60*1000;
   const elapsedDays = Math.max(0, Math.floor((now - start)/msPerDay));
@@ -3346,41 +3414,41 @@ function getTimelineInfo(){
   const remainingHours = Math.max(0, Math.round(remainingMs/(60*60*1000)));
   const doneCount = done.size;
   const elapsedWeeks = Math.max(1, elapsedDays/7);
-  const currentPace = (doneCount/elapsedWeeks).toFixed(1);
+  const currentPace = +(doneCount/elapsedWeeks).toFixed(1);
   const remainingDaysToDo = TOTAL_DAYS - doneCount;
   const remainingWeeks = Math.max(0.1, remainingDays/7);
-  const requiredPace = (remainingDaysToDo/remainingWeeks).toFixed(1);
+  const requiredPace = +(remainingDaysToDo/remainingWeeks).toFixed(1);
   const overdue = remainingMs < 0;
   const hasCustomStart = !!localStorage.getItem('dotnet_start_date');
-  return {TOTAL_DAYS, startStr, start, target, elapsedDays, remainingDays, remainingHours, doneCount, currentPace, requiredPace, overdue, hasCustomStart};
+  return {TOTAL_DAYS, startStr: ymd(start), start, target, elapsedDays, remainingDays, remainingHours, doneCount, currentPace, requiredPace, overdue, hasCustomStart};
 }
 
 function renderTimelineCard(){
   const t = getTimelineInfo();
   const {startStr, target, elapsedDays, remainingDays, remainingHours, doneCount, currentPace, requiredPace, overdue} = t;
-
-  return `<div class="phase-card mb-3" style="padding:1.1rem">
-    <h6 class="fw-bold mb-2"><i class="bi bi-hourglass-split me-2 text-primary"></i>Timeline</h6>
+  const fmt = {day:'numeric',month:'short',year:'numeric'};
+  return `<div class="phase-card mb-3 pad">
+    <h6 class="card-title"><i class="bi bi-hourglass-split"></i>Timeline</h6>
     <div class="row g-2 mb-3">
       <div class="col-6">
-        <label class="small text-muted d-block">Start date</label>
+        <label class="small text-muted d-block" for="start-date-input">Start date</label>
         <div class="d-flex gap-2">
-          <input type="date" id="start-date-input" class="form-control form-control-sm" value="${startStr}">
+          <input type="date" id="start-date-input" class="form-control form-control-sm" value="${escA(startStr)}">
           <button class="btn btn-sm btn-outline-primary" onclick="saveStartDate()">Set</button>
         </div>
       </div>
       <div class="col-6">
-        <label class="small text-muted d-block">Target completion</label>
-        <div class="form-control form-control-sm bg-light">${target.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
+        <span class="small text-muted d-block">Target completion</span>
+        <div class="form-control form-control-sm static-field">${target.toLocaleDateString('en-IN',fmt)}</div>
       </div>
     </div>
-    <div class="row g-2" style="font-size:0.8rem">
-      <div class="col-6 col-md-3"><div class="stat-box" style="background:#f5f4ff"><div class="num" style="color:#4f46e5;font-size:1.2rem">${elapsedDays}</div><div class="lbl">Days Elapsed</div></div></div>
-      <div class="col-6 col-md-3"><div class="stat-box" style="background:${overdue?'#fee2e2':'#dcfce7'}"><div class="num" style="color:${overdue?'#dc2626':'#16a34a'};font-size:1.2rem">${overdue?'0':remainingDays}</div><div class="lbl">${overdue?'Past target':'Days Remaining'}</div></div></div>
-      <div class="col-6 col-md-3"><div class="stat-box" style="background:#fffbeb"><div class="num" style="color:#d97706;font-size:1.2rem">${overdue?'0':remainingHours}</div><div class="lbl">Hours Remaining</div></div></div>
-      <div class="col-6 col-md-3"><div class="stat-box" style="background:#f0f9ff"><div class="num" style="color:#0891b2;font-size:1.2rem">${currentPace}</div><div class="lbl">Days/Week Pace</div></div></div>
+    <div class="row g-2">
+      ${statBox(elapsedDays,'Days elapsed')}
+      ${statBox(overdue?'0':remainingDays, overdue?'Past target':'Days remaining', overdue?'is-bad':'is-good')}
+      ${statBox(overdue?'0':remainingHours,'Hours remaining')}
+      ${statBox(currentPace,'Days / week pace')}
     </div>
-    <p class="small mt-2 mb-0" style="color:${doneCount>0 && currentPace>=requiredPace ? '#16a34a':'#d97706'}">
+    <p class="small mt-3 mb-0 ${doneCount>0 && currentPace>=requiredPace ? 'text-good':'text-warn'}">
       ${overdue ? "You're past your original target date — consider setting a new start date, or just keep going at your own pace." :
         `To finish by ${target.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}, you need about <strong>${requiredPace} days/week</strong>. ${doneCount>0 ? `You're currently averaging <strong>${currentPace}/week</strong>.` : ''}`}
     </p>
@@ -3388,126 +3456,128 @@ function renderTimelineCard(){
 }
 
 // ===================== BACKUP / RESTORE (export & import everything as one JSON file) =====================
-const BACKUP_KEYS = [
-  'dotnet_adv_collapsed','dotnet_adv_custom','dotnet_adv_deleted','dotnet_adv_order','dotnet_adv_overrides',
-  'dotnet_author_collapsed','dotnet_author_order','dotnet_author_overrides','dotnet_custom_authors',
-  'dotnet_custom_phase_done','dotnet_custom_phases','dotnet_custom_qa','dotnet_custom_resources',
-  'dotnet_day_notes','dotnet_deleted_items','dotnet_display_name','dotnet_done2','dotnet_item_collapsed',
-  'dotnet_item_expanded','dotnet_item_orders','dotnet_item_overrides','dotnet_note_collapsed',
-  'dotnet_qa_cat_order','dotnet_qa_cat_orders','dotnet_qa_deleted','dotnet_qa_overrides',
-  'dotnet_res_cat_order','dotnet_resume_data','dotnet_start_date'
-];
+// Everything the app syncs: all "dotnet_*" keys except the few that are device-local bookkeeping.
+const BACKUP_SKIP = new Set(['dotnet_uid','dotnet_pending','dotnet_sync_banner_dismissed']);
+const BACKUP_KEY_RE = /^dotnet_[a-z0-9_]{1,60}$/;
+const backupKeys = () => Object.keys(localStorage).filter(k=>BACKUP_KEY_RE.test(k) && !BACKUP_SKIP.has(k));
 function exportBackup(){
   const data = {};
-  BACKUP_KEYS.forEach(k=>{ const v = localStorage.getItem(k); if(v!==null) data[k]=v; });
-  const payload = {app:'dotnet-tracker', exportedAt: new Date().toISOString(), data};
+  backupKeys().forEach(k=>{ data[k] = localStorage.getItem(k); });
+  const payload = {app:'dotnet-tracker', version:2, exportedAt: new Date().toISOString(), note:'Images and PDFs are stored in your account and are not part of this file.', data};
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'dotnet-tracker-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.href = url; a.download = 'dotnet-tracker-backup-' + ymd(new Date()) + '.json';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 3000);
 }
 function triggerImportBackup(){ document.getElementById('backup-import-input').click(); }
 function importBackup(e){
-  const file = e.target.files[0]; if(!file) return;
+  const file = e.target.files[0]; e.target.value=''; if(!file) return;
+  if(file.size > 20*1024*1024){ alert('That file is too large to be a backup.'); return; }
   const reader = new FileReader();
   reader.onload = ()=>{
     let payload;
     try{ payload = JSON.parse(reader.result); }catch(err){ alert('That file is not a valid backup (invalid JSON).'); return; }
-    if(!payload || !payload.data){ alert('That file is not a valid backup — expected a dotnet-tracker export.'); return; }
-    if(!confirm('This will replace your current data (progress, notes, Docs Hub, Q&A, resume, etc.) on this device with the backup. Continue?')) return;
-    BACKUP_KEYS.forEach(k=>{
-      if(payload.data[k]!==undefined) localStorage.setItem(k, payload.data[k]);
-      else localStorage.removeItem(k);
-    });
-    (window.Cloud ? Cloud.flush() : Promise.resolve()).then(()=>{ alert('Backup restored. Reloading...'); location.reload(); });
+    if(!payload || typeof payload.data!=='object' || payload.data===null || Array.isArray(payload.data)){ alert('That file is not a valid backup — expected a dotnet-tracker export.'); return; }
+    // accept only well-formed keys whose values are JSON text
+    const incoming = {};
+    for(const [k,v] of Object.entries(payload.data)){
+      if(!BACKUP_KEY_RE.test(k) || BACKUP_SKIP.has(k) || typeof v!=='string') continue;
+      if(k!=='dotnet_display_name' && k!=='dotnet_start_date' && k!=='dotnet_active_docs_section' && k!=='dotnet_active_qa_section'){
+        try{ JSON.parse(v); }catch(err){ continue; }
+      }
+      incoming[k] = v;
+    }
+    const n = Object.keys(incoming).length;
+    if(!n){ alert('No restorable data was found in that file.'); return; }
+    if(!confirm(`Restore ${n} saved items from this backup? Your current progress, notes, Docs Hub, Q&A and resume will be replaced.`)) return;
+    backupKeys().forEach(k=>{ if(!(k in incoming)) localStorage.removeItem(k); });
+    let failed = false;
+    Object.entries(incoming).forEach(([k,v])=>{ try{ localStorage.setItem(k, v); }catch(err){ failed = true; } });
+    if(failed){ alert('Some items were too large to restore.'); }
+    (window.Cloud ? Cloud.flush() : Promise.resolve()).then(()=>{ alert('Backup restored. Reloading…'); location.reload(); });
   };
   reader.readAsText(file);
 }
 function getLocalStorageSizeKB(){
   let total = 0;
-  BACKUP_KEYS.forEach(k=>{ const v = localStorage.getItem(k); if(v) total += v.length; });
+  backupKeys().forEach(k=>{ const v = localStorage.getItem(k); if(v) total += v.length; });
   return (total/1024).toFixed(1);
 }
 
+function statBox(num, label, tone_){
+  return `<div class="col-6 col-md-3"><div class="stat-box ${tone_||''}"><div class="num">${num}</div><div class="lbl">${label}</div></div></div>`;
+}
 function renderProfile(){
-  const c = document.getElementById('profile-container'); c.innerHTML='';
-
+  const c = document.getElementById('profile-container');
   const signedIn = !!(window.Cloud && Cloud.user);
   const displayName = localStorage.getItem('dotnet_display_name') || '';
-
-  c.innerHTML += `<div class="docshub-header" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
+  const notesCount = Object.keys(dayNotes).length;
+  const customContentCount = getAllAuthors().reduce((sum,a)=>sum+a.items.length,0);
+  const customQACount = getAllQAItems().length;
+  c.innerHTML = `
+  <div class="docshub-header">
     <div>
-      <h5 class="docshub-title"><i class="bi bi-person-circle me-2"></i>${displayName ? displayName : 'Your'} Profile</h5>
+      <h5 class="docshub-title">${displayName ? esc(displayName)+'’s Profile' : 'Your Profile'}</h5>
       <p class="docshub-sub mb-0">Switch to <strong>Timeline &amp; Summary</strong> for pace, plan, and notes.</p>
     </div>
-  </div>`;
+  </div>
 
-  // Name + Sync — one compact card instead of two
-  c.innerHTML += `<div class="phase-card mb-3" style="padding:1rem">
+  <div class="phase-card mb-3 pad">
     <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
-      <label class="mb-0 small fw-bold text-muted" style="flex:0 0 auto"><i class="bi bi-person-badge me-1"></i>Name</label>
-      <input id="display-name-input" class="form-control form-control-sm" style="flex:1 1 120px;min-width:0" placeholder="e.g. Sandip" value="${displayName}">
+      <label class="mb-0 small fw-bold text-muted" for="display-name-input" style="flex:0 0 auto"><i class="bi bi-person-badge me-1"></i>Name</label>
+      <input id="display-name-input" class="form-control form-control-sm" maxlength="40" style="flex:1 1 120px;min-width:0" placeholder="e.g. Sandip" value="${escA(displayName)}" onkeydown="if(event.key==='Enter')saveDisplayName()">
       <button class="btn btn-sm btn-primary flex-shrink-0" onclick="saveDisplayName()">Save</button>
     </div>
     <hr class="my-2">
     <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
-      <span class="small d-flex align-items-center gap-1"><i class="bi bi-cloud-check" style="color:${signedIn?'#16a34a':'#9ca3af'}"></i>${signedIn ? 'Signed in as <strong>'+Cloud.user.username+'</strong> · saved to Firebase' : 'Not signed in'}</span>
+      <span class="small d-flex align-items-center gap-2"><i class="bi bi-cloud-check ${signedIn?'ok-ic':'off-ic'}"></i>${signedIn ? 'Signed in as <strong>'+esc(Cloud.user.username)+'</strong> · saved to Firebase' : 'Not signed in'}</span>
       ${signedIn ? `<button class="btn btn-sm btn-outline-danger" onclick="signOutUser()"><i class="bi bi-box-arrow-right me-1"></i>Sign out</button>` : `<a class="btn btn-sm btn-outline-primary" href="login.html">Sign in</a>`}
     </div>
-  </div>`;
+  </div>
 
-  // Data snapshot — real numbers from what's actually stored right now
-  const notesCount = Object.keys(dayNotes).length;
-  const customContentCount = getAllAuthors().reduce((sum,a)=>sum+a.items.length,0);
-  const customQACount = getAllQAItems().length;
-  c.innerHTML += `<div class="phase-card mb-3" style="padding:1rem">
-    <h6 class="fw-bold mb-2" style="font-size:0.85rem"><i class="bi bi-bar-chart me-2 text-primary"></i>Your data, right now</h6>
-    <div class="row g-2" style="font-size:0.8rem">
-      <div class="col-6 col-md-3"><div class="stat-box" style="background:#f5f4ff;padding:0.7rem"><div class="num" style="color:#4f46e5;font-size:1.2rem">${done.size}</div><div class="lbl">Days Done</div></div></div>
-      <div class="col-6 col-md-3"><div class="stat-box" style="background:#fffbeb;padding:0.7rem"><div class="num" style="color:#d97706;font-size:1.2rem">${notesCount}</div><div class="lbl">Notes</div></div></div>
-      <div class="col-6 col-md-3"><div class="stat-box" style="background:#f0f9ff;padding:0.7rem"><div class="num" style="color:#0891b2;font-size:1.2rem">${customContentCount}</div><div class="lbl">Docs Hub Items</div></div></div>
-      <div class="col-6 col-md-3"><div class="stat-box" style="background:#fef2f2;padding:0.7rem"><div class="num" style="color:#dc2626;font-size:1.2rem">${customQACount}</div><div class="lbl">Q&amp;A Items</div></div></div>
+  <div class="phase-card mb-3 pad">
+    <h6 class="card-title"><i class="bi bi-bar-chart"></i>Your data, right now</h6>
+    <div class="row g-2">
+      ${statBox(done.size,'Days done')}${statBox(notesCount,'Notes')}${statBox(customContentCount,'Docs Hub items')}${statBox(customQACount,'Q&amp;A items')}
     </div>
-  </div>`;
+  </div>
 
-  // Backup & restore — a real safety net since everything lives in this browser's storage
-  c.innerHTML += `<div class="phase-card mb-3" style="padding:1rem">
-    <h6 class="fw-bold mb-1" style="font-size:0.85rem"><i class="bi bi-shield-check me-2 text-primary"></i>Backup &amp; Restore</h6>
-    <p class="small text-muted mb-2">Everything is stored in Firebase under your account (~${getLocalStorageSizeKB()} KB of settings/notes, plus uploads). You can still download an extra backup file any time.</p>
+  <div class="phase-card mb-3 pad">
+    <h6 class="card-title"><i class="bi bi-shield-check"></i>Backup &amp; restore</h6>
+    <p class="small text-muted mb-2">Everything is stored in Firebase under your account (~${getLocalStorageSizeKB()} KB of settings and notes, plus uploads). The backup file holds your settings, notes and lists — uploaded images and PDFs stay in your account.</p>
     <div class="d-flex gap-2 flex-wrap">
       <button class="btn btn-sm btn-primary" onclick="exportBackup()"><i class="bi bi-download me-1"></i>Download backup</button>
       <button class="btn btn-sm btn-outline-primary" onclick="triggerImportBackup()"><i class="bi bi-upload me-1"></i>Restore from backup</button>
-      <input type="file" id="backup-import-input" accept="application/json" style="display:none" onchange="importBackup(event)">
+      <input type="file" id="backup-import-input" accept="application/json,.json" style="display:none" onchange="importBackup(event)">
     </div>
-  </div>`;
+  </div>
 
-  // Technical details — tucked behind a collapsible so Overview stays short
-  c.innerHTML += `<details class="phase-card mb-3 profile-details">
-    <summary class="fw-bold" style="font-size:0.85rem;padding:1rem;cursor:pointer;list-style:none"><i class="bi bi-diagram-3 me-2 text-primary"></i>How this app is wired up <i class="bi bi-chevron-down float-end" style="font-size:0.7rem;color:var(--muted)"></i></summary>
-    <table class="table table-sm mb-0" style="font-size:0.78rem;padding:0 1rem 1rem">
+  <details class="phase-card mb-3 profile-details">
+    <summary class="card-title-sum"><span><i class="bi bi-diagram-3"></i>How this app is wired up</span><i class="bi bi-chevron-down"></i></summary>
+    <table class="table table-sm mb-0 wired">
       <tbody>
-        <tr><td class="text-muted" style="width:40%">Login</td><td>Username + password (Firebase Authentication) — no email verification</td></tr>
+        <tr><td class="text-muted">Login</td><td>Username + password (Firebase Authentication) — no email verification</td></tr>
         <tr><td class="text-muted">Cloud storage</td><td>Cloud Firestore, under <code>users/&lt;your id&gt;</code> — the source of truth</td></tr>
         <tr><td class="text-muted">Local copy</td><td>Browser cache only; cleared when you sign out</td></tr>
         <tr><td class="text-muted">Auto-save</td><td>~1.5 seconds after every change, plus when the tab is hidden or closed</td></tr>
         <tr><td class="text-muted">What's stored</td><td>Progress, notes, Docs Hub, Advanced+, Q&amp;A, resume, layout prefs, name, images &amp; PDFs</td></tr>
       </tbody>
     </table>
-  </details>`;
+  </details>
 
-  c.innerHTML += `<h6 class="fw-bold mb-2 mt-3" style="font-size:0.85rem"><i class="bi bi-life-preserver me-2" style="color:#d97706"></i>Troubleshooting</h6>`;
-  c.innerHTML += `<div style="padding:0">` + TROUBLESHOOTING.map((t,i)=>{
+  <h6 class="section-label mt-4"><i class="bi bi-life-preserver"></i>Troubleshooting</h6>
+  <div>${TROUBLESHOOTING.map((t,i)=>{
     const id = 'profile-ts-'+i;
-    return `<div class="interview-q" style="cursor:pointer;border-color:#d97706">
-      <div onclick="toggleProfileItem('${id}',this)" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-        <span>${t.q}</span>
-        <i class="bi bi-chevron-down" style="font-size:0.75rem;flex-shrink:0;color:#d97706"></i>
+    return `<div class="interview-q">
+      <div class="qa-row" role="button" tabindex="0" aria-expanded="false" onclick="toggleProfileItem('${id}',this)" onkeydown="if(event.target===this)keyAct(event,()=>toggleProfileItem('${id}',this))">
+        <span class="qa-q"><span>${t.q}</span></span>
+        <i class="bi bi-chevron-down qa-chev" aria-hidden="true"></i>
       </div>
       <div id="${id}" class="qa-answer">${t.a}</div>
     </div>`;
-  }).join('') + `</div>`;
+  }).join('')}</div>`;
 }
 
 // ===================== SCROLL TO TOP =====================
@@ -3545,4 +3615,4 @@ populateQuickNoteDaySelect();
 refreshAllNoteViews();
 updateGreeting();
 renderCustomPhases();
-if(!localStorage.getItem('dotnet_start_date')) localStorage.setItem('dotnet_start_date', new Date().toISOString().slice(0,10));
+if(!localStorage.getItem('dotnet_start_date')) localStorage.setItem('dotnet_start_date', ymd(new Date()));

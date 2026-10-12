@@ -19,7 +19,7 @@ function toast(msg, icon = "bi-check-circle-fill") {
   stack.appendChild(t); setTimeout(() => t.remove(), 3400);
 }
 function confetti(n = 70) {
-  const colors = ["#6366f1", "#8b5cf6", "#06b6d4", "#22c55e", "#f59e0b", "#ef4444", "#ec4899"];
+  const colors = ["#c4a052", "#e7d49a", "#14275c", "#2b448f", "#fbf8ef", "#9a7424"];
   for (let i = 0; i < n; i++) {
     const c = document.createElement("i"); c.className = "confetti";
     c.style.left = Math.random() * 100 + "vw"; c.style.background = colors[i % colors.length];
@@ -33,7 +33,7 @@ function confetti(n = 70) {
 function paintTheme() {
   const dark = root.getAttribute("data-theme") === "dark";
   const b = $("theme-toggle"); if (b) b.firstElementChild.className = "bi " + (dark ? "bi-sun" : "bi-moon-stars");
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#0c0e19" : "#4f46e5");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#08101f" : "#0b1a44");
 }
 function setTheme(t) { root.setAttribute("data-theme", t); try { localStorage.setItem("dn_theme", t); } catch (e) { /* ignore */ } paintTheme(); }
 const toggleTheme = () => setTheme(root.getAttribute("data-theme") === "dark" ? "light" : "dark");
@@ -58,7 +58,7 @@ function greet() {
   const el = $("roadmap-greeting"); if (!el) return;
   const h = new Date().getHours(), part = h < 5 ? "Burning the midnight oil" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
   const name = localStorage.getItem("dotnet_display_name") || window.Cloud?.user?.username || "";
-  el.textContent = `${part}${name ? ", " + name : ""} 👋`;
+  el.textContent = `${part}${name ? ", " + name : ""}`;
 }
 window.updateGreeting = function () { baseGreet?.apply(this, arguments); greet(); };
 
@@ -71,7 +71,7 @@ function renderUpNext() {
   const host = $("up-next"); if (!host) return;
   const n = typeof findNextDay === "function" ? findNextDay() : null;
   if (n == null) {
-    host.innerHTML = `<div class="upnext all-done"><span class="upnext-ic"><i class="bi bi-trophy-fill"></i></span><div class="upnext-body"><small>Roadmap complete</small><b>You finished all ${TOTAL} days 🎉</b><span>Time to polish your resume and start interviewing.</span></div>
+    host.innerHTML = `<div class="upnext all-done"><span class="upnext-ic"><i class="bi bi-trophy-fill"></i></span><div class="upnext-body"><small>Roadmap complete</small><b>You finished all ${TOTAL} days</b><span>Time to polish your resume and start interviewing.</span></div>
       <div class="upnext-actions"><button class="btn btn-primary btn-sm" onclick="document.querySelectorAll('.tab-btn-nav')[3].click()"><i class="bi bi-patch-question me-1"></i>Practice Q&amp;A</button></div></div>`;
     return;
   }
@@ -131,7 +131,7 @@ window.save = function () {
   const hit = [100, 75, 50, 25].find(m => lastPct < m && pct >= m);
   if (hit) {
     confetti(hit === 100 ? 140 : 70);
-    toast(hit === 100 ? "🏆 Roadmap complete — incredible work!" : `🎉 ${hit}% of the roadmap done!`, "bi-stars");
+    toast(hit === 100 ? "Roadmap complete — incredible work." : `${hit}% of the roadmap complete.`, "bi-trophy-fill");
   }
   lastPct = pct;
 };
@@ -139,7 +139,7 @@ window.save = function () {
 // ---------------------------------------------------------------- focus timer
 const MODES = { focus: { label: "Focus", min: 25 }, short: { label: "Short break", min: 5 }, long: { label: "Long break", min: 15 } };
 const T = { mode: "focus", total: 25 * 60, left: 25 * 60, running: false, endAt: 0, tick: null };
-const todayKey = () => "dn_focus_" + new Date().toISOString().slice(0, 10);
+const todayKey = () => "dn_focus_" + ymd(new Date());
 const fmt = s => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 function buildTimer() {
   const pop = document.createElement("div"); pop.className = "timer-pop"; pop.id = "timer-pop";
@@ -173,7 +173,7 @@ function tickTimer() {
   if (T.left <= 0) {
     stopTick(); T.running = false;
     if (T.mode === "focus") lsSet(todayKey(), (lsGet(todayKey(), 0) || 0) + 1);
-    beep(); toast(T.mode === "focus" ? "Focus session done — take a break ☕" : "Break over — back to it 💪", "bi-stopwatch");
+    beep(); toast(T.mode === "focus" ? "Focus session complete — take a short break." : "Break over — back to it.", "bi-stopwatch");
     try { if ("Notification" in window && Notification.permission === "granted") new Notification(T.mode === "focus" ? "Focus session complete" : "Break finished", { body: T.mode === "focus" ? "Nice work. Time for a short break." : "Ready for the next session?", icon: "icons/icon-192.png" }); } catch (e) { /* some mobile browsers need a service worker */ }
     paintTimer();
   }
@@ -187,7 +187,7 @@ function paintTimer() {
   ring.style.strokeDasharray = CIRC; ring.style.strokeDashoffset = CIRC * (1 - (T.total ? T.left / T.total : 0));
   $("t-time").textContent = fmt(T.left); $("t-label").textContent = MODES[T.mode].label;
   $("t-toggle").innerHTML = T.running ? '<i class="bi bi-pause-fill me-1"></i>Pause' : `<i class="bi bi-play-fill me-1"></i>${T.left < T.total && T.left > 0 ? "Resume" : "Start"}`;
-  const n = lsGet(todayKey(), 0) || 0; $("t-sessions").textContent = n ? `${n} focus session${n > 1 ? "s" : ""} today 🔥` : "No focus sessions yet today";
+  const n = lsGet(todayKey(), 0) || 0; $("t-sessions").textContent = n ? `${n} focus session${n > 1 ? "s" : ""} today` : "No focus sessions yet today";
   const live = $("timer-live"); if (live) live.textContent = T.running || T.left < T.total ? fmt(T.left) : "";
 }
 function toggleTimerPop(force) {
@@ -210,7 +210,7 @@ function actions() {
     { g: "Actions", t: "Expand all weeks", s: "Roadmap", i: "bi-arrows-expand", run: () => { showRoadmapTab(); setAllWeeks(true); } },
     { g: "Actions", t: "Collapse all weeks", s: "Roadmap", i: "bi-arrows-collapse", run: () => { showRoadmapTab(); setAllWeeks(false); } },
     { g: "Actions", t: "Open leaderboard", s: "Community page", i: "bi-trophy", run: () => { location.href = "community.html"; } },
-    { g: "Actions", t: "Show my level & XP", s: "Royal rank and progress to the next one", i: "bi-gem", run: showLevel },
+    { g: "Actions", t: "Show my rank & XP", s: "Royal rank and progress to the next one", i: "bi-gem", run: showLevel },
     { g: "Actions", t: "Keyboard shortcuts", s: "See every shortcut", i: "bi-keyboard", run: showShortcuts },
     { g: "Actions", t: "Larger text", s: "Make everything easier to read", i: "bi-type", run: () => setFont(+1) },
     { g: "Actions", t: "Smaller text", s: "Fit more on screen", i: "bi-fonts", run: () => setFont(-1) },
@@ -275,8 +275,8 @@ function currentSearchInput() {
 addEventListener("keydown", e => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); $("pal-back")?.classList.contains("show") ? closePalette() : openPalette(); return; }
-  if (e.key === "Escape") { closePalette(); $("sc-back")?.classList.remove("show"); $("speed-dial")?.classList.remove("open"); $("sd-scrim")?.classList.remove("show"); toggleTimerPop(false); if ($("notes-sidebar")?.classList.contains("open")) toggleNotesDrawer(false); return; }
-  if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+  if (e.key === "Escape") { closePalette(); $("sc-back")?.classList.remove("show"); $("speed-dial")?.classList.remove("open"); $("sd-scrim")?.classList.remove("show"); if ($("timer-pop")) toggleTimerPop(false); if ($("notes-sidebar")?.classList.contains("open")) toggleNotesDrawer(false); return; }
+  if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey && !document.querySelector(".modal.show, .pal-back.show")) {
     if (e.key === "?") { e.preventDefault(); showShortcuts(); return; }
     if (e.key === "n") { e.preventDefault(); if (innerWidth < 1300) toggleNotesDrawer(true); const f = $("quick-note-form"); if (f && f.style.display !== "block") toggleQuickNoteForm(); return; }
     if (e.key === "d") { toggleTheme(); return; }
@@ -319,7 +319,7 @@ function showLevel() {
   openModal(`<div class="lvl-modal"><h5><i class="bi bi-gem me-2" style="color:var(--gold)"></i>${x.name} · Level ${x.lv + 1}</h5>
     <p class="small text-muted mb-2">${x.xp} XP earned — 10 per day completed, 5 per note, 3 per focus session.</p>
     <div class="progress-bar-main"><div class="fill" style="width:${x.pct}%;background:linear-gradient(90deg,var(--gold),var(--gold-3))"></div></div>
-    <div class="small text-muted mt-1">${x.next ? `${x.next[1] - x.xp} XP to ${x.next[0]}` : "You have reached the highest rank 👑"}</div>
+    <div class="small text-muted mt-1">${x.next ? `${x.next[1] - x.xp} XP to ${x.next[0]}` : "You have reached the highest rank"}</div>
     <ul class="lvl-ladder">${LEVELS.map((l, i) => `<li class="${i === x.lv ? "cur" : i > x.lv ? "lock" : ""}"><i class="bi ${i <= x.lv ? "bi-check-circle-fill" : "bi-lock"}" style="color:${i <= x.lv ? "var(--gold)" : "var(--muted)"}"></i>${l[0]}<span>${l[1]} XP</span></li>`).join("")}</ul>
     <button class="btn btn-outline-secondary btn-sm mt-3" onclick="closeModal()">Close</button></div>`);
 }
@@ -329,7 +329,7 @@ function togglePin(n) {
   let pins = getPins(); pins = pins.includes(n) ? pins.filter(x => x !== n) : [...pins, n];
   localStorage.setItem("dotnet_pins", JSON.stringify(pins));       // synced like every other dotnet_* key
   document.querySelectorAll(`.day-row[data-day="${n}"] .pin-btn`).forEach(b => { const on = pins.includes(n); b.classList.toggle("on", on); b.firstElementChild.className = "bi bi-star" + (on ? "-fill" : ""); });
-  renderPins(); toast(pins.includes(n) ? "Day pinned ⭐" : "Pin removed", "bi-star-fill");
+  renderPins(); toast(pins.includes(n) ? "Day pinned" : "Pin removed", "bi-star-fill");
 }
 function decorateDays() {
   const pins = getPins();
@@ -356,7 +356,7 @@ function renderPhaseNav() {
   const host = quickRow("phase-nav", anchor);
   host.innerHTML = `<span class="qr-label"><i class="bi bi-compass"></i>Jump to</span>` + PHASES.map((ph, i) => {
     let t = 0, d = 0; ph.weeks.forEach(w => w.days.forEach(x => { t++; if (done.has(x.n)) d++; }));
-    return `<button class="chip-btn" onclick="UI.goToPhase('${ph.id}')"><span class="dot" style="background:${ph.color}"></span>${esc(ph.title.split("—")[0].trim())}<small>${Math.round(d / t * 100)}%</small></button>`;
+    return `<button class="chip-btn" onclick="UI.goToPhase('${ph.id}')"><span class="dot" style="background:${tone(ph.color)}"></span>${esc(ph.title.split("—")[0].trim())}<small>${Math.round(d / t * 100)}%</small></button>`;
   }).join("");
 }
 function goToPhase(id) {
@@ -396,7 +396,7 @@ function buildDial() {
   const scrim = document.createElement("div"); scrim.id = "sd-scrim"; scrim.className = "sd-scrim"; document.body.appendChild(scrim);
   const d = document.createElement("div"); d.id = "speed-dial"; d.className = "speed-dial";
   const items = [
-    ["bi-check2-circle", "Complete next day", () => { const n = findNextDay(); if (n) { complete(n); toast("Day " + n + " completed ✔"); } }],
+    ["bi-check2-circle", "Complete next day", () => { const n = findNextDay(); if (n) { complete(n); toast("Day " + n + " completed"); } }],
     ["bi-sticky", "Quick note", () => { if (innerWidth < 1300) toggleNotesDrawer(true); const f = $("quick-note-form"); if (f && f.style.display !== "block") toggleQuickNoteForm(); }],
     ["bi-stopwatch", "Focus timer", () => toggleTimerPop(true)],
     ["bi-search", "Search everything", openPalette]

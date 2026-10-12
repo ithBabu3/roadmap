@@ -1,9 +1,9 @@
 // Offline support for YOUR OWN files only (network-first; cache is just the offline fallback).
 // CDN files (bootstrap, Firebase SDK) are NOT intercepted: the CSP header on this worker would block
 // its fetches (connect-src), so the browser loads them directly instead.
-const CACHE = 'dotnet-roadmap-v7';
-const SHELL = ['index.html','login.html','community.html','css/app.css','css/login.css','css/royal.css','manifest.webmanifest',
-  'js/app.js','js/boot.js','js/boot-main.js','js/features.js','js/ui.js','js/auth.js','js/cloud-store.js','js/community.js','js/community-page.js',
+const CACHE = 'dotnet-roadmap-v8';
+const SHELL = ['index.html','login.html','community.html','css/app.css','css/login.css','manifest.webmanifest',
+  'js/safe.js','js/app.js','js/boot.js','js/boot-main.js','js/features.js','js/ui.js','js/auth.js','js/cloud-store.js','js/community.js','js/community-page.js',
   'js/firebase-init.js','js/firebase-config.js','js/login.js','js/pwa.js','icons/icon-192.png','icons/icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -19,7 +19,7 @@ self.addEventListener('fetch', e => {
     const cache = await caches.open(CACHE);
     try {
       const res = await fetch(r);
-      if (res && res.ok) cache.put(r, res.clone());
+      if (res && res.status === 200) cache.put(r, res.clone()).catch(() => {});   // partial (206) responses can't be cached
       return res;
     } catch (err) {
       const hit = await cache.match(r, { ignoreSearch: r.mode === 'navigate' });

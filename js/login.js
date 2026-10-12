@@ -30,7 +30,7 @@ $("toggle-pw").onclick = () => {
 
 $("password").addEventListener("input", () => {
   const sc = passwordScore($("password").value, normalizeUsername($("username").value));
-  document.querySelectorAll("#strength i").forEach((el, i) => { el.style.background = i < sc ? ["#dc2626","#d97706","#65a30d","#16a34a"][sc - 1] : "#e5e7eb"; });
+  document.querySelectorAll("#strength i").forEach((el, i) => { el.style.background = i < sc ? ["#8a2a3a","#8a6a1f","#5f8a3a","#2f6b4f"][sc - 1] : ""; });
   $("strength-label").textContent = $("password").value ? ["Weak","Weak","Okay","Good","Strong"][sc] : "";
 });
 $("auth-form").addEventListener("submit", async e => {
