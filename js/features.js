@@ -55,7 +55,7 @@ function renderStrip() {
     <div class="gs-bar"><div class="small text-muted">Today's goal: <b>${s.todayN}/${s.goal}</b> ${s.todayN >= s.goal ? '<i class="bi bi-check-circle-fill" aria-label="reached"></i>' : ""}</div>
     <div class="progress-bar-main"><div class="fill" style="width:${pct}%"></div></div></div>
     <span class="small text-muted">Best ${s.best}</span>
-    <button class="btn btn-sm btn-outline-primary" onclick="showTab('profile', document.querySelectorAll('.tab-btn-nav')[4])"><i class="bi bi-graph-up me-1"></i>Insights</button>`;
+    <button class="btn btn-sm btn-outline-primary" onclick="showTab('profile', document.querySelectorAll('.tab-btn-nav')[5])"><i class="bi bi-graph-up me-1"></i>Insights</button>`;
 }
 
 // ---------- public profile ----------

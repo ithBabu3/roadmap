@@ -16,6 +16,7 @@ dotnet-roadmap/
 │   ├── firebase-init.js    Firebase app, Auth and Firestore instances
 │   ├── auth.js             Username/password auth (no email verification)
 │   ├── cloud-store.js      Firestore storage + auto-save
+│   ├── feed.js             Feed tab: endless scroll of everything you've added + manage/post
 │   ├── features.js         Streaks, goals, analytics, reminders, avatar, sharing, security
 │   ├── community.js        Public profile read/write (opt-in)
 │   ├── community-page.js   Leaderboard page logic
@@ -73,3 +74,10 @@ npm run deploy         # publish rules + hosting
 - `firebase.json` hosting headers: CSP, X-Frame-Options, nosniff, referrer and permissions policies. Test the CSP once after deploying; loosen it if you add new third-party scripts.
 - Firestore rules cannot rate-limit requests. For real abuse protection, turn on **Firebase App Check** (reCAPTCHA v3) in the console and enforce it for Firestore and Authentication.
 - Deploy rules after updating: `firebase deploy --only firestore:rules,hosting`.
+
+## Feed tab
+- New **Feed** tab (2nd tab): everything you've added — Docs Hub items, day notes, your Q&A, your advanced topics, your resource links and your own posts — in one endlessly scrolling feed (loads 8 at a time).
+- **Manage feed**: switch sources on/off, filter by type, sort (newest / oldest / shuffle / group by source), restore hidden items. "Built-in Q&A & topics" is off by default so the feed stays yours.
+- Per card: **Pin**, **Hide** (removes from the feed only, never deletes the original), **Open** (jumps to where it lives). Your own posts can also be edited/deleted.
+- **New post**: Note, Link, Video (YouTube/Vimeo embed), Bullets or Paragraph, straight from the feed.
+- Saved in `dotnet_feed_posts` and `dotnet_feed_prefs`, so they sync to Firebase like everything else (no rule changes needed).

@@ -49,6 +49,7 @@
 <nav class="app-tabs" aria-label="Sections">
   <div class="tab-nav-top" id="top-tabs">
     <button class="tab-btn tab-btn-nav active" onclick="showTab('roadmap',this)"><i class="bi bi-map"></i><span>Roadmap</span></button>
+    <button class="tab-btn tab-btn-nav" onclick="showTab('feed',this)"><i class="bi bi-view-list"></i><span>Feed</span></button>
     <button class="tab-btn tab-btn-nav" onclick="showTab('author',this)"><i class="bi bi-collection"></i><span>Docs Hub</span></button>
     <button class="tab-btn tab-btn-nav" onclick="showTab('projects',this)"><i class="bi bi-folder2-open"></i><span>Projects</span></button>
     <button class="tab-btn tab-btn-nav" onclick="showTab('interview',this)"><i class="bi bi-patch-question"></i><span>Interview</span></button>
@@ -147,6 +148,58 @@
   <div id="phases-container"></div>
   <div id="custom-phases-container" class="mt-3"></div>
   <div id="phase-form-slot" class="mt-3"></div>
+</div>
+
+<!-- ===================== TAB: FEED ===================== -->
+<div id="tab-feed" style="display:none">
+  <div class="page-head">
+    <div><h2><i class="bi bi-view-list"></i>Feed</h2><p>Everything you've added, in one scrolling feed. Choose what shows, and post new things right here.</p></div>
+    <button class="btn btn-primary" onclick="Feed.compose()"><i class="bi bi-plus-lg me-1"></i>New post</button>
+  </div>
+
+  <div class="feed-wrap">
+    <div class="feed-composer" id="feed-composer">
+      <button type="button" class="feed-composer-closed" onclick="Feed.compose()"><i class="bi bi-pencil-square"></i><span>Share a note, link, video or checklist…</span></button>
+      <div class="feed-composer-open">
+        <div class="row g-2">
+          <div class="col-12 col-sm-4"><select id="feed-post-type" class="form-select" onchange="Feed.typeFields()" aria-label="Post type">
+            <option>Note</option><option>Link</option><option>Video</option><option>Bullets</option><option>Paragraph</option></select></div>
+          <div class="col-12 col-sm-8"><input id="feed-post-title" class="form-control" maxlength="140" placeholder="Title (optional)" aria-label="Title"></div>
+          <div class="col-12" id="feed-post-url-wrap" style="display:none"><input id="feed-post-url" class="form-control" placeholder="https://…" aria-label="Link"></div>
+          <div class="col-12"><textarea id="feed-post-text" class="form-control" rows="4" maxlength="8000" aria-label="Text"></textarea></div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-2">
+          <button class="btn btn-sm btn-outline-secondary" onclick="Feed.closeComposer()">Cancel</button>
+          <button class="btn btn-sm btn-primary" id="feed-post-save" onclick="Feed.savePost()"><i class="bi bi-send me-1"></i>Post</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="feed-bar">
+      <label class="searchbar" for="feed-search"><i class="bi bi-search" aria-hidden="true"></i>
+        <input id="feed-search" type="search" placeholder="Search your feed…" autocomplete="off"></label>
+      <button type="button" class="btn btn-ghost" id="feed-manage-btn" aria-expanded="false" aria-controls="feed-panel" onclick="Feed.togglePanel()"><i class="bi bi-sliders"></i><span>Manage feed</span><span class="feed-dot" id="feed-manage-dot" style="display:none"></span></button>
+    </div>
+
+    <div class="feed-panel" id="feed-panel">
+      <div class="feed-panel-sec"><h6>Show in feed</h6><div class="feed-toggles" id="feed-sources"></div></div>
+      <div class="feed-panel-sec"><h6>Types <button type="button" class="btn btn-link btn-sm p-0 ms-2" onclick="Feed.clearTypes()">All</button></h6><div class="feed-chips" id="feed-types"></div></div>
+      <div class="feed-panel-sec"><h6>Order</h6>
+        <div class="d-flex gap-2 align-items-center">
+          <select id="feed-sort" class="form-select form-select-sm" style="max-width:220px" onchange="Feed.setSort(this.value)" aria-label="Sort feed">
+            <option value="new">Newest first</option><option value="old">Oldest first</option><option value="shuffle">Shuffle (discover)</option><option value="source">Group by source</option></select>
+          <button type="button" class="btn btn-sm btn-ghost" id="feed-shuffle" onclick="Feed.reshuffle()" style="display:none"><i class="bi bi-shuffle"></i> Reshuffle</button>
+        </div></div>
+      <div class="feed-panel-sec"><h6>Hidden items <span class="badge text-bg-secondary ms-1" id="feed-hidden-count"></span></h6><div id="feed-hidden"></div></div>
+      <div class="text-end"><button type="button" class="btn btn-sm btn-ghost danger" onclick="Feed.resetPrefs()"><i class="bi bi-arrow-counterclockwise"></i> Reset feed settings</button></div>
+    </div>
+
+    <div class="feed-count" id="feed-count" aria-live="polite"></div>
+    <div id="feed-empty" class="empty-state" hidden><i class="bi bi-view-list"></i><b>Your feed is empty</b><span></span></div>
+    <div id="feed-list"></div>
+    <div id="feed-sentinel" class="feed-sentinel" hidden><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Loading more…</div>
+    <div id="feed-end" class="feed-end" hidden><i class="bi bi-check2-circle"></i> You're all caught up</div>
+  </div>
 </div>
 
 <!-- ===================== TAB: DOCS HUB ===================== -->

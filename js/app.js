@@ -2123,7 +2123,7 @@ function showStatDetail(which){
   openModal(html);
 }
 
-const TAB_TITLES = {roadmap:'Roadmap', author:'Docs Hub', projects:'Projects', interview:'Interview Prep', profile:'Profile'};
+const TAB_TITLES = {feed:'Feed', roadmap:'Roadmap', author:'Docs Hub', projects:'Projects', interview:'Interview Prep', profile:'Profile'};
 function setPageTitle(tab){ const t = (TAB_TITLES[tab] || 'Roadmap') + ' · .NET Roadmap'; if(!document.hidden) document.title = t; }
 function showTab(tab, btn){
   setPageTitle(tab);
@@ -2131,6 +2131,7 @@ function showTab(tab, btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+tab).style.display='';
   btn.classList.add('active');
+  if(tab==='feed' && window.Feed) Feed.render();
   if(tab==='author'){
     renderDocsSubtabs();
     document.getElementById('docs-community-view').style.display = activeDocsSection==='resources' ? 'none' : '';
@@ -3010,7 +3011,11 @@ function qaCategoryCardHTML(catName, qs, color, qiStart){
   return {qi: qi + qs.length, html: `<section class="phase-card mb-3" data-cat-name="${escA(catName)}" style="--phc:${tone(color)}">
       <div class="phase-header static" draggable="true" title="Drag to reorder this whole category">
         <div class="phase-title"><i class="bi bi-grip-vertical grip" aria-hidden="true"></i><span class="phase-name">${esc(catName)}</span></div>
-        <span class="phase-badge">${qs.length} ${qs.length===1?'question':'questions'}</span>
+        <div class="cat-right">
+          <span class="phase-badge">${qs.length} ${qs.length===1?'question':'questions'}</span>
+          <button type="button" class="item-action-btn" onclick="event.stopPropagation();openRenameQACategory(this.closest('.phase-card').dataset.catName)" title="Rename category" aria-label="Rename category"><i class="bi bi-pencil"></i></button>
+          <button type="button" class="item-action-btn danger" onclick="event.stopPropagation();deleteQACategory(this.closest('.phase-card').dataset.catName)" title="Delete category" aria-label="Delete category"><i class="bi bi-trash"></i></button>
+        </div>
       </div>
       <div class="qa-list">
         ${qs.map(q=>{
@@ -3148,6 +3153,63 @@ function deleteQAItem(id){
   renderInterview();
 }
 function editQAItem(id){ openQAForm(id); }
+
+// ---- Main category (the card heading in Interview Q&A): rename + delete ----
+// Applies to the questions of that category in the tab you are looking at.
+function qaItemsOfCategory(catName){
+  const builtinIds = new Set();
+  QA_DATA.forEach((cat,ci)=> cat.qs.forEach((qq,qi)=> builtinIds.add('qa-seed-'+ci+'-'+qi)));
+  return getAllQAItems().filter(i=>{
+    const sec = i.section || (builtinIds.has(i.id) ? 'builtin' : 'custom');
+    return sec===activeQASection && i.cat===catName;
+  });
+}
+let renamingQACat = null;
+function openRenameQACategory(catName){
+  renamingQACat = catName;
+  openModal(`<div class="author-form docshub-form-compact mb-0">
+    <h6 class="form-title"><i class="bi bi-pencil me-1"></i>Rename category</h6>
+    <input id="qa-cat-rename" class="form-control" maxlength="60" value="${escA(catName)}" aria-label="Category name" onkeydown="if(event.key==='Enter'){event.preventDefault();saveRenameQACategory()}">
+    <div class="small text-muted mt-2">Renaming moves all ${qaItemsOfCategory(catName).length} question(s) in this category. Using an existing name merges the two.</div>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+      <button class="btn btn-sm btn-outline-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-sm btn-primary" onclick="saveRenameQACategory()"><i class="bi bi-check2 me-1"></i>Save</button>
+    </div></div>`);
+  setTimeout(()=>{ const i=document.getElementById('qa-cat-rename'); if(i){ i.focus(); i.select(); } }, 250);
+}
+function saveRenameQACategory(){
+  const old = renamingQACat;
+  const name = (document.getElementById('qa-cat-rename').value||'').trim().slice(0,60);
+  if(!old || !name){ alert('Please enter a category name.'); return; }
+  if(name===old){ closeModal(); return; }
+  const items = qaItemsOfCategory(old);
+  items.forEach(i=>{
+    if(String(i.id).startsWith('qa-seed-')) qaOverrides[i.id] = {...(qaOverrides[i.id]||{}), cat:name};
+    else { const c = customQA.find(x=>x.id===i.id); if(c) c.cat = name; }
+  });
+  localStorage.setItem('dotnet_qa_overrides', JSON.stringify(qaOverrides));
+  localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
+  // keep the saved question order and category order that belonged to the old name
+  if(qaCatOrders[old]){ qaCatOrders[name] = [...(qaCatOrders[name]||[]), ...qaCatOrders[old].filter(id=>!(qaCatOrders[name]||[]).includes(id))]; delete qaCatOrders[old]; localStorage.setItem('dotnet_qa_cat_orders', JSON.stringify(qaCatOrders)); }
+  const view = qaCatOrder[activeQASection];
+  if(view){ qaCatOrder[activeQASection] = [...new Set(view.map(c=>c===old?name:c))]; localStorage.setItem('dotnet_qa_cat_order', JSON.stringify(qaCatOrder)); }
+  renamingQACat = null;
+  closeModal();
+  renderInterview();
+}
+function deleteQACategory(catName){
+  const items = qaItemsOfCategory(catName);
+  if(!confirm(`Delete the category "${catName}" and its ${items.length} question${items.length===1?'':'s'}? This can't be undone.`)) return;
+  items.forEach(i=>{
+    if(i.mediaKey) idbDelete(i.mediaKey);
+    if(String(i.id).startsWith('qa-seed-')) qaDeleted.add(i.id);
+    else customQA = customQA.filter(x=>x.id!==i.id);
+  });
+  localStorage.setItem('dotnet_qa_deleted', JSON.stringify([...qaDeleted]));
+  localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
+  delete qaCatOrders[catName]; localStorage.setItem('dotnet_qa_cat_orders', JSON.stringify(qaCatOrders));
+  renderInterview();
+}
 
 function qaCategoryForType(type){
   if(!type) return 'Content';

@@ -26,6 +26,7 @@ watchUser(async user => {
       appLoaded = true;
       await loadScript("js/safe.js");
       await loadScript("js/app.js");
+      await loadScript("js/feed.js");
     }
     try { await import("./features.js"); } catch (e) { console.error("features failed", e); }
     try { await import("./ui.js"); } catch (e) { console.error("ui layer failed", e); }

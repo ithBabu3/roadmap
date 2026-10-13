@@ -72,7 +72,7 @@ function renderUpNext() {
   const n = typeof findNextDay === "function" ? findNextDay() : null;
   if (n == null) {
     host.innerHTML = `<div class="upnext all-done"><span class="upnext-ic"><i class="bi bi-trophy-fill"></i></span><div class="upnext-body"><small>Roadmap complete</small><b>You finished all ${TOTAL} days</b><span>Time to polish your resume and start interviewing.</span></div>
-      <div class="upnext-actions"><button class="btn btn-primary btn-sm" onclick="document.querySelectorAll('.tab-btn-nav')[3].click()"><i class="bi bi-patch-question me-1"></i>Practice Q&amp;A</button></div></div>`;
+      <div class="upnext-actions"><button class="btn btn-primary btn-sm" onclick="document.querySelectorAll('.tab-btn-nav')[4].click()"><i class="bi bi-patch-question me-1"></i>Practice Q&amp;A</button></div></div>`;
     return;
   }
   const { d, w, ph } = dayInfo(n);
@@ -117,7 +117,7 @@ addEventListener("resize", () => { if (innerWidth >= 1300) toggleNotesDrawer(fal
 const baseShowTab = window.showTab;
 window.showTab = function (tab, btn) {
   baseShowTab.apply(this, arguments);
-  const i = tabBtns().indexOf(btn); if (i >= 0) lsSet("dn_tab", i);
+  const i = tabBtns().indexOf(btn); if (i >= 0) lsSet("dn_tab2", i);
   scrollTo({ top: 0, behavior: "instant" });
   const main = document.querySelector(".main-col"); if (main) { main.style.animation = "none"; void main.offsetWidth; main.style.animation = ""; }
 };
@@ -200,7 +200,7 @@ document.addEventListener("click", e => { const p = $("timer-pop"); if (p?.class
 // ---------------------------------------------------------------- command palette
 let palSel = 0, palItems = [];
 function actions() {
-  const tabs = ["Roadmap", "Docs Hub", "Projects", "Interview Q&A", "Profile"], icons = ["bi-map", "bi-collection", "bi-folder2-open", "bi-patch-question", "bi-person-circle"];
+  const tabs = ["Roadmap", "Feed", "Docs Hub", "Projects", "Interview Q&A", "Profile"], icons = ["bi-map", "bi-view-list", "bi-collection", "bi-folder2-open", "bi-patch-question", "bi-person-circle"];
   const a = tabs.map((t, i) => ({ g: "Go to", t: t, s: "Open the " + t + " section", i: icons[i], run: () => tabBtns()[i]?.click() }));
   a.push(
     { g: "Actions", t: "Jump to next day", s: "Scroll to your next pending day", i: "bi-lightning-charge", run: () => { const n = findNextDay(); if (n) goToDay(n); } },
@@ -446,5 +446,5 @@ window.UI = { goToDay, goToPhase, complete, toast, confetti, setTheme, openPalet
 if (typeof filterDocsHub === "function") try { filterDocsHub(); } catch (e) { /* tab not rendered yet */ }
 
 greet(); paintProgress(); renderUpNext(); decorateDays(); renderPins(); renderPhaseNav(); buildDial();
-const savedTab = lsGet("dn_tab", 0);
+const savedTab = lsGet("dn_tab2", 0);
 if (savedTab > 0 && tabBtns()[savedTab]) tabBtns()[savedTab].click();
