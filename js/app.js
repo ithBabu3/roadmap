@@ -2124,7 +2124,7 @@ function showStatDetail(which){
 }
 
 const TAB_TITLES = {roadmap:'Roadmap', author:'Docs Hub', projects:'Projects', interview:'Interview Prep', profile:'Profile'};
-function setPageTitle(tab){ document.title = (TAB_TITLES[tab] || 'Roadmap') + ' · .NET Roadmap'; }
+function setPageTitle(tab){ const t = (TAB_TITLES[tab] || 'Roadmap') + ' · .NET Roadmap'; if(!document.hidden) document.title = t; }
 function showTab(tab, btn){
   setPageTitle(tab);
   document.querySelectorAll('[id^="tab-"]').forEach(t=>t.style.display='none');
