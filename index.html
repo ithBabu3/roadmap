@@ -190,6 +190,9 @@
             <option value="new">Newest first</option><option value="old">Oldest first</option><option value="shuffle">Shuffle (discover)</option><option value="source">Group by source</option></select>
           <button type="button" class="btn btn-sm btn-ghost" id="feed-shuffle" onclick="Feed.reshuffle()" style="display:none"><i class="bi bi-shuffle"></i> Reshuffle</button>
         </div></div>
+      <div class="feed-panel-sec"><h6>Links</h6>
+        <label class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="feed-previews" onchange="Feed.setPreviews(this.checked)"><span class="form-check-label small">Show rich link previews (title, image, description)</span></label>
+        <div class="small text-muted mt-1">Looks up each link through microlink.io, so the link address is sent to that service. Turn off to show plain link cards.</div></div>
       <div class="feed-panel-sec"><h6>Hidden items <span class="badge text-bg-secondary ms-1" id="feed-hidden-count"></span></h6><div id="feed-hidden"></div></div>
       <div class="text-end"><button type="button" class="btn btn-sm btn-ghost danger" onclick="Feed.resetPrefs()"><i class="bi bi-arrow-counterclockwise"></i> Reset feed settings</button></div>
     </div>

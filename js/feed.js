@@ -29,11 +29,16 @@
   if (!Array.isArray(posts)) posts = [];
   let prefs = read("dotnet_feed_prefs", {});
   if (!prefs || typeof prefs !== "object" || Array.isArray(prefs)) prefs = {};
-  prefs.sources = prefs.sources && typeof prefs.sources === "object" ? prefs.sources : {};
-  prefs.hidden = Array.isArray(prefs.hidden) ? prefs.hidden : [];
-  prefs.pinned = Array.isArray(prefs.pinned) ? prefs.pinned : [];
-  prefs.types = Array.isArray(prefs.types) ? prefs.types : [];      // empty = all types
-  prefs.sort = ["new", "old", "shuffle", "source"].includes(prefs.sort) ? prefs.sort : "new";
+  function normPrefs() {
+    prefs.sources = prefs.sources && typeof prefs.sources === "object" ? prefs.sources : {};
+    prefs.hidden = Array.isArray(prefs.hidden) ? prefs.hidden : [];
+    prefs.pinned = Array.isArray(prefs.pinned) ? prefs.pinned : [];
+    prefs.types = Array.isArray(prefs.types) ? prefs.types : [];      // empty = all types
+    prefs.cardUrls = Array.isArray(prefs.cardUrls) ? prefs.cardUrls : [];   // links shown as a card instead of an embed
+    prefs.previews = prefs.previews !== false;
+    prefs.sort = ["new", "old", "shuffle", "source"].includes(prefs.sort) ? prefs.sort : "new";
+  }
+  normPrefs();
   const savePrefs = () => write("dotnet_feed_prefs", prefs);
   const savePosts = () => write("dotnet_feed_posts", posts);
   const srcOn = k => k in prefs.sources ? !!prefs.sources[k] : k !== "builtin";   // built-ins are off until you ask
@@ -132,6 +137,79 @@
     return h;
   }
 
+  // ---- links from any website: LinkedIn posts embed, everything else gets a rich preview card ----
+  const LKEY = "dn_link_cache";            // device-local cache (not synced)
+  let linkCache = {}; try { linkCache = JSON.parse(localStorage.getItem(LKEY) || "{}") || {}; } catch (e) { linkCache = {}; }
+  const saveLinkCache = () => { try { const k = Object.keys(linkCache); if (k.length > 120) k.slice(0, k.length - 120).forEach(x => delete linkCache[x]); localStorage.setItem(LKEY, JSON.stringify(linkCache)); } catch (e) { /* full */ } };
+  const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return ""; } };
+  const liUrn = u => { const m = String(u).match(/linkedin\.com.*?(activity|share|ugcPost)[-:](\d{15,})/i); if (!m) return ""; const t = m[1].toLowerCase(); return `urn:li:${t === "ugcpost" ? "ugcPost" : t}:${m[2]}`; };
+  const embedHTML = (urn, url) => `<div class="feed-embedgroup"><div class="feed-embed"><iframe src="https://www.linkedin.com/embed/feed/update/${esc(urn)}" title="LinkedIn post" loading="lazy" allowfullscreen></iframe></div>
+    <div class="feed-embed-bar"><a href="${esc(safeUrl(url))}" target="_blank" rel="noopener noreferrer"><i class="bi bi-linkedin"></i> Open on LinkedIn <i class="bi bi-box-arrow-up-right"></i></a>
+    <button type="button" data-cardurl="${esc(url)}" onclick="Feed.asCard(this)" title="Use this if the post doesn't load (private posts can't be embedded)">Not loading? Show as card</button></div></div>`;
+  function linkBlock(url, title) {
+    const urn = liUrn(url);
+    if (urn && !prefs.cardUrls.includes(url)) return embedHTML(urn, url);
+    const host = hostOf(url), fallback = title || url.replace(/^https?:\/\/(www\.)?/, "").slice(0, 90);
+    return `<a class="feed-preview" data-url="${esc(url)}" href="${esc(safeUrl(url))}" target="_blank" rel="noopener noreferrer">
+      <span class="fp-img" hidden></span>
+      <span class="fp-body">
+        <span class="fp-site"><img class="fp-fav" alt="" width="16" height="16" referrerpolicy="no-referrer" src="https://www.google.com/s2/favicons?domain=${esc(host)}&sz=64" onerror="this.remove()"><span class="fp-host">${esc(host || "link")}</span></span>
+        <span class="fp-title" data-own="${title ? 1 : 0}">${esc(fallback)}</span>
+        <span class="fp-desc" hidden></span>
+      </span><i class="bi bi-box-arrow-up-right fp-ext" aria-hidden="true"></i></a>`;
+  }
+  const lkQueue = []; let lkBusy = 0;
+  const fetchMeta = url => new Promise(res => { lkQueue.push({ url, res }); pump(); });
+  async function lookup(url) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 9000);
+      try {
+        const r = await fetch("https://api.microlink.io/?url=" + encodeURIComponent(url), { signal: ctl.signal });
+        if (r.status === 429) return { fail: 600e3 };                      // rate-limited: retry in 10 minutes
+        const j = await r.json().catch(() => null);
+        const d = j && j.status === "success" ? j.data : null;
+        if (!d) return { fail: 24 * 3600e3 };                              // site can't be read: don't keep asking today
+        return { title: d.title || "", desc: d.description || "", img: (d.image && d.image.url) || (d.logo && d.logo.url) || "", site: d.publisher || "", final: d.url || "" };
+      } catch (e) {
+        if (attempt === 0) await new Promise(ok => setTimeout(ok, 1500)); // network blip: one quick retry
+      } finally { clearTimeout(timer); }
+    }
+    return { fail: 600e3 };
+  }
+  function pump() {
+    while (lkBusy < 2 && lkQueue.length) {
+      const job = lkQueue.shift(); lkBusy++;
+      lookup(job.url).then(job.res).finally(() => { lkBusy--; pump(); });
+    }
+  }
+  function paintPreview(el, m) {
+    if (!el.isConnected || !m || m.fail) return;
+    if (m.final) { const urn = liUrn(m.final); if (urn && !prefs.cardUrls.includes(m.final)) { el.outerHTML = embedHTML(urn, m.final); return; } }   // short link (lnkd.in …) that turned out to be a LinkedIn post
+    const t = el.querySelector(".fp-title");
+    if (m.title && t.dataset.own !== "1") t.textContent = m.title;      // your own title wins over the site's
+    if (m.site) el.querySelector(".fp-host").textContent = m.site;
+    if (m.desc) { const d = el.querySelector(".fp-desc"); d.textContent = m.desc; d.hidden = false; }
+    if (m.img && /^https:\/\//.test(m.img)) {
+      const box = el.querySelector(".fp-img"), im = new Image();
+      im.alt = ""; im.referrerPolicy = "no-referrer";
+      im.onload = () => { box.replaceChildren(im); box.hidden = false; };
+      im.src = m.img;
+    }
+  }
+  function enhancePreviews(root) {
+    root.querySelectorAll(".feed-preview[data-url]").forEach(el => {
+      const url = el.dataset.url; delete el.dataset.url;
+      const c = linkCache[url];
+      if (c && !c.fail) { paintPreview(el, c); return; }
+      if (c && c.fail && Date.now() < c.until) return;                   // recently failed: show the plain card
+      if (!prefs.previews) return;
+      fetchMeta(url).then(m => {
+        linkCache[url] = m.fail ? { fail: 1, until: Date.now() + m.fail } : m;
+        saveLinkCache(); paintPreview(el, m);
+      });
+    });
+  }
+
   const ytId = src => { const m = String(src).match(/embed\/([\w-]+)/); return m ? m[1] : ""; };
   function mediaHTML(it) {
     let h = "";
@@ -147,10 +225,10 @@
       } else if (vid && vid.kind === "video") {
         h += `<div class="feed-player file"><video class="feed-video" src="${esc(vid.src)}" controls muted loop playsinline preload="metadata"></video></div>`;
       } else {
-        h += `<a class="feed-link-card" href="${esc(safeUrl(it.url))}" target="_blank" rel="noopener noreferrer"><i class="bi ${it.type === "Video" ? "bi-play-btn-fill" : "bi-link-45deg"}"></i><span>${esc(it.url.replace(/^https?:\/\//, "").slice(0, 70))}</span><i class="bi bi-box-arrow-up-right"></i></a>`;
+        h += linkBlock(it.url, it.title);
       }
     } else if (it.url) {
-      h += `<a class="feed-link-card" href="${esc(safeUrl(it.url))}" target="_blank" rel="noopener noreferrer"><i class="bi bi-link-45deg"></i><span>${esc(it.url.replace(/^https?:\/\//, "").slice(0, 70))}</span><i class="bi bi-box-arrow-up-right"></i></a>`;
+      h += linkBlock(it.url, it.title);
     }
     return h;
   }
@@ -243,17 +321,25 @@
       requestAnimationFrame(() => { if (body.scrollHeight > body.clientHeight + 24) { btn.hidden = false; body.classList.add("clamped"); } });
     });
     setupPlayers(root);
+    enhancePreviews(root);
   }
 
   function more() {
     const list = $("feed-list"); if (!list) return;
     const next = items.slice(shown, shown + BATCH);
-    if (!next.length) return;
-    list.insertAdjacentHTML("beforeend", next.map(cardHTML).join(""));
-    shown += next.length;
-    hydrate(list);
-    $("feed-end").hidden = shown < items.length;
+    if (next.length) {
+      list.insertAdjacentHTML("beforeend", next.map(cardHTML).join(""));
+      shown += next.length;
+      hydrate(list);
+    }
+    $("feed-end").hidden = shown < items.length || !items.length;
     $("feed-sentinel").hidden = shown >= items.length;
+    // The observer only fires when the sentinel *enters* view. If new cards are short and it is still
+    // near the screen, load the next batch ourselves so scrolling never stalls.
+    requestAnimationFrame(() => {
+      const sn = $("feed-sentinel");
+      if (shown < items.length && sn && !sn.hidden && sn.getBoundingClientRect().top < innerHeight + 600 && $("tab-feed").style.display !== "none") more();
+    });
   }
 
   function renderPanel(all) {
@@ -266,6 +352,7 @@
     $("feed-types").innerHTML = types.map(t => `<button type="button" class="feed-chip ${prefs.types.includes(t) ? "on" : ""}" onclick="Feed.toggleType('${esc(t)}')"><i class="bi ${TYPE_ICON[t] || "bi-file-text"}" aria-hidden="true"></i>${esc(t)}</button>`).join("")
       || `<span class="small text-muted">Nothing yet.</span>`;
     $("feed-sort").value = prefs.sort;
+    $("feed-previews").checked = prefs.previews;
     $("feed-shuffle").style.display = prefs.sort === "shuffle" ? "" : "none";
     $("feed-hidden").innerHTML = hiddenItems.length
       ? hiddenItems.map(it => `<div class="feed-hidden-row"><span><i class="bi ${SRC[it.src].icon} me-1" style="color:${SRC[it.src].color}"></i>${esc(it.title || it.type)}</span><button type="button" class="btn btn-sm btn-ghost" onclick="Feed.unhide('${esc(it.fid)}')">Restore</button></div>`).join("")
@@ -276,9 +363,17 @@
     $("feed-manage-dot").style.display = active ? "" : "none";
   }
 
+  let lastSig = "";
+  const signature = all => JSON.stringify([prefs, query, prefs.sort === "shuffle" ? seed : 0]) + "|" + all.map(i => [i.fid, i.title, String(i.summary || "").length, (i.points || []).length, i.url, i.ts].join(":")).join(",");
+  function show() {                       // called when the tab opens: only rebuild if something changed
+    if (!$("feed-list")) return;
+    if ($("feed-list").children.length && signature(gather()) === lastSig) return;
+    render();
+  }
   function render() {
     if (!$("feed-list")) return;
     const { all, list } = compute();
+    lastSig = signature(all);
     items = list; shown = 0;
     if (playerObs) { playerObs.disconnect(); playerObs = null; }
     activePlayer = null;
@@ -346,10 +441,12 @@
   // ---------------- public actions ----------------
   const find = fid => items.find(i => i.fid === fid) || gather().find(i => i.fid === fid);
   window.Feed = {
-    render,
+    render, show,
+    asCard(btn) { const u = btn.dataset.cardurl; if (u && !prefs.cardUrls.includes(u)) { prefs.cardUrls.push(u); savePrefs(); } const g = btn.closest(".feed-embedgroup"); if (!g) return; g.outerHTML = linkBlock(u, ""); enhancePreviews($("feed-list")); },
     setSource(k, on) { prefs.sources[k] = !!on; savePrefs(); render(); },
     toggleType(t) { const i = prefs.types.indexOf(t); if (i > -1) prefs.types.splice(i, 1); else prefs.types.push(t); savePrefs(); render(); },
     clearTypes() { prefs.types = []; savePrefs(); render(); },
+    setPreviews(on) { prefs.previews = !!on; savePrefs(); render(); },
     setSort(v) { prefs.sort = v; savePrefs(); render(); },
     reshuffle() { seed = Date.now(); render(); },
     search(v) { query = v; render(); },
@@ -366,7 +463,7 @@
     },
     unhide(fid) { prefs.hidden = prefs.hidden.filter(x => x !== fid); savePrefs(); render(); },
     unhideAll() { prefs.hidden = []; savePrefs(); render(); },
-    resetPrefs() { if (!confirm("Reset feed settings? Your content is not touched.")) return; prefs = { sources: {}, hidden: [], pinned: [], types: [], sort: "new" }; savePrefs(); render(); },
+    resetPrefs() { if (!confirm("Reset feed settings? Your content is not touched.")) return; prefs = {}; normPrefs(); savePrefs(); render(); },
     toggleMore(btn) { const b = btn.parentElement.querySelector(".feed-body"); const open = b.classList.toggle("clamped") === false; btn.textContent = open ? "Show less" : "Show more"; },
     togglePanel() { const p = $("feed-panel"); const open = p.classList.toggle("open"); $("feed-manage-btn").setAttribute("aria-expanded", open); },
     compose() { openComposer(null); },
@@ -393,5 +490,5 @@
   }
   mount();
   // Live-refresh when content changes elsewhere (Firebase pull, restore from backup).
-  window.addEventListener("storage", () => { if ($("tab-feed")?.style.display !== "none") render(); });
+  window.addEventListener("storage", () => { if ($("tab-feed")?.style.display !== "none") show(); });
 })();

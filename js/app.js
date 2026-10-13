@@ -2131,7 +2131,7 @@ function showTab(tab, btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+tab).style.display='';
   btn.classList.add('active');
-  if(tab==='feed' && window.Feed) Feed.render();
+  if(tab==='feed' && window.Feed) Feed.show();
   if(tab==='author'){
     renderDocsSubtabs();
     document.getElementById('docs-community-view').style.display = activeDocsSection==='resources' ? 'none' : '';
