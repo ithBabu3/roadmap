@@ -153,13 +153,12 @@
 <!-- ===================== TAB: FEED ===================== -->
 <div id="tab-feed" style="display:none">
   <div class="page-head">
-    <div><h2><i class="bi bi-view-list"></i>Feed</h2><p>Everything you've added, in one scrolling feed. Choose what shows, and post new things right here.</p></div>
+    <div><h2><i class="bi bi-view-list"></i>Feed</h2></div>
     <button class="btn btn-primary" onclick="Feed.compose()"><i class="bi bi-plus-lg me-1"></i>New post</button>
   </div>
 
   <div class="feed-wrap">
     <div class="feed-composer" id="feed-composer">
-      <button type="button" class="feed-composer-closed" onclick="Feed.compose()"><i class="bi bi-pencil-square"></i><span>Share a note, link, video or checklist…</span></button>
       <div class="feed-composer-open">
         <div class="row g-2">
           <div class="col-12 col-sm-4"><select id="feed-post-type" class="form-select" onchange="Feed.typeFields()" aria-label="Post type">
@@ -175,24 +174,23 @@
       </div>
     </div>
 
-    <div class="feed-bar">
-      <label class="searchbar" for="feed-search"><i class="bi bi-search" aria-hidden="true"></i>
-        <input id="feed-search" type="search" placeholder="Search your feed…" autocomplete="off"></label>
-      <button type="button" class="btn btn-ghost" id="feed-manage-btn" aria-expanded="false" aria-controls="feed-panel" onclick="Feed.togglePanel()"><i class="bi bi-sliders"></i><span>Manage feed</span><span class="feed-dot" id="feed-manage-dot" style="display:none"></span></button>
+    <div class="feed-filters">
+      <div class="feed-bar">
+        <label class="searchbar" for="feed-search"><i class="bi bi-search" aria-hidden="true"></i>
+          <input id="feed-search" type="search" placeholder="Search feed…" autocomplete="off"></label>
+        <select id="feed-sort" class="form-select form-select-sm feed-sort" onchange="Feed.setSort(this.value)" aria-label="Sort feed">
+          <option value="new">Newest</option><option value="old">Oldest</option><option value="shuffle">Shuffle</option><option value="source">By source</option></select>
+        <button type="button" class="btn btn-sm btn-ghost" id="feed-shuffle" onclick="Feed.reshuffle()" style="display:none" aria-label="Reshuffle"><i class="bi bi-shuffle"></i></button>
+        <button type="button" class="btn btn-sm btn-ghost" id="feed-manage-btn" aria-expanded="false" aria-controls="feed-panel" onclick="Feed.togglePanel()" aria-label="More feed settings"><i class="bi bi-gear"></i><span class="feed-dot" id="feed-manage-dot" style="display:none"></span></button>
+      </div>
+      <div class="feed-fgroup"><span class="feed-flabel">Show</span><div class="feed-chips" id="feed-sources"></div></div>
+      <div class="feed-fgroup"><span class="feed-flabel">Type</span><div class="feed-chips" id="feed-types"></div></div>
     </div>
 
     <div class="feed-panel" id="feed-panel">
-      <div class="feed-panel-sec"><h6>Show in feed</h6><div class="feed-toggles" id="feed-sources"></div></div>
-      <div class="feed-panel-sec"><h6>Types <button type="button" class="btn btn-link btn-sm p-0 ms-2" onclick="Feed.clearTypes()">All</button></h6><div class="feed-chips" id="feed-types"></div></div>
-      <div class="feed-panel-sec"><h6>Order</h6>
-        <div class="d-flex gap-2 align-items-center">
-          <select id="feed-sort" class="form-select form-select-sm" style="max-width:220px" onchange="Feed.setSort(this.value)" aria-label="Sort feed">
-            <option value="new">Newest first</option><option value="old">Oldest first</option><option value="shuffle">Shuffle (discover)</option><option value="source">Group by source</option></select>
-          <button type="button" class="btn btn-sm btn-ghost" id="feed-shuffle" onclick="Feed.reshuffle()" style="display:none"><i class="bi bi-shuffle"></i> Reshuffle</button>
-        </div></div>
       <div class="feed-panel-sec"><h6>Links</h6>
-        <label class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="feed-previews" onchange="Feed.setPreviews(this.checked)"><span class="form-check-label small">Show rich link previews (title, image, description)</span></label>
-        <div class="small text-muted mt-1">Looks up each link through microlink.io, so the link address is sent to that service. Turn off to show plain link cards.</div></div>
+        <label class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="feed-previews" onchange="Feed.setPreviews(this.checked)"><span class="form-check-label small">Rich link previews (title, image, description)</span></label>
+        <div class="small text-muted mt-1">Previews look each link up through microlink.io, so the address is sent to that service.</div></div>
       <div class="feed-panel-sec"><h6>Hidden items <span class="badge text-bg-secondary ms-1" id="feed-hidden-count"></span></h6><div id="feed-hidden"></div></div>
       <div class="text-end"><button type="button" class="btn btn-sm btn-ghost danger" onclick="Feed.resetPrefs()"><i class="bi bi-arrow-counterclockwise"></i> Reset feed settings</button></div>
     </div>

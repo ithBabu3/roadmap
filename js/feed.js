@@ -10,13 +10,13 @@
   const $ = id => document.getElementById(id);
 
   const SOURCES = [
-    { key: "posts", label: "My posts",        icon: "bi-pencil-square",     color: "#7c3aed", tab: "feed" },
-    { key: "docs",  label: "Docs Hub",        icon: "bi-collection",        color: "#0891b2", tab: "author" },
-    { key: "notes", label: "Day notes",       icon: "bi-stickies",          color: "#d97706", tab: "roadmap" },
-    { key: "qa",    label: "My Q&A",          icon: "bi-patch-question",    color: "#16a34a", tab: "interview" },
-    { key: "adv",   label: "My advanced topics", icon: "bi-lightning-charge-fill", color: "#be123c", tab: "projects" },
-    { key: "links", label: "My resource links", icon: "bi-bookmark-star-fill", color: "#0a66c2", tab: "author" },
-    { key: "builtin", label: "Built-in Q&A & topics", icon: "bi-journal-bookmark", color: "#6b7280", tab: "interview" },
+    { key: "posts", short: "Posts", label: "My posts",        icon: "bi-pencil-square",     color: "#7c3aed", tab: "feed" },
+    { key: "docs", short: "Docs", label: "Docs Hub",        icon: "bi-collection",        color: "#0891b2", tab: "author" },
+    { key: "notes", short: "Notes", label: "Day notes",       icon: "bi-stickies",          color: "#d97706", tab: "roadmap" },
+    { key: "qa", short: "My Q&A", label: "My Q&A",          icon: "bi-patch-question",    color: "#16a34a", tab: "interview" },
+    { key: "adv", short: "Topics", label: "My advanced topics", icon: "bi-lightning-charge-fill", color: "#be123c", tab: "projects" },
+    { key: "links", short: "Links", label: "My resource links", icon: "bi-bookmark-star-fill", color: "#0a66c2", tab: "author" },
+    { key: "builtin", short: "Built-in", label: "Built-in Q&A & topics", icon: "bi-journal-bookmark", color: "#6b7280", tab: "interview" },
   ];
   const SRC = Object.fromEntries(SOURCES.map(s => [s.key, s]));
   const POST_TYPES = ["Note", "Link", "Video", "Bullets", "Paragraph"];
@@ -318,7 +318,13 @@
       card.dataset.clamped = "1";
       const body = card.querySelector(".feed-body"), btn = card.querySelector(".feed-more");
       if (!body || !btn) return;
-      requestAnimationFrame(() => { if (body.scrollHeight > body.clientHeight + 24) { btn.hidden = false; body.classList.add("clamped"); } });
+      const check = () => {
+        body.classList.add("clamped");
+        if (body.scrollHeight <= body.clientHeight + 24) { body.classList.remove("clamped"); btn.hidden = true; }   // short text: no button needed
+        else btn.hidden = false;
+      };
+      requestAnimationFrame(check);
+      body.querySelectorAll("img").forEach(i => i.addEventListener("load", () => { if (body.classList.contains("clamped") || !btn.hidden) return; check(); }, { once: true }));
     });
     setupPlayers(root);
     enhancePreviews(root);
@@ -346,21 +352,19 @@
     const counts = {}; all.forEach(it => { counts[it.src] = (counts[it.src] || 0) + 1; });
     const types = [...new Set(all.map(it => it.type))].sort();
     const hiddenItems = all.filter(it => prefs.hidden.includes(it.fid));
-    $("feed-sources").innerHTML = SOURCES.map(s => `<label class="feed-toggle" style="--src:${s.color}">
-      <input type="checkbox" ${srcOn(s.key) ? "checked" : ""} onchange="Feed.setSource('${s.key}',this.checked)">
-      <span class="feed-toggle-box"><i class="bi ${s.icon}" aria-hidden="true"></i><b>${esc(s.label)}</b><small>${counts[s.key] || 0}</small></span></label>`).join("");
-    $("feed-types").innerHTML = types.map(t => `<button type="button" class="feed-chip ${prefs.types.includes(t) ? "on" : ""}" onclick="Feed.toggleType('${esc(t)}')"><i class="bi ${TYPE_ICON[t] || "bi-file-text"}" aria-hidden="true"></i>${esc(t)}</button>`).join("")
-      || `<span class="small text-muted">Nothing yet.</span>`;
+    $("feed-sources").innerHTML = SOURCES.map(s => { const on = srcOn(s.key);
+      return `<button type="button" class="feed-chip src ${on ? "on" : ""}" style="--src:${s.color}" aria-pressed="${on}" title="${esc(s.label)}" onclick="Feed.setSource('${s.key}',${!on})"><i class="bi ${s.icon}" aria-hidden="true"></i>${esc(s.short)}<small>${counts[s.key] || 0}</small></button>`; }).join("");
+    $("feed-types").innerHTML = `<button type="button" class="feed-chip ${prefs.types.length ? "" : "on"}" aria-pressed="${!prefs.types.length}" onclick="Feed.clearTypes()">All</button>`
+      + types.map(t => `<button type="button" class="feed-chip ${prefs.types.includes(t) ? "on" : ""}" aria-pressed="${prefs.types.includes(t)}" onclick="Feed.toggleType('${esc(t)}')"><i class="bi ${TYPE_ICON[t] || "bi-file-text"}" aria-hidden="true"></i>${esc(t)}</button>`).join("");
     $("feed-sort").value = prefs.sort;
-    $("feed-previews").checked = prefs.previews;
     $("feed-shuffle").style.display = prefs.sort === "shuffle" ? "" : "none";
+    $("feed-previews").checked = prefs.previews;
     $("feed-hidden").innerHTML = hiddenItems.length
       ? hiddenItems.map(it => `<div class="feed-hidden-row"><span><i class="bi ${SRC[it.src].icon} me-1" style="color:${SRC[it.src].color}"></i>${esc(it.title || it.type)}</span><button type="button" class="btn btn-sm btn-ghost" onclick="Feed.unhide('${esc(it.fid)}')">Restore</button></div>`).join("")
         + `<button type="button" class="btn btn-sm btn-ghost mt-2" onclick="Feed.unhideAll()">Restore all</button>`
       : `<span class="small text-muted">No hidden items. Use “Hide” on a card to take it out of the feed.</span>`;
     $("feed-hidden-count").textContent = hiddenItems.length ? hiddenItems.length : "";
-    const active = SOURCES.filter(s => srcOn(s.key) !== (s.key !== "builtin")).length + (prefs.types.length ? 1 : 0) + hiddenItems.length;
-    $("feed-manage-dot").style.display = active ? "" : "none";
+    $("feed-manage-dot").style.display = hiddenItems.length ? "" : "none";
   }
 
   let lastSig = "";
@@ -464,7 +468,7 @@
     unhide(fid) { prefs.hidden = prefs.hidden.filter(x => x !== fid); savePrefs(); render(); },
     unhideAll() { prefs.hidden = []; savePrefs(); render(); },
     resetPrefs() { if (!confirm("Reset feed settings? Your content is not touched.")) return; prefs = {}; normPrefs(); savePrefs(); render(); },
-    toggleMore(btn) { const b = btn.parentElement.querySelector(".feed-body"); const open = b.classList.toggle("clamped") === false; btn.textContent = open ? "Show less" : "Show more"; },
+    toggleMore(btn) { const b = btn.previousElementSibling; if (!b || !b.classList.contains("feed-body")) return; const collapsed = b.classList.toggle("clamped"); btn.textContent = collapsed ? "Show more" : "Show less"; btn.setAttribute("aria-expanded", String(!collapsed)); if (collapsed) b.scrollIntoView({ block: "nearest" }); },
     togglePanel() { const p = $("feed-panel"); const open = p.classList.toggle("open"); $("feed-manage-btn").setAttribute("aria-expanded", open); },
     compose() { openComposer(null); },
     closeComposer, typeFields, savePost,

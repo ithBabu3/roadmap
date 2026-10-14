@@ -724,9 +724,9 @@ code{background:var(--surface-3);color:var(--primary-ink);padding:1px 6px;border
 .feed-composer-closed:hover{background:var(--surface-2);color:var(--text);}
 .feed-composer-closed i{font-size:1.2rem;color:var(--primary-ink);flex:none;}
 .feed-composer-closed span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.feed-composer-open{display:none;padding:14px;}
-.feed-composer.open .feed-composer-closed{display:none;}
-.feed-composer.open .feed-composer-open{display:block;}
+.feed-composer{display:none;}
+.feed-composer.open{display:block;}
+.feed-composer-open{display:block;padding:14px;}
 .feed-bar{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
 .feed-bar .searchbar{flex:1 1 auto;min-width:0;}
 #feed-manage-btn{position:relative;white-space:nowrap;flex:none;}
@@ -831,3 +831,21 @@ code{background:var(--surface-3);color:var(--primary-ink);padding:1px 6px;border
 /* Interview: category header tools */
 .cat-right{display:flex;align-items:center;gap:4px;}
 .cat-right .phase-badge{margin-right:4px;}
+
+/* Feed: always-visible compact filters*/
+.feed-filters{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px;}
+.feed-filters .feed-bar{margin:0;gap:6px;}
+.feed-sort{width:auto;flex:none;max-width:110px;}
+.feed-fgroup{display:flex;align-items:flex-start;gap:8px;}
+.feed-flabel{flex:none;width:40px;padding-top:4px;font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+.feed-fgroup .feed-chips{gap:5px;flex:1;min-width:0;}
+.feed-filters .feed-chip{padding:2px 9px;font-size:.74rem;gap:5px;line-height:1.6;white-space:nowrap;}
+.feed-chip small{font-size:.66rem;opacity:.75;}
+.feed-chip.src i{color:var(--src);}
+.feed-chip.src.on{background:color-mix(in srgb,var(--src) 14%,transparent);border-color:var(--src);color:var(--text);}
+.feed-chip.src:not(.on){opacity:.65;}
+#feed-manage-btn{padding:4px 9px;}
+@media (max-width:640px){
+  .feed-filters{padding:8px;}
+  .feed-flabel{width:38px;}
+}
