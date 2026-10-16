@@ -611,6 +611,7 @@ function renderAuthorPosts(){
         </div>
         <a class="author-link" href="${escA(safeUrl(author.linkedin)||'#')}" target="_blank" rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right me-1"></i>Profile</a>
         <div class="author-actions">
+          <button onclick="addToAuthor('${escA(author.id)}')" title="Add content to this author" aria-label="Add content to this author"><i class="bi bi-plus-lg"></i></button>
           <button onclick="editAuthorMeta('${escA(author.id)}')" title="Edit author" aria-label="Edit author"><i class="bi bi-pencil"></i></button>
           ${isCustom ? `<button onclick="deleteAuthor('${escA(author.id)}')" title="Delete author" aria-label="Delete author"><i class="bi bi-trash"></i></button>` : ''}
         </div>
@@ -755,8 +756,10 @@ function filterResources(){
 // ---- Step 1 of adding content: ask what they want to upload ----
 // Step 1 (popup): which section is this going into?
 let pendingDocsSection = 'community';
+let pendingAuthorForAdd = null; // {id,name,role} when adding straight into an existing author card
+let formDraft = null;           // keeps the title when switching the content type while editing
 function openAddChooser(){
-  editingItem = null; editingAuthorId = null; pendingMedia = null; editingResourceId = null;
+  editingItem = null; editingAuthorId = null; pendingMedia = null; editingResourceId = null; pendingAuthorForAdd = null; formDraft = null;
   openModal(`
     <div class="author-form docshub-form-compact mb-0">
       <h6 class="form-title"><i class="bi bi-plus-circle me-1"></i>Where should this go?</h6>
@@ -776,6 +779,26 @@ function promptNewSectionThenAdd(){
     saveDocsSections();
   }
   openContentTypeChooser(key);
+}
+
+// Adds new content straight into an existing author card (no need to retype the author).
+function addToAuthor(authorId){
+  const a = getAllAuthors().find(x=>x.id===authorId);
+  if(!a) return;
+  editingItem = null; editingAuthorId = null; pendingMedia = null; editingResourceId = null; formDraft = null;
+  pendingAuthorForAdd = {id:a.id, name:a.name, role:a.role};
+  openContentTypeChooser(activeDocsSection);
+}
+// While editing: swap the item to another type (e.g. add a PDF/image to a text item) without losing the title.
+function switchContentFormType(cat){
+  if(!editingItem) return;
+  const t = document.getElementById('naf-title');
+  formDraft = {title: t ? t.value : ''};
+  openContentForm(editingItem.authorId, editingItem.itemId, cat);
+}
+function typeSwitcherHTML(current, fn){
+  const opts = [['PDF','PDF','bi-file-earmark-pdf-fill'],['Image','Image','bi-image'],['Link','Link','bi-link-45deg'],['Content','Text','bi-text-paragraph']];
+  return `<div class="col-12"><div class="small text-muted mb-1">Type — switch to attach a different kind of content</div><div class="d-flex gap-1 flex-wrap">${opts.map(([c,l,ic])=>`<button type="button" class="btn btn-sm ${c===current?'btn-primary':'btn-outline-secondary'}" onclick="${fn}('${c}')"><i class="bi ${ic} me-1"></i>${l}</button>`).join('')}</div></div>`;
 }
 
 // Step 2a (popup): Community Docs (or any custom tab) — what kind of content?
@@ -958,24 +981,26 @@ function openContentForm(authorId, itemId, category){
     author = getAllAuthors().find(a=>a.id===authorId);
     item = author.items.find(i=>i.id===itemId);
     editingItem = {authorId, itemId};
-    category = categoryForType(item.type);
+    if(!category) category = categoryForType(item.type);
   } else {
     editingItem = null;
     if(!category){ openAddChooser(); return; }
   }
   pendingMedia = null;
+  const draft = formDraft; formDraft = null;
+  const presetAuthor = !isEdit && pendingAuthorForAdd;
 
-  const authorNameVal = isEdit ? author.name : '';
-  const authorRoleVal = isEdit ? author.role : '';
+  const authorNameVal = isEdit ? author.name : (presetAuthor ? pendingAuthorForAdd.name : '');
+  const authorRoleVal = isEdit ? author.role : (presetAuthor ? pendingAuthorForAdd.role : '');
 
   let typeSpecificHTML = '';
   if(category==='PDF'){
     typeSpecificHTML = `
-      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="naf-pdf-input" accept="application/pdf" style="display:none" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey && item.type==='PDF' ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="naf-pdf-input" accept="application/pdf" style="display:none" onclick="event.stopPropagation()" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
       <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional, collapsible)</span></label>${rteEditorHTML('naf-para','What\'s inside this PDF, briefly...', isEdit && item.type==='PDF'?item.summary||'':'')}</div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="naf-image-input" accept="image/*" style="display:none" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey && item.type==='Image' ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="naf-image-input" accept="image/*" style="display:none" onclick="event.stopPropagation()" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
       <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('naf-summary','One or two lines of context', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
@@ -1004,13 +1029,14 @@ function openContentForm(authorId, itemId, category){
     <div class="author-form docshub-form-compact mb-0">
       <h6 class="form-title"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit content':'Add '+catMeta.label}</h6>
       <div class="row g-2">
-        <div class="col-12"><label>Heading / title <span class="text-danger">*</span></label><input id="naf-title" class="form-control" placeholder="e.g. Minimal APIs in .NET 8" value="${escA(isEdit?item.title:'')}" oninput="checkTopicOverlap()"><div id="naf-topic-hint"></div></div>
+        <div class="col-12"><label>Heading / title <span class="text-danger">*</span></label><input id="naf-title" class="form-control" placeholder="e.g. Minimal APIs in .NET 8" value="${escA(draft ? draft.title : (isEdit?item.title:''))}" oninput="checkTopicOverlap()"><div id="naf-topic-hint"></div></div>
+        ${isEdit ? typeSwitcherHTML(category,'switchContentFormType') : ''}
         ${typeSpecificHTML}
         <div class="col-12">
           <button type="button" class="optional-toggle" onclick="toggleOptionalAuthorFields(this)"><i class="bi bi-chevron-right"></i> Author details (optional)</button>
           <div class="optional-fields row g-2 mt-1">
-            <div class="col-md-6"><label>Author name</label><input id="naf-author" class="form-control" placeholder="e.g. Nick Chapsas (leave blank for 'You')" value="${escA(authorNameVal)}" ${isEdit?'readonly':''}></div>
-            <div class="col-md-6"><label>Role / headline</label><input id="naf-role" class="form-control" placeholder="e.g. .NET Content Creator" value="${escA(authorRoleVal)}" ${isEdit?'readonly':''}></div>
+            <div class="col-md-6"><label>Author name</label><input id="naf-author" class="form-control" placeholder="e.g. Nick Chapsas (leave blank for 'You')" value="${escA(authorNameVal)}" ${(isEdit||presetAuthor)?'readonly':''}></div>
+            <div class="col-md-6"><label>Role / headline</label><input id="naf-role" class="form-control" placeholder="e.g. .NET Content Creator" value="${escA(authorRoleVal)}" ${(isEdit||presetAuthor)?'readonly':''}></div>
           </div>
         </div>
       </div>
@@ -1021,15 +1047,15 @@ function openContentForm(authorId, itemId, category){
       </div>
       <div class="small text-muted mt-2"><i class="bi bi-hdd me-1"></i>Everything — text, images and PDFs — is saved to your Firebase account, so it follows you to any device.</div>
     </div>`);
-  if(category==='Content'){ document.getElementById('naf-type').value = isEdit?item.type:'Paragraph'; renderTypeFields(); }
-  if(isEdit && authorNameVal){ const opt = document.querySelector('#appModalBody .optional-fields'); const btn = document.querySelector('#appModalBody .optional-toggle'); if(opt){ opt.classList.add('open'); btn.querySelector('i').className='bi bi-chevron-down'; } }
+  if(category==='Content'){ document.getElementById('naf-type').value = (isEdit && ['Paragraph','Bullets','Diagram','Post'].includes(item.type)) ? item.type : 'Paragraph'; renderTypeFields(); }
+  if((isEdit||presetAuthor) && authorNameVal){ const opt = document.querySelector('#appModalBody .optional-fields'); const btn = document.querySelector('#appModalBody .optional-toggle'); if(opt){ opt.classList.add('open'); btn.querySelector('i').className='bi bi-chevron-down'; } }
 }
 function toggleOptionalAuthorFields(btn){
   const wrap = btn.nextElementSibling;
   const open = wrap.classList.toggle('open');
   btn.querySelector('i').className = open ? 'bi bi-chevron-down' : 'bi bi-chevron-right';
 }
-function closeContentForm(){ closeModal(); editingItem=null; pendingMedia=null; }
+function closeContentForm(){ closeModal(); editingItem=null; pendingMedia=null; formDraft=null; }
 
 // ===================== RICH TEXT EDITOR (shared by Docs Hub + Interview Q&A) =====================
 // A small contenteditable-based editor: bold/italic/underline, bullet/numbered lists,
@@ -1174,7 +1200,7 @@ async function submitContentForm(category){
   }
 
   const authors = getAllAuthors();
-  const authorId = editingItem ? editingItem.authorId : authorIdFromName(name);
+  const authorId = editingItem ? editingItem.authorId : (pendingAuthorForAdd ? pendingAuthorForAdd.id : authorIdFromName(name));
   let author = authors.find(a=>a.id===authorId);
 
   let itemData = {type, title, badgeColor: TYPE_COLOR[type]};
@@ -1186,36 +1212,48 @@ async function submitContentForm(category){
   if(type==='Diagram') itemData.steps = document.getElementById('naf-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(type==='Post' || type==='Link' || type==='Video') itemData.url = normUrl(document.getElementById('naf-url').value);
 
-  if((type==='Image' || type==='PDF') && pendingMedia){
+  const old = editingItem ? (author && author.items.find(i=>i.id===editingItem.itemId)) : null;
+  if(editingItem && !old){ alert('That item no longer exists.'); closeContentForm(); renderAuthorPosts(); return; }
+  const isMediaType = (type==='Image' || type==='PDF');
+  const keepOldMedia = !!(old && isMediaType && !pendingMedia && old.mediaKey && old.type===type);
+  if(isMediaType && !pendingMedia && !keepOldMedia){ alert(type==='PDF' ? 'Please choose a PDF file to upload.' : 'Please choose an image file to upload.'); return; }
+  if((type==='Link'||type==='Video'||type==='Post') && !itemData.url){ alert('Please enter a valid web link (https://…).'); return; }
+
+  if(isMediaType && pendingMedia){
     const mediaKey = 'media-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
     await idbPut(mediaKey, pendingMedia.dataUrl);
     itemData.mediaKey = mediaKey;
     itemData.mediaName = pendingMedia.name;
+  } else if(keepOldMedia){
+    itemData.mediaKey = old.mediaKey; itemData.mediaName = old.mediaName;
   }
-  if(!editingItem && type==='PDF' && !pendingMedia){ alert('Please choose a PDF file to upload.'); return; }
-  if(!editingItem && type==='Image' && !pendingMedia){ alert('Please choose an image file to upload.'); return; }
-  if((type==='Link'||type==='Video'||type==='Post') && !itemData.url){ alert('Please enter a valid web link (https://…).'); return; }
 
   if(editingItem){
-    const old = author && author.items.find(i=>i.id===editingItem.itemId);
-    if(!old){ alert('That item no longer exists.'); closeContentForm(); renderAuthorPosts(); return; }
-    if((type==='Image'||type==='PDF') && !pendingMedia && old.mediaKey){ itemData.mediaKey = old.mediaKey; itemData.mediaName = old.mediaName; }
-    if(old.mediaKey && itemData.mediaKey && old.mediaKey!==itemData.mediaKey) idbDelete(old.mediaKey);
+    if(old.mediaKey && old.mediaKey!==itemData.mediaKey) idbDelete(old.mediaKey);   // replaced, or type changed away from PDF/Image
     const custom = customAuthors.find(a=>a.id===authorId);
     if(custom){
       // edit the REAL stored author - getAllAuthors() hands back copies, so changing those was never saved
       const i = custom.items.findIndex(x=>x.id===old.id);
-      if(i>-1) custom.items[i] = {...custom.items[i], ...itemData, id: old.id};
+      if(i>-1){
+        const merged = {...custom.items[i], ...itemData, id: old.id};
+        ['points','steps','url','mediaKey','mediaName'].forEach(k=>{ if(!(k in itemData)) delete merged[k]; });   // drop fields of the previous type
+        custom.items[i] = merged;
+      }
       persistCustomAuthors();
     } else {
+      ['points','steps','url','mediaKey','mediaName'].forEach(k=>{ if(!(k in itemData)) itemData[k] = null; });
       itemOverrides[old.id] = itemData; // built-in item: store only the changed fields as an override
       lsSave('dotnet_item_overrides', itemOverrides);
     }
   } else {
     const newItem = {id: authorId+'-'+Date.now(), ...itemData};
     const custom = customAuthors.find(a=>a.id===authorId);
+    const twin = customAuthors.find(a=>a.id===authorId+'-mine');
     if(custom){
       custom.items.unshift(newItem);               // real stored author (the old code pushed onto a copy, so item #2+ vanished)
+      persistCustomAuthors();
+    } else if(twin){
+      twin.items.unshift(newItem);                 // built-in author already has a custom twin: reuse it instead of making another card
       persistCustomAuthors();
     } else if(author){
       // author is a built-in card: keep new items under a custom twin so they persist
@@ -2794,11 +2832,11 @@ function openAdvForm(itemId, category){
   let typeSpecificHTML = '';
   if(category==='PDF'){
     typeSpecificHTML = `
-      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="adv-pdf-input" accept="application/pdf" style="display:none" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="adv-pdf-input" accept="application/pdf" style="display:none" onclick="event.stopPropagation()" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
       <div class="col-12"><label>Topic / notes <span class="text-muted fw-normal">(optional, collapsible)</span></label><textarea id="adv-para" class="form-control" rows="2">${esc(isEdit && item.type==='PDF'?item.summary||'':'')}</textarea></div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="adv-image-input" accept="image/*" style="display:none" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="adv-image-input" accept="image/*" style="display:none" onclick="event.stopPropagation()" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
       <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label><textarea id="adv-summary" class="form-control" rows="2">${esc(isEdit && item.type==='Image'?item.summary||'':'')}</textarea></div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
@@ -3013,6 +3051,7 @@ function qaCategoryCardHTML(catName, qs, color, qiStart){
         <div class="phase-title"><i class="bi bi-grip-vertical grip" aria-hidden="true"></i><span class="phase-name">${esc(catName)}</span></div>
         <div class="cat-right">
           <span class="phase-badge">${qs.length} ${qs.length===1?'question':'questions'}</span>
+          <button type="button" class="item-action-btn" onclick="event.stopPropagation();addQAToCategory(this.closest('.phase-card').dataset.catName)" title="Add a question or upload to this topic" aria-label="Add a question or upload to this topic"><i class="bi bi-plus-lg"></i></button>
           <button type="button" class="item-action-btn" onclick="event.stopPropagation();openRenameQACategory(this.closest('.phase-card').dataset.catName)" title="Rename category" aria-label="Rename category"><i class="bi bi-pencil"></i></button>
           <button type="button" class="item-action-btn danger" onclick="event.stopPropagation();deleteQACategory(this.closest('.phase-card').dataset.catName)" title="Delete category" aria-label="Delete category"><i class="bi bi-trash"></i></button>
         </div>
@@ -3221,8 +3260,10 @@ function qaCategoryForType(type){
 
 // ---- Step 1: ask what kind of answer to add — compact chooser, same options as Docs Hub ----
 let pendingQADestination = 'custom';
+let pendingQACategory = '';   // topic (category) to pre-fill when adding from inside a topic card
+let qaDraft = null;           // keeps category + question text when switching type while editing
 function openQAChooser(){
-  editingQAItem = null; pendingQAMedia = null;
+  editingQAItem = null; pendingQAMedia = null; pendingQACategory = ''; qaDraft = null;
   openModal(`
     <div class="author-form qa-form-compact mb-0">
       <h6 class="form-title"><i class="bi bi-plus-circle me-1"></i>Where should this go?</h6>
@@ -3244,6 +3285,19 @@ function promptNewQASectionThenAdd(){
   openQATypeChooser(key);
 }
 
+// "+" inside a topic card: add a new question/upload straight into that topic.
+function addQAToCategory(catName){
+  editingQAItem = null; pendingQAMedia = null; qaDraft = null;
+  pendingQACategory = catName;
+  openQATypeChooser(activeQASection);
+}
+// While editing: switch an existing question to another type (e.g. attach a PDF/image to a text answer).
+function switchQAFormType(cat){
+  if(!editingQAItem) return;
+  const c = document.getElementById('qa-cat'), q = document.getElementById('qa-q');
+  qaDraft = {cat: c ? c.value : '', q: q ? q.value : ''};
+  openQAForm(editingQAItem, cat);
+}
 function openQATypeChooser(destination){
   pendingQADestination = destination;
   openModal(`
@@ -3266,18 +3320,19 @@ function openQAForm(itemId, category){
   const isEdit = !!itemId;
   editingQAItem = itemId; pendingQAMedia = null;
   const item = isEdit ? getAllQAItems().find(i=>i.id===itemId) : null;
-  if(isEdit) category = qaCategoryForType(item.type);
+  if(isEdit && !category) category = qaCategoryForType(item.type);
   if(!isEdit && !category){ openQAChooser(); return; }
+  const draft = qaDraft; qaDraft = null;
 
   const existingCats = QA_DATA.map(c=>c.cat);
   let typeSpecificHTML = '';
   if(category==='PDF'){
     typeSpecificHTML = `
-      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="qa-pdf-input" accept="application/pdf" style="display:none" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey && item.type==='PDF' ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="qa-pdf-input" accept="application/pdf" style="display:none" onclick="event.stopPropagation()" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
       <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-para','Optional notes', isEdit && item.type==='PDF'?item.summary||'':'')}</div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="qa-image-input" accept="image/*" style="display:none" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey && item.type==='Image' ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="qa-image-input" accept="image/*" style="display:none" onclick="event.stopPropagation()" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
       <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-summary','Optional notes', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
@@ -3292,8 +3347,9 @@ function openQAForm(itemId, category){
     <div class="author-form qa-form-compact mb-0">
       <h6 class="form-title"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit question':catMeta.label+' answer'}</h6>
       <div class="row g-2">
-        <div class="col-md-6"><label>Category</label><input id="qa-cat" class="form-control" list="qa-cat-list" placeholder="e.g. C# Core" value="${escA(isEdit?item.cat:'')}"><datalist id="qa-cat-list">${existingCats.map(cn=>`<option value="${escA(cn)}">`).join('')}</datalist></div>
-        <div class="col-md-6"><label>Question <span class="text-danger">*</span></label><input id="qa-q" class="form-control" placeholder="e.g. What is ref vs out?" value="${escA(isEdit?item.q:'')}"></div>
+        <div class="col-md-6"><label>Category</label><input id="qa-cat" class="form-control" list="qa-cat-list" placeholder="e.g. C# Core" value="${escA(draft ? draft.cat : (isEdit ? item.cat : pendingQACategory))}"><datalist id="qa-cat-list">${existingCats.map(cn=>`<option value="${escA(cn)}">`).join('')}</datalist></div>
+        <div class="col-md-6"><label>Question <span class="text-danger">*</span></label><input id="qa-q" class="form-control" placeholder="e.g. What is ref vs out?" value="${escA(draft ? draft.q : (isEdit?item.q:''))}"></div>
+        ${isEdit ? typeSwitcherHTML(category,'switchQAFormType') : ''}
         ${typeSpecificHTML}
       </div>
       <div class="d-flex gap-2 mt-2 flex-wrap">
@@ -3303,7 +3359,7 @@ function openQAForm(itemId, category){
       </div>
     </div>`);
 }
-function closeQAForm(){ closeModal(); editingQAItem=null; pendingQAMedia=null; }
+function closeQAForm(){ closeModal(); editingQAItem=null; pendingQAMedia=null; qaDraft=null; }
 async function handleQAMediaFile(e){
   const file = e.target.files[0]; if(!file) return;
   const up = await readUpload(file);
@@ -3322,38 +3378,43 @@ async function submitQAForm(category){
   else if(category==='Image') type='Image';
   else if(category==='Link'){ const url=normUrl(document.getElementById('qa-url').value); type = getVideoEmbedInfo(url) ? 'Video' : 'Link'; }
 
+  const old = editingQAItem ? getAllQAItems().find(i=>i.id===editingQAItem) : null;
+  if(editingQAItem && !old){ alert('That question no longer exists.'); closeQAForm(); renderInterview(); return; }
+
   let data = {cat, q};
   if(type){
     data.type = type; data.badgeColor = TYPE_COLOR[type];
     data.summary = rteGetHTML('qa-summary');
     if(type==='PDF') data.summary = rteGetHTML('qa-para');
     if(type==='Link' || type==='Video') data.url = normUrl(document.getElementById('qa-url').value);
-    if((type==='Image'||type==='PDF') && pendingQAMedia){
-      const key = 'media-qa-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
-      await idbPut(key, pendingQAMedia.dataUrl);
-      data.mediaKey = key; data.mediaName = pendingQAMedia.name;
-    }
-    if(!editingQAItem && type==='PDF' && !pendingQAMedia){ alert('Please choose a PDF file to upload.'); return; }
-    if(!editingQAItem && type==='Image' && !pendingQAMedia){ alert('Please choose an image file to upload.'); return; }
     if((type==='Link'||type==='Video') && !data.url){ alert('Please enter a valid web link (https://…).'); return; }
+    if(type==='Image' || type==='PDF'){
+      const keepOld = !!(old && !pendingQAMedia && old.mediaKey && old.type===type);
+      if(!pendingQAMedia && !keepOld){ alert(type==='PDF' ? 'Please choose a PDF file to upload.' : 'Please choose an image file to upload.'); return; }
+      if(pendingQAMedia){
+        const key = 'media-qa-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+        await idbPut(key, pendingQAMedia.dataUrl);
+        data.mediaKey = key; data.mediaName = pendingQAMedia.name;
+      } else { data.mediaKey = old.mediaKey; data.mediaName = old.mediaName; }
+    }
   } else {
     const a = rteGetHTML('qa-a');
     if(!a){ alert('Please write the answer.'); return; }
     data.a = a;
   }
 
-  if(editingQAItem){
-    const old = getAllQAItems().find(i=>i.id===editingQAItem);
-    if(type && (type==='Image'||type==='PDF') && !pendingQAMedia && old.mediaKey){ data.mediaKey=old.mediaKey; data.mediaName=old.mediaName; }
-    if(old.mediaKey && data.mediaKey && old.mediaKey!==data.mediaKey) idbDelete(old.mediaKey);
+  const wasEdit = !!editingQAItem;
+  if(wasEdit){
+    if(old.mediaKey && old.mediaKey!==data.mediaKey) idbDelete(old.mediaKey);   // replaced, or switched away from PDF/Image
     if(editingQAItem.startsWith('qa-seed-')){
       qaOverrides[editingQAItem] = data;
       localStorage.setItem('dotnet_qa_overrides', JSON.stringify(qaOverrides));
     } else {
       const idx = customQA.findIndex(i=>i.id===editingQAItem);
       if(idx<0){ alert('That question no longer exists.'); closeQAForm(); renderInterview(); return; }
-      customQA[idx] = {...old, ...data, id:old.id};
-      if(!type){ delete customQA[idx].type; delete customQA[idx].badgeColor; delete customQA[idx].url; delete customQA[idx].mediaKey; delete customQA[idx].mediaName; }
+      const merged = {...old, ...data, id:old.id};
+      ['type','badgeColor','url','mediaKey','mediaName'].forEach(k=>{ if(!(k in data)) delete merged[k]; });
+      customQA[idx] = merged;
       localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
     }
   } else {
@@ -3361,7 +3422,8 @@ async function submitQAForm(category){
     localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
   }
   closeQAForm();
-  if(activeQASection !== pendingQADestination){
+  // editing keeps you on the tab you are on; only a brand-new item jumps to its destination tab
+  if(!wasEdit && activeQASection !== pendingQADestination){
     setQASubtab(pendingQADestination);
   } else {
     renderInterview();
