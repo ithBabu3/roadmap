@@ -10,6 +10,35 @@ function closeModal(){
   if(appModalInstance) appModalInstance.hide();
 }
 
+// ---- Drag & drop onto any upload box (Docs Hub, Interview Q&A, Advanced+) ----
+(function(){
+  const zoneOf = e => (e.target && e.target.closest) ? e.target.closest('.media-drop') : null;
+  const hasFiles = e => e.dataTransfer && [...(e.dataTransfer.types||[])].includes('Files');
+  document.addEventListener('dragover', e=>{
+    if(!hasFiles(e)) return;
+    const z = zoneOf(e);
+    if(z){ e.preventDefault(); e.dataTransfer.dropEffect='copy'; z.classList.add('drag-active'); }
+    else if(e.target.closest && e.target.closest('#appModal')) e.preventDefault();   // don't let the browser open the file
+  });
+  document.addEventListener('dragleave', e=>{ const z = zoneOf(e); if(z && !z.contains(e.relatedTarget)) z.classList.remove('drag-active'); });
+  document.addEventListener('drop', e=>{
+    if(!hasFiles(e)) return;
+    const z = zoneOf(e);
+    if(!z){ if(e.target.closest && e.target.closest('#appModal')) e.preventDefault(); return; }
+    e.preventDefault(); z.classList.remove('drag-active');
+    const input = z.querySelector('input[type=file]');
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if(!input || !file) return;
+    const accept = input.accept || '';
+    const ok = accept.startsWith('image/') ? /^image\//.test(file.type)
+             : accept==='application/pdf' ? (file.type==='application/pdf' || /\.pdf$/i.test(file.name))
+             : true;
+    if(!ok){ alert(accept.startsWith('image/') ? 'Please drop an image file.' : 'Please drop a PDF file.'); return; }
+    try{ const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; }catch(err){ alert('Drag & drop is not supported in this browser — please click to choose the file.'); return; }
+    input.dispatchEvent(new Event('change', {bubbles:true}));
+  });
+})();
+
 // Accepts "example.com/page" as well as full URLs; returns '' for anything that isn't a web link.
 function normUrl(u){
   u = String(u||'').trim();
@@ -996,11 +1025,11 @@ function openContentForm(authorId, itemId, category){
   let typeSpecificHTML = '';
   if(category==='PDF'){
     typeSpecificHTML = `
-      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey && item.type==='PDF' ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="naf-pdf-input" accept="application/pdf" style="display:none" onclick="event.stopPropagation()" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey && item.type==='PDF' ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF or drop it here<input type="file" id="naf-pdf-input" accept="application/pdf" style="display:none" onclick="event.stopPropagation()" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
       <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional, collapsible)</span></label>${rteEditorHTML('naf-para','What\'s inside this PDF, briefly...', isEdit && item.type==='PDF'?item.summary||'':'')}</div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey && item.type==='Image' ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="naf-image-input" accept="image/*" style="display:none" onclick="event.stopPropagation()" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey && item.type==='Image' ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image or drop it here<input type="file" id="naf-image-input" accept="image/*" style="display:none" onclick="event.stopPropagation()" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
       <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('naf-summary','One or two lines of context', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
@@ -2832,11 +2861,11 @@ function openAdvForm(itemId, category){
   let typeSpecificHTML = '';
   if(category==='PDF'){
     typeSpecificHTML = `
-      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="adv-pdf-input" accept="application/pdf" style="display:none" onclick="event.stopPropagation()" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF or drop it here<input type="file" id="adv-pdf-input" accept="application/pdf" style="display:none" onclick="event.stopPropagation()" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
       <div class="col-12"><label>Topic / notes <span class="text-muted fw-normal">(optional, collapsible)</span></label><textarea id="adv-para" class="form-control" rows="2">${esc(isEdit && item.type==='PDF'?item.summary||'':'')}</textarea></div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="adv-image-input" accept="image/*" style="display:none" onclick="event.stopPropagation()" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image or drop it here<input type="file" id="adv-image-input" accept="image/*" style="display:none" onclick="event.stopPropagation()" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
       <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label><textarea id="adv-summary" class="form-control" rows="2">${esc(isEdit && item.type==='Image'?item.summary||'':'')}</textarea></div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
@@ -3328,11 +3357,11 @@ function openQAForm(itemId, category){
   let typeSpecificHTML = '';
   if(category==='PDF'){
     typeSpecificHTML = `
-      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey && item.type==='PDF' ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF<input type="file" id="qa-pdf-input" accept="application/pdf" style="display:none" onclick="event.stopPropagation()" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey && item.type==='PDF' ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF or drop it here<input type="file" id="qa-pdf-input" accept="application/pdf" style="display:none" onclick="event.stopPropagation()" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
       <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-para','Optional notes', isEdit && item.type==='PDF'?item.summary||'':'')}</div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey && item.type==='Image' ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image<input type="file" id="qa-image-input" accept="image/*" style="display:none" onclick="event.stopPropagation()" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey && item.type==='Image' ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image or drop it here<input type="file" id="qa-image-input" accept="image/*" style="display:none" onclick="event.stopPropagation()" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
       <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-summary','Optional notes', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
