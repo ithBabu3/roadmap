@@ -427,7 +427,8 @@ code{background:var(--surface-3);color:var(--primary-ink);padding:1px 6px;border
 .docshub-form-compact .tc-desc{display:none;}
 .qa-showmore-btn{background:none;border:none;padding:0;color:var(--primary-ink);font-size:.86rem;font-weight:700;cursor:pointer;border-bottom:1px solid var(--gold);}
 .media-drop{border:1px dashed var(--border-strong);border-radius:var(--radius-sm);padding:.95rem;text-align:center;font-size:.9rem;color:var(--muted);cursor:pointer;background:var(--surface-2);}
-.media-drop:hover{border-color:var(--gold);color:var(--text);}
+.media-drop:hover,.media-drop.drag-active{border-color:var(--gold);color:var(--text);}
+.media-drop.drag-active{background:var(--surface);border-style:solid;box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 25%,transparent);}
 .media-preview-name{font-size:.84rem;color:var(--success);margin-top:4px;}
 .type-field,.adv-type-field{display:none;}.type-field.active,.adv-type-field.active{display:block;}
 
