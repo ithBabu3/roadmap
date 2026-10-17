@@ -108,7 +108,7 @@
     const q = query.trim().toLowerCase();
     const hidden = new Set(prefs.hidden), pinned = new Set(prefs.pinned);
     let list = all.filter(it => srcOn(it.src) && !hidden.has(it.fid) && (!prefs.types.length || prefs.types.includes(it.type)));
-    if (q) list = list.filter(it => (it.title + " " + plain(it.summary) + " " + (it.points || []).join(" ") + " " + (it.cat || "") + " " + (it.by || "")).toLowerCase().includes(q));
+    if (q) list = list.filter(it => (it.title + " " + plain(it.summary) + " " + (it.points || []).map(plain).join(" ") + " " + (it.cat || "") + " " + (it.by || "")).toLowerCase().includes(q));
     const order = new Map(all.map((it, i) => [it.fid, i]));
     const rnd = fid => { let h = seed; for (const c of fid) h = (h * 31 + c.charCodeAt(0)) >>> 0; h ^= h << 13; h >>>= 0; h ^= h >> 17; h ^= h << 5; return (h >>> 0) / 4294967296; };
     const cmp = {
@@ -131,7 +131,7 @@
   function textHTML(it) {
     let h = "";
     if (it.summary) h += it.plainBody ? `<div class="feed-text">${esc(it.summary)}</div>` : `<div class="item-summary">${rich(it.summary)}</div>`;
-    if (it.points && it.points.length) h += `<ul class="item-points">${it.points.map(p => `<li>${esc(p)}</li>`).join("")}</ul>`;
+    if (it.points && it.points.length) h += `<ul class="item-points">${it.points.map(p => `<li>${rich(p)}</li>`).join("")}</ul>`;
     if (it.type === "Diagram" && it.steps) h += `<div class="diagram-flow">${it.steps.map((s, i) => `<span class="diagram-step">${esc(s)}</span>${i < it.steps.length - 1 ? '<i class="bi bi-arrow-right diagram-arrow" aria-hidden="true"></i>' : ""}`).join("")}</div>`;
     if (it.steps && it.type !== "Diagram" && it.steps.length) h += `<ol class="item-points">${it.steps.map(s => `<li>${esc(typeof s === "string" ? s : s.text || s.title || "")}</li>`).join("")}</ol>`;
     return h;

@@ -28,6 +28,26 @@
     "BUTTON", "TEXTAREA", "SELECT", "BASE", "TEMPLATE", "NOSCRIPT", "VIDEO", "AUDIO", "SOURCE"]);
   const SAFE_STYLE = /^\s*(?:(?:background(?:-color)?|color)\s*:\s*(?:#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\)|[a-z]{3,20})\s*;?\s*)+$/i;
 
+  // Keep only harmless declarations (colours, alignment, weight/slant/decoration, size) one by one, so a pasted
+  // style like "font-family:Calibri; color:#c00" still keeps the colour instead of losing everything.
+  const COLOR_V = /^(?:#[0-9a-f]{3,8}|rgba?\([\d\s.,%\/]+\)|hsla?\([\d\s.,%\/deg]+\)|[a-z]{3,20})$/i;
+  const DECO_V = /^(?:(?:underline|line-through|none)\s*)+$/i;
+  const STYLE_RULES = {
+    "color": COLOR_V, "background-color": COLOR_V, "background": COLOR_V,
+    "text-align": /^(?:left|right|center|justify)$/i,
+    "font-weight": /^(?:bold|bolder|normal|[1-9]00)$/i,
+    "font-style": /^(?:italic|normal)$/i,
+    "text-decoration": DECO_V, "text-decoration-line": DECO_V,
+    "font-size": /^[\d.]+(?:px|em|rem|%|pt)$/i
+  };
+  function filterStyle(v) {
+    return String(v).split(";").map(d => {
+      const i = d.indexOf(":"); if (i < 0) return "";
+      const prop = d.slice(0, i).trim().toLowerCase(), val = d.slice(i + 1).trim().replace(/\s*!important$/i, "");
+      return STYLE_RULES[prop] && STYLE_RULES[prop].test(val) ? prop + ": " + val : "";
+    }).filter(Boolean).join("; ");
+  }
+
   function cleanNode(node) {
     [...node.childNodes].forEach(ch => {
       if (ch.nodeType === 3) return;                       // text
@@ -41,11 +61,11 @@
       }
       [...ch.attributes].forEach(a => {
         const n = a.name.toLowerCase(), v = a.value;
+        if (n === "style") { const kept = filterStyle(v); if (kept) ch.setAttribute("style", kept); else ch.removeAttribute("style"); return; }
         const ok =
           (tag === "A" && n === "href" && safeUrl(v) !== "#") ||
           (tag === "IMG" && n === "src" && /^(data:image\/(png|jpe?g|gif|webp);base64,|https:\/\/)/i.test(v)) ||
           (tag === "IMG" && (n === "alt" || n === "width" || n === "height")) ||
-          (n === "style" && SAFE_STYLE.test(v)) ||
           (tag === "FONT" && (n === "color" || n === "face" || n === "size")) ||
           ((tag === "TD" || tag === "TH") && (n === "colspan" || n === "rowspan"));
         if (!ok) ch.removeAttribute(a.name);

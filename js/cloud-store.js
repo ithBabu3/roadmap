@@ -18,18 +18,20 @@ const col = name => collection(db, "users", uid, name);
 const safeId = k => String(k).replace(/[\/\s]/g, "_");
 
 // ---------- generic chunked value read / write ----------
-async function writeValue(name, id, str) {
+async function writeValue(name, id, str, onProgress) {
   const c = col(name), meta = doc(c, id), ck = name + "/" + id;
   const prevN = chunkCounts.has(ck) ? chunkCounts.get(ck) : ((await getDoc(meta)).data()?.n || 0);
   let n = 0;
   if (str.length <= CHUNK) {
     await setDoc(meta, { v: str, n: 0, t: Date.now() });
+    if (onProgress) onProgress(1);
   } else {
     n = Math.ceil(str.length / CHUNK);
     for (let i = 0; i < n; i += 6) {
       const b = writeBatch(db);
       for (let j = i; j < Math.min(i + 6, n); j++) b.set(doc(c, `${id}~${j}`), { v: str.slice(j * CHUNK, (j + 1) * CHUNK) });
       await b.commit();
+      if (onProgress) onProgress(Math.min(1, (i + 6) / n));
     }
     await setDoc(meta, { n, t: Date.now() });
   }
@@ -134,7 +136,7 @@ function readLegacyMedia() {   // images/PDFs saved by the old local-only versio
 export const Cloud = {
   user: null,
   flush,
-  putMedia: (key, dataUrl) => writeValue("media", safeId(key), dataUrl),
+  putMedia: (key, dataUrl, onProgress) => writeValue("media", safeId(key), dataUrl, onProgress),
   getMedia: key => readValue("media", safeId(key)),
   deleteMedia: key => removeValue("media", safeId(key)),
 

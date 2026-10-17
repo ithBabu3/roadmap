@@ -850,3 +850,31 @@ code{background:var(--surface-3);color:var(--primary-ink);padding:1px 6px;border
   .feed-filters{padding:8px;}
   .feed-flabel{width:38px;}
 }
+/* ---- upload UX: undo toast, lightbox, card drop targets, filename caption ---- */
+.toast-item.has-act{pointer-events:auto;}
+.toast-act{background:transparent;border:1px solid rgba(251,248,239,.4);color:#fff;border-radius:6px;padding:2px 12px;font-weight:700;font-size:.85rem;margin-left:8px;cursor:pointer;}
+.toast-act:hover{background:rgba(251,248,239,.14);}
+.item-media-img{cursor:zoom-in;}
+.item-media-name{font-size:.8rem;color:var(--muted);align-self:center;margin-right:auto;word-break:break-all;}
+.lightbox{position:fixed;inset:0;z-index:7000;background:rgba(10,14,25,.88);display:flex;align-items:center;justify-content:center;padding:2rem;cursor:zoom-out;}
+.lightbox img{max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.5);cursor:default;}
+.lightbox-close{position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.16);color:#fff;font-size:1.1rem;cursor:pointer;}
+.lightbox-close:hover{background:rgba(255,255,255,.28);}
+.author-card.drag-active,#qa-items-container > .phase-card.drag-active,#adv-container.drag-active{outline:2px dashed var(--gold);outline-offset:-3px;}
+
+/* ---- richer text boxes ---- */
+.rte-toolbar .rte-select{height:30px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);border-radius:4px;font-size:.8rem;padding:0 4px;max-width:92px;cursor:pointer;}
+.rte-editor{max-height:420px;resize:vertical;}
+.rte-editor.drag-active{outline:2px dashed var(--gold);outline-offset:-2px;}
+.rte-editor img{cursor:nwse-resize;}
+.rte-hint{display:none;font-size:.75rem;color:var(--muted);margin:3px 2px 0;}
+.rte-editor:focus + .rte-hint{display:block;}
+.rte-editor h2,.item-summary h2,.note-text h2{font-size:1.25rem;font-weight:700;margin:.6rem 0 .3rem;}
+.rte-editor h3,.item-summary h3,.note-text h3{font-size:1.08rem;font-weight:700;margin:.5rem 0 .25rem;}
+.rte-editor blockquote,.item-summary blockquote,.note-text blockquote{border-left:3px solid var(--gold);margin:.5rem 0;padding:.2rem .8rem;color:var(--text-2);}
+.rte-editor pre,.item-summary pre,.note-text pre{background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:.5rem .7rem;font-size:.85rem;white-space:pre-wrap;}
+.rte-editor hr,.item-summary hr,.note-text hr{border:0;border-top:1px solid var(--border-strong);margin:.7rem 0;opacity:1;}
+.rte-editor a,.item-summary a,.note-text a{color:var(--primary-ink);text-decoration:underline;}
+.rte-editor table,.item-summary table,.note-text table{border-collapse:collapse;max-width:100%;display:block;overflow-x:auto;}
+.rte-editor td,.rte-editor th,.item-summary td,.item-summary th,.note-text td,.note-text th{border:1px solid var(--border-strong);padding:.25rem .5rem;}
+.item-points li img{max-width:100%;}

@@ -10,34 +10,188 @@ function closeModal(){
   if(appModalInstance) appModalInstance.hide();
 }
 
-// ---- Drag & drop onto any upload box (Docs Hub, Interview Q&A, Advanced+) ----
+// ===================== SHARED UPLOAD HELPERS =====================
+// Put a File into an <input type=file> and fire its normal change handler (used by drag & drop and paste).
+function feedFileInput(input, file){
+  try{ const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; }
+  catch(err){ alert('Drag & drop / paste is not supported in this browser — please click to choose the file.'); return false; }
+  input.dispatchEvent(new Event('change', {bubbles:true}));
+  return true;
+}
+function fileKind(file){
+  if(!file) return null;
+  if(/^image\//.test(file.type)) return 'Image';
+  if(file.type==='application/pdf' || /\.pdf$/i.test(file.name||'')) return 'PDF';
+  return null;
+}
+function fileTitle(name){ return String(name||'Untitled').replace(/\.[^.]+$/,'').replace(/_+/g,' ').trim().slice(0,120) || 'Untitled'; }
+function clipText(s,n){ s = String(s||'').replace(/<[^>]*>/g,'').trim(); return s.length>(n||40) ? s.slice(0,(n||40))+'…' : s; }
+function toastStack(){
+  let stack = document.getElementById('toast-stack');
+  if(!stack){ stack = document.createElement('div'); stack.id = 'toast-stack'; stack.className = 'toast-stack'; document.body.appendChild(stack); }
+  return stack;
+}
+// Sticky toast with a spinner for long-running uploads.
+function progressToast(text){
+  const t = document.createElement('div'); t.className = 'toast-item';
+  t.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span class="toast-label"></span>';
+  const label = t.querySelector('.toast-label'); label.textContent = text;
+  toastStack().appendChild(t);
+  return {set(x){ label.textContent = x; }, close(){ t.remove(); }};
+}
+// "Deleted … [Undo]" toast. onExpire runs once the undo window closes (used to really delete the stored file).
+function toastUndo(msg, onUndo, onExpire, ms){
+  const t = document.createElement('div'); t.className = 'toast-item has-act';
+  t.innerHTML = '<i class="bi bi-trash3"></i><span class="toast-label"></span><button type="button" class="toast-act">Undo</button>';
+  t.querySelector('.toast-label').textContent = msg;
+  let settled = false, timer = null;
+  const finish = ()=>{ if(settled) return; settled = true; clearTimeout(timer); t.remove(); if(onExpire){ try{ onExpire(); }catch(e){ console.error(e); } } };
+  t.querySelector('.toast-act').onclick = ()=>{ if(settled) return; settled = true; clearTimeout(timer); t.remove(); onUndo(); };
+  timer = setTimeout(finish, ms || 8000);
+  window.addEventListener('pagehide', finish, {once:true});
+  toastStack().appendChild(t);
+}
+// Disables the form's Save button and shows upload progress on it. Returns {progress(0..1), done()}.
+function busyStart(){
+  const btn = document.querySelector('#appModalBody .btn-primary, #adv-form-slot .btn-primary');
+  if(!btn) return {progress(){}, done(){}};
+  const html = btn.innerHTML, spin = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>';
+  btn.disabled = true; btn.innerHTML = spin + 'Saving…';
+  return {progress(f){ btn.innerHTML = spin + 'Uploading ' + Math.round(Math.max(0,Math.min(1,f))*100) + '%'; }, done(){ btn.disabled = false; btn.innerHTML = html; }};
+}
+function downloadBlob(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 5000);
+}
+
+// ---- Drag & drop: onto any upload box, or straight onto a Docs Hub author / Q&A topic / Advanced+ list ----
+// ---- Paste: Ctrl/Cmd+V an image (or PDF) while an upload box is open ----
 (function(){
-  const zoneOf = e => (e.target && e.target.closest) ? e.target.closest('.media-drop') : null;
   const hasFiles = e => e.dataTransfer && [...(e.dataTransfer.types||[])].includes('Files');
+  const closest = (e, sel) => (e.target && e.target.closest) ? e.target.closest(sel) : null;
+  function zoneInfo(e){
+    const box = closest(e,'.media-drop'); if(box) return {kind:'box', el:box};
+    const au = closest(e,'.author-card'); if(au && au.dataset.authorId) return {kind:'author', el:au};
+    const qa = closest(e,'#qa-items-container > .phase-card'); if(qa && qa.dataset.catName!==undefined) return {kind:'qa', el:qa};
+    const adv = closest(e,'#adv-container'); if(adv) return {kind:'adv', el:adv};
+    return null;
+  }
+  let lastZone = null;
+  const mark = el => { if(lastZone && lastZone!==el) lastZone.classList.remove('drag-active'); el.classList.add('drag-active'); lastZone = el; };
+  const clearMark = () => { if(lastZone){ lastZone.classList.remove('drag-active'); lastZone = null; } };
+  // capture phase: item rows stop propagation of their own (reorder) drag events, and must never see a file drag
   document.addEventListener('dragover', e=>{
     if(!hasFiles(e)) return;
-    const z = zoneOf(e);
-    if(z){ e.preventDefault(); e.dataTransfer.dropEffect='copy'; z.classList.add('drag-active'); }
-    else if(e.target.closest && e.target.closest('#appModal')) e.preventDefault();   // don't let the browser open the file
-  });
-  document.addEventListener('dragleave', e=>{ const z = zoneOf(e); if(z && !z.contains(e.relatedTarget)) z.classList.remove('drag-active'); });
+    const edz = closest(e,'.rte-editor');
+    if(edz){ e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; mark(edz); return; }
+    const z = zoneInfo(e);
+    if(z){ e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; mark(z.el); }
+    else { clearMark(); if(closest(e,'#appModal')) e.preventDefault(); }
+  }, true);
+  document.addEventListener('dragleave', e=>{ if(lastZone && (!e.relatedTarget || !lastZone.contains(e.relatedTarget))) clearMark(); }, true);
+  document.addEventListener('dragend', clearMark, true);
   document.addEventListener('drop', e=>{
     if(!hasFiles(e)) return;
-    const z = zoneOf(e);
-    if(!z){ if(e.target.closest && e.target.closest('#appModal')) e.preventDefault(); return; }
-    e.preventDefault(); z.classList.remove('drag-active');
-    const input = z.querySelector('input[type=file]');
-    const file = e.dataTransfer.files && e.dataTransfer.files[0];
-    if(!input || !file) return;
-    const accept = input.accept || '';
-    const ok = accept.startsWith('image/') ? /^image\//.test(file.type)
-             : accept==='application/pdf' ? (file.type==='application/pdf' || /\.pdf$/i.test(file.name))
-             : true;
-    if(!ok){ alert(accept.startsWith('image/') ? 'Please drop an image file.' : 'Please drop a PDF file.'); return; }
-    try{ const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; }catch(err){ alert('Drag & drop is not supported in this browser — please click to choose the file.'); return; }
-    input.dispatchEvent(new Event('change', {bubbles:true}));
+    const edz = closest(e,'.rte-editor');
+    if(edz){ e.preventDefault(); e.stopPropagation(); clearMark(); rteDropFiles(edz, e); return; }
+    const z = zoneInfo(e);
+    if(!z){ if(closest(e,'#appModal')) e.preventDefault(); return; }
+    e.preventDefault(); e.stopPropagation(); clearMark();
+    const files = [...e.dataTransfer.files];
+    if(!files.length) return;
+    if(z.kind==='box'){
+      const input = z.el.querySelector('input[type=file]'); if(!input) return;
+      const f = files[0], accept = input.accept || '';
+      const ok = accept.startsWith('image/') ? /^image\//.test(f.type) : accept==='application/pdf' ? fileKind(f)==='PDF' : true;
+      if(!ok){ alert(accept.startsWith('image/') ? 'Please drop an image file.' : 'Please drop a PDF file.'); return; }
+      feedFileInput(input, f);
+    }
+    else if(z.kind==='author') bulkAddDocs(z.el.dataset.authorId, files);
+    else if(z.kind==='qa') bulkAddQA(z.el.dataset.catName, files);
+    else if(z.kind==='adv') bulkAddAdv(files);
+  }, true);
+  document.addEventListener('paste', e=>{
+    const f = e.clipboardData && e.clipboardData.files && e.clipboardData.files[0];
+    if(!f || (e.target.closest && e.target.closest('[contenteditable="true"]'))) return;   // the rich-text editor handles its own pastes
+    const kind = fileKind(f); if(!kind) return;
+    const modal = document.getElementById('appModal');
+    const scope = (modal && modal.classList.contains('show')) ? modal : document.getElementById('adv-form-slot');
+    if(!scope) return;
+    const input = [...scope.querySelectorAll('.media-drop input[type=file]')].find(i=> kind==='Image' ? (i.accept||'').startsWith('image/') : i.accept==='application/pdf');
+    if(!input) return;
+    e.preventDefault();
+    const ext = (f.type.split('/')[1]||'png').replace('jpeg','jpg');
+    const named = (f.name && f.name!=='image.png') ? f : new File([f], 'pasted-'+Date.now()+'.'+ext, {type:f.type});
+    if(feedFileInput(input, named) && window.UI) UI.toast('Pasted ' + (kind==='Image'?'image':'PDF') + ' attached');
   });
 })();
+
+// Several dropped files at once: each becomes its own item. makeItem receives {kind,key,name,title,idx}.
+async function runBulkUpload(files, keyPrefix, makeItem, afterAll){
+  const list = [...files], ok = list.filter(fileKind), skipped = list.length - ok.length;
+  if(!ok.length){ alert('Only PDF and image files can be dropped here.'); return; }
+  const pt = progressToast('Uploading 1 of '+ok.length+'…');
+  let added = 0, n = 0;
+  try{
+    for(const f of ok){
+      n++; pt.set('Uploading '+n+' of '+ok.length+': '+clipText(f.name,28));
+      const up = await readUpload(f); if(!up) continue;
+      const key = keyPrefix + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+      const nn = n;
+      await idbPut(key, up.dataUrl, p=>pt.set('Uploading '+nn+' of '+ok.length+' · '+Math.round(p*100)+'%'));
+      makeItem({kind:fileKind(f), key, name:up.name||f.name, title:fileTitle(f.name), idx:n});
+      added++;
+    }
+  } finally { pt.close(); }
+  if(added) afterAll();
+  if(window.UI) UI.toast(added ? 'Added '+added+' file'+(added===1?'':'s')+(skipped?' · skipped '+skipped+' unsupported':'') : 'Nothing was added');
+}
+function bulkAddDocs(authorId, files){
+  if(!getAllAuthors().some(a=>a.id===authorId)) return;
+  const section = activeDocsSection==='resources' ? 'community' : activeDocsSection;
+  return runBulkUpload(files, 'media-', info=>{
+    insertDocsItem(authorId, {id: authorId+'-'+Date.now()+'-'+info.idx, type:info.kind, title:info.title, badgeColor:TYPE_COLOR[info.kind], section, summary:'', mediaKey:info.key, mediaName:info.name});
+  }, renderAuthorPosts);
+}
+function bulkAddQA(catName, files){
+  const section = activeQASection;
+  return runBulkUpload(files, 'media-qa-', info=>{
+    customQA.unshift({id:'qa-custom-'+Date.now()+'-'+info.idx, section, cat:catName, q:info.title, type:info.kind, badgeColor:TYPE_COLOR[info.kind], summary:'', mediaKey:info.key, mediaName:info.name});
+    localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
+  }, renderInterview);
+}
+function bulkAddAdv(files){
+  return runBulkUpload(files, 'media-adv-', info=>{
+    advCustom.push({id:'adv-custom-'+Date.now()+'-'+info.idx, type:info.kind, title:info.title, badgeColor:TYPE_COLOR[info.kind], summary:'', mediaKey:info.key, mediaName:info.name});
+    localStorage.setItem('dotnet_adv_custom', JSON.stringify(advCustom));
+  }, renderAdvanced);
+}
+
+// Full-screen image preview (click an uploaded image).
+function openLightbox(img){
+  if(!img || !img.src) return;
+  const ov = document.createElement('div'); ov.className = 'lightbox'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','Image preview'); ov.tabIndex = -1;
+  ov.innerHTML = '<img alt=""><button type="button" class="lightbox-close" aria-label="Close preview"><i class="bi bi-x-lg"></i></button>';
+  const big = ov.querySelector('img'); big.src = img.src; big.alt = img.alt || '';
+  const onKey = e=>{ if(e.key==='Escape') close(); };
+  const close = ()=>{ ov.remove(); document.removeEventListener('keydown', onKey); };
+  ov.addEventListener('click', e=>{ if(e.target!==big) close(); });
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(ov); ov.focus();
+}
+// Best-effort page count: reads the PDF's page tree (works for most PDFs; returns null if it can't tell).
+function pdfPageCount(dataUrl){
+  try{
+    const bin = atob(String(dataUrl).split(',')[1] || '');
+    let max = 0, m; const re = /<<[^<>]*\/Type\s*\/Pages[^<>]*>>/g;
+    while((m = re.exec(bin))){ const c = /\/Count\s+(\d+)/.exec(m[0]); if(c) max = Math.max(max, +c[1]); }
+    if(!max){ const pg = bin.match(/\/Type\s*\/Page(?![s\w])/g); max = pg ? pg.length : 0; }
+    return max || null;
+  }catch(e){ return null; }
+}
+function fmtBytes(n){ return n>=1048576 ? (n/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(n/1024))+' KB'; }
 
 // Accepts "example.com/page" as well as full URLs; returns '' for anything that isn't a web link.
 function normUrl(u){
@@ -442,9 +596,9 @@ async function idbPutLocal(key, value){ const db = await idbOpen(); return new P
 async function idbGetLocal(key){ const db = await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readonly'); const r=tx.objectStore(IDB_STORE).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
 async function idbDeleteLocal(key){ const db = await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(IDB_STORE,'readwrite'); tx.objectStore(IDB_STORE).delete(key); tx.oncomplete=()=>res(true); tx.onerror=()=>rej(tx.error); }); }
 // Images/PDFs: saved in Firestore (source of truth); IndexedDB is only a fast local cache.
-async function idbPut(key, value){
+async function idbPut(key, value, onProgress){
   await idbPutLocal(key, value);
-  if(window.Cloud){ try{ await Cloud.putMedia(key, value); }catch(e){ console.error(e); alert('Saved on this device, but uploading to Firebase failed: '+(e.message||e)); } }
+  if(window.Cloud){ try{ await Cloud.putMedia(key, value, onProgress); }catch(e){ console.error(e); alert('Saved on this device, but uploading to Firebase failed: '+(e.message||e)); } }
   return true;
 }
 async function idbGet(key){
@@ -464,7 +618,11 @@ function getAllAuthors(){
     ...(authorOverrides[a.id]||{}),
     items: a.items.filter(it=>!deletedItemIds.has(it.id)).map(it=> itemOverrides[it.id] ? {...it, ...itemOverrides[it.id]} : it)
   }));
-  all.forEach(a=>{
+  // items added to a built-in author live in a hidden "-mine" twin: show them inside the author's own card
+  const twins = all.filter(a=>a.id.endsWith('-mine') && all.some(b=>b.id===a.id.slice(0,-5)));
+  twins.forEach(t=>{ const base = all.find(b=>b.id===t.id.slice(0,-5)); base.items = [...t.items, ...base.items]; });
+  const shownAuthors = all.filter(a=>!twins.includes(a));
+  shownAuthors.forEach(a=>{
     const ord = itemOrders[a.id];
     if(ord){
       const map = new Map(a.items.map(it=>[it.id,it]));
@@ -474,12 +632,29 @@ function getAllAuthors(){
     }
   });
   if(authorOrder){
-    const map = new Map(all.map(a=>[a.id,a]));
+    const map = new Map(shownAuthors.map(a=>[a.id,a]));
     const ordered = authorOrder.map(id=>map.get(id)).filter(Boolean);
-    all.forEach(a=>{ if(!authorOrder.includes(a.id)) ordered.push(a); });
+    shownAuthors.forEach(a=>{ if(!authorOrder.includes(a.id)) ordered.push(a); });
     return ordered;
   }
-  return all;
+  return shownAuthors;
+}
+// The stored (custom) author that really holds an item, whichever card it is shown in.
+function customOwnerOf(itemId){ return customAuthors.find(a=>a.items.some(i=>i.id===itemId)); }
+const STALE_KEYS = ['points','steps','url','mediaKey','mediaName'];
+function dropStale(obj, data){ STALE_KEYS.forEach(k=>{ if(!(k in data)) delete obj[k]; }); return obj; }
+// Puts a new item into an author's stored card (creating the hidden twin for built-in authors).
+function insertDocsItem(authorId, item, fallback){
+  const custom = customAuthors.find(a=>a.id===authorId);
+  const twin = customAuthors.find(a=>a.id===authorId+'-mine');
+  const base = getAllAuthors().find(a=>a.id===authorId);
+  if(custom) custom.items.unshift(item);
+  else if(twin) twin.items.unshift(item);
+  else if(base) customAuthors.push({id: authorId+'-mine', name: base.name, role: base.role, avatar: base.avatar, linkedin: base.linkedin || '#', items:[item]});
+  else if(fallback) customAuthors.push({id:authorId, name:fallback.name, role:fallback.role, avatar: initialsOf(fallback.name), linkedin: fallback.linkedin || '#', items:[item]});
+  else return false;
+  persistCustomAuthors();
+  return true;
 }
 function persistCustomAuthors(){ localStorage.setItem('dotnet_custom_authors', JSON.stringify(customAuthors)); }
 function saveAuthorOrder(list){ authorOrder = list.map(a=>a.id); localStorage.setItem('dotnet_author_order', JSON.stringify(authorOrder)); }
@@ -555,14 +730,14 @@ function itemBodyHTML(item){
   } else if(item.summary){
     html += `<div class="item-summary">${rich(item.summary)}</div>`;
   }
-  if(item.points) html += `<ul class="item-points">${item.points.map(p=>`<li>${esc(p)}</li>`).join('')}</ul>`;
+  if(item.points) html += `<ul class="item-points">${item.points.map(p=>`<li>${rich(p)}</li>`).join('')}</ul>`;
   if(item.type==='Roadmap') html += roadmapAccordionHTML();
   if(item.type==='Diagram' && item.steps){
     html += `<div class="diagram-flow">${item.steps.map((s,i)=>`<span class="diagram-step">${esc(s)}</span>${i<item.steps.length-1?'<i class="bi bi-arrow-right diagram-arrow" aria-hidden="true"></i>':''}`).join('')}</div>`;
   }
   if(item.type==='Image' && item.mediaKey){
-    html += `<img class="item-media-img" id="img-${escA(item.id)}" alt="${escA(item.title)}">
-      <div class="item-media-actions"><button class="btn btn-sm btn-outline-secondary" onclick="downloadStoredMedia('${item.id}')"><i class="bi bi-download me-1"></i>Download</button></div>`;
+    html += `<img class="item-media-img" id="img-${escA(item.id)}" alt="${escA(item.title)}" title="Click to enlarge" onclick="openLightbox(this)">
+      <div class="item-media-actions">${item.mediaName ? `<span class="item-media-name"><i class="bi bi-paperclip me-1" aria-hidden="true"></i>${esc(item.mediaName)}</span>` : ''}<button class="btn btn-sm btn-outline-secondary" onclick="downloadStoredMedia('${item.id}')"><i class="bi bi-download me-1"></i>Download</button></div>`;
   }
   if(item.type==='PDF' && item.mediaKey){
     html += `<div class="item-pdf-box"><i class="bi bi-file-earmark-pdf-fill"></i><span class="item-pdf-name">${esc(item.mediaName||'Attached PDF')}</span><button class="btn btn-sm btn-outline-primary" onclick="togglePdfPreview('${item.id}')"><i class="bi bi-eye me-1"></i>Preview</button><button class="btn btn-sm btn-outline-danger" onclick="downloadStoredMedia('${item.id}')"><i class="bi bi-download me-1"></i>Download</button></div><div id="pdf-preview-${item.id}" style="display:none"></div>`;
@@ -590,7 +765,7 @@ function findAnyItemById(itemId){
   }
   const adv = getAllAdvItems().find(i=>i.id===itemId);
   if(adv) return adv;
-  const qa = customQA.find(i=>i.id===itemId);
+  const qa = getAllQAItems().find(i=>i.id===itemId);
   if(qa) return qa;
   return null;
 }
@@ -659,6 +834,7 @@ function renderAuthorPosts(){
         el.draggable = true;
         el.dataset.itemId = item.id;
         el.dataset.type = item.type;
+        el.dataset.search = item.mediaName || '';
         el.innerHTML = `
           <i class="bi bi-grip-vertical item-handle"></i>
           <div class="item-body">
@@ -755,7 +931,7 @@ function filterDocsHub(){
     if(!filtering){ card.style.display = ''; card.querySelectorAll('.content-item').forEach(r=>{ r.style.display=''; }); return; }
     let anyVisible = false;
     card.querySelectorAll('.content-item').forEach(row=>{
-      const matchesText = !term || row.textContent.toLowerCase().includes(term);
+      const matchesText = !term || (row.textContent + ' ' + (row.dataset.search||'')).toLowerCase().includes(term);
       const matchesType = !type || row.dataset.type===type;
       const show = matchesText && matchesType;
       row.style.display = show ? '' : 'none';
@@ -827,7 +1003,7 @@ function switchContentFormType(cat){
 }
 function typeSwitcherHTML(current, fn){
   const opts = [['PDF','PDF','bi-file-earmark-pdf-fill'],['Image','Image','bi-image'],['Link','Link','bi-link-45deg'],['Content','Text','bi-text-paragraph']];
-  return `<div class="col-12"><div class="small text-muted mb-1">Type — switch to attach a different kind of content</div><div class="d-flex gap-1 flex-wrap">${opts.map(([c,l,ic])=>`<button type="button" class="btn btn-sm ${c===current?'btn-primary':'btn-outline-secondary'}" onclick="${fn}('${c}')"><i class="bi ${ic} me-1"></i>${l}</button>`).join('')}</div></div>`;
+  return `<div class="col-12"><div class="small text-muted mb-1">Type — switch to attach a different kind of content</div><div class="d-flex gap-1 flex-wrap">${opts.map(([c,l,ic])=>`<button type="button" class="btn btn-sm ${c===current?'btn-dark':'btn-outline-secondary'}" onclick="${fn}('${c}')"><i class="bi ${ic} me-1"></i>${l}</button>`).join('')}</div></div>`;
 }
 
 // Step 2a (popup): Community Docs (or any custom tab) — what kind of content?
@@ -919,7 +1095,8 @@ async function togglePdfPreview(itemId){
   const dataUrl = await idbGet(item.mediaKey);
   if(!dataUrl){ box.innerHTML = '<div class="small text-danger">Could not load this PDF from storage.</div>'; box.style.display='block'; return; }
   const blobUrl = URL.createObjectURL(dataUrlToBlob(dataUrl));
-  box.innerHTML = `<embed src="${blobUrl}" type="application/pdf" style="width:100%;height:420px;border-radius:8px;border:1px solid var(--border);margin-top:6px">`;
+  const pages = pdfPageCount(dataUrl), bytes = Math.round(dataUrl.length*0.75);
+  box.innerHTML = `<div class="small text-muted mt-1">${pages ? pages+' page'+(pages===1?'':'s')+' · ' : ''}${fmtBytes(bytes)}</div><embed src="${blobUrl}" type="application/pdf" style="width:100%;height:420px;border-radius:8px;border:1px solid var(--border);margin-top:6px">`;
   box.style.display='block';
 }
 
@@ -972,27 +1149,19 @@ function attachItemDragEvents(el, authorId){
 
 // ---- CRUD: delete ----
 function deleteItem(authorId, itemId){
-  if(!confirm('Delete this content? This cannot be undone.')) return;
   const author = getAllAuthors().find(a=>a.id===authorId);
-  const item = author.items.find(i=>i.id===itemId);
-  if(item && item.mediaKey) idbDelete(item.mediaKey);
-  if(customAuthors.some(a=>a.id===authorId)){
-    const custAuthor = customAuthors.find(a=>a.id===authorId);
-    custAuthor.items = custAuthor.items.filter(i=>i.id!==itemId);
-    persistCustomAuthors();
-  } else {
-    deletedItemIds.add(itemId);
-    localStorage.setItem('dotnet_deleted_items', JSON.stringify([...deletedItemIds]));
-  }
+  const item = author && author.items.find(i=>i.id===itemId);
+  if(!item) return;
+  const owner = customOwnerOf(itemId);
+  let idx = -1, removed = null;
+  if(owner){ idx = owner.items.findIndex(i=>i.id===itemId); removed = owner.items[idx]; owner.items.splice(idx,1); persistCustomAuthors(); }
+  else { deletedItemIds.add(itemId); localStorage.setItem('dotnet_deleted_items', JSON.stringify([...deletedItemIds])); }
   renderAuthorPosts();
-}
-function deleteAuthor(authorId){
-  if(!confirm('Delete this whole author card and all its content?')) return;
-  const author = customAuthors.find(a=>a.id===authorId);
-  if(author) author.items.forEach(i=>{ if(i.mediaKey) idbDelete(i.mediaKey); });
-  customAuthors = customAuthors.filter(a=>a.id!==authorId);
-  persistCustomAuthors();
-  renderAuthorPosts();
+  toastUndo('Deleted "'+clipText(item.title)+'"', ()=>{
+    if(owner){ owner.items.splice(Math.min(idx, owner.items.length), 0, removed); persistCustomAuthors(); }
+    else { deletedItemIds.delete(itemId); localStorage.setItem('dotnet_deleted_items', JSON.stringify([...deletedItemIds])); }
+    renderAuthorPosts();
+  }, ()=>{ if(item.mediaKey) idbDelete(item.mediaKey); });
 }
 
 // ---- CRUD: add / edit form ----
@@ -1046,7 +1215,7 @@ function openContentForm(authorId, itemId, category){
         </select>
       </div>
       <div class="col-12 type-field" data-type="Paragraph"><label>Paragraph</label>${rteEditorHTML('naf-para','Write your paragraph here...', isEdit && item.type==='Paragraph'?item.summary||'':'')}</div>
-      <div class="col-12 type-field" data-type="Bullets"><label>Bullet points (one per line)</label><textarea id="naf-bullets" class="form-control" rows="3" placeholder="First point\nSecond point\nThird point">${esc(isEdit && item.type==='Bullets' && item.points?item.points.join('\n'):'')}</textarea></div>
+      <div class="col-12 type-field" data-type="Bullets"><label>Bullet points</label>${rteEditorHTML('naf-bullets','Type your points — press Enter for the next bullet', pointsToListHTML(isEdit && item.type==='Bullets' && item.points ? item.points : []))}</div>
       <div class="col-12 type-field" data-type="Diagram"><label>Roadmap steps (one per line)</label><textarea id="naf-steps" class="form-control" rows="3" placeholder="Setup\nBuild API\nAdd Auth\nDeploy">${esc(isEdit && item.type==='Diagram' && item.steps?item.steps.join('\n'):'')}</textarea></div>
       <div class="col-12 type-field" data-type="Post"><label>Link URL</label><input id="naf-url" class="form-control" placeholder="https://..." value="${escA(isEdit && item.url?item.url:'')}"></div>
       <div class="col-12"><label>Summary <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('naf-summary','One or two lines of context', isEdit && item.type!=='Paragraph'?item.summary||'':'')}</div>`;
@@ -1061,6 +1230,8 @@ function openContentForm(authorId, itemId, category){
         <div class="col-12"><label>Heading / title <span class="text-danger">*</span></label><input id="naf-title" class="form-control" placeholder="e.g. Minimal APIs in .NET 8" value="${escA(draft ? draft.title : (isEdit?item.title:''))}" oninput="checkTopicOverlap()"><div id="naf-topic-hint"></div></div>
         ${isEdit ? typeSwitcherHTML(category,'switchContentFormType') : ''}
         ${typeSpecificHTML}
+        ${isEdit ? `<div class="col-md-6"><label>Move to tab</label><select id="naf-move-section" class="form-select">${docsSections.filter(x=>x.key!=='resources').map(x=>`<option value="${escA(x.key)}" ${x.key===(item.section||'community')?'selected':''}>${esc(x.label)}</option>`).join('')}</select></div>
+        <div class="col-md-6"><label>Move to author</label><select id="naf-move-author" class="form-select">${getAllAuthors().map(x=>`<option value="${escA(x.id)}" ${x.id===authorId?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>` : ''}
         <div class="col-12">
           <button type="button" class="optional-toggle" onclick="toggleOptionalAuthorFields(this)"><i class="bi bi-chevron-right"></i> Author details (optional)</button>
           <div class="optional-fields row g-2 mt-1">
@@ -1089,65 +1260,194 @@ function closeContentForm(){ closeModal(); editingItem=null; pendingMedia=null; 
 // ===================== RICH TEXT EDITOR (shared by Docs Hub + Interview Q&A) =====================
 // A small contenteditable-based editor: bold/italic/underline, bullet/numbered lists,
 // highlight colour, and inline images — no external library needed.
+// Remembers where the caret/selection was in each editor, so toolbar dropdowns/colour pickers (which steal focus) still apply to it.
+const RTE_SEL = new Map();
+document.addEventListener('selectionchange', ()=>{
+  const sel = getSelection(); if(!sel || !sel.rangeCount) return;
+  const r = sel.getRangeAt(0), n = r.commonAncestorContainer, host = n.nodeType===1 ? n : n.parentElement;
+  const ed = host && host.closest ? host.closest('.rte-editor') : null;
+  if(ed && ed.id) RTE_SEL.set(ed.id, r.cloneRange());
+});
+function rteFocus(id){
+  const el = document.getElementById(id); if(!el) return null;
+  const cur = getSelection();
+  const alreadyInside = document.activeElement===el && cur && cur.rangeCount && el.contains(cur.getRangeAt(0).commonAncestorContainer);
+  if(!alreadyInside){          // focus was taken by a dropdown / colour picker / dialog: put the caret back where it was
+    el.focus();
+    const r = RTE_SEL.get(id);
+    if(r && el.contains(r.commonAncestorContainer)){ const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+  }
+  return el;
+}
 function rteToolbarHTML(id){
+  const btn = (call, title, icon) => `<button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="${call}" title="${title}" aria-label="${title}"><i class="bi ${icon}"></i></button>`;
+  const color = (title, icon, init, fn) => `<label class="rte-color-btn" title="${title}" onmousedown="event.preventDefault()"><i class="bi ${icon}"></i><input type="color" value="${init}" aria-label="${title}" onchange="${fn}('${id}', this.value)" onclick="rteFocus('${id}')"></label>`;
+  const sep = '<span class="rte-sep"></span>';
   return `<div class="rte-toolbar">
-    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','bold')" title="Bold"><i class="bi bi-type-bold"></i></button>
-    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','italic')" title="Italic"><i class="bi bi-type-italic"></i></button>
-    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','underline')" title="Underline"><i class="bi bi-type-underline"></i></button>
-    <span class="rte-sep"></span>
-    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','insertUnorderedList')" title="Bullet points"><i class="bi bi-list-ul"></i></button>
-    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','insertOrderedList')" title="Numbered list"><i class="bi bi-list-ol"></i></button>
-    <span class="rte-sep"></span>
-    <label class="rte-color-btn" title="Highlight colour" onmousedown="event.preventDefault()"><i class="bi bi-brush"></i><input type="color" value="#fff59d" onchange="rteHighlight('${id}', this.value)" onclick="document.getElementById('${id}').focus()"></label>
-    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="document.getElementById('${id}-img').click()" title="Insert image"><i class="bi bi-image"></i></button>
-    <input type="file" id="${id}-img" accept="image/*" style="display:none" onchange="rteInsertImage('${id}', event)">
-    <span class="rte-sep"></span>
-    <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteExec('${id}','removeFormat')" title="Clear formatting"><i class="bi bi-eraser"></i></button>
+    ${btn(`rteExec('${id}','undo')`,'Undo','bi-arrow-counterclockwise')}${btn(`rteExec('${id}','redo')`,'Redo','bi-arrow-clockwise')}
+    ${sep}
+    <select class="rte-select" tabindex="-1" title="Text style" aria-label="Text style" onchange="rteBlock('${id}',this.value);this.selectedIndex=0"><option value="">Style</option><option value="p">Normal</option><option value="h2">Heading</option><option value="h3">Subheading</option><option value="blockquote">Quote</option><option value="pre">Code block</option></select>
+    <select class="rte-select" tabindex="-1" title="Text size" aria-label="Text size" onchange="rteSize('${id}',this.value);this.selectedIndex=0"><option value="">Size</option><option value="2">Small</option><option value="3">Normal</option><option value="5">Large</option><option value="6">Huge</option></select>
+    ${sep}
+    ${btn(`rteExec('${id}','bold')`,'Bold (Ctrl+B)','bi-type-bold')}${btn(`rteExec('${id}','italic')`,'Italic (Ctrl+I)','bi-type-italic')}${btn(`rteExec('${id}','underline')`,'Underline (Ctrl+U)','bi-type-underline')}${btn(`rteExec('${id}','strikeThrough')`,'Strikethrough','bi-type-strikethrough')}
+    ${color('Text colour','bi-palette','#d32f2f','rteTextColor')}${color('Highlight colour','bi-brush','#fff59d','rteHighlight')}
+    ${sep}
+    ${btn(`rteExec('${id}','insertUnorderedList')`,'Bullet points','bi-list-ul')}${btn(`rteExec('${id}','insertOrderedList')`,'Numbered list','bi-list-ol')}
+    ${btn(`rteAlign('${id}','justifyLeft')`,'Align left','bi-text-left')}${btn(`rteAlign('${id}','justifyCenter')`,'Align centre','bi-text-center')}${btn(`rteAlign('${id}','justifyRight')`,'Align right','bi-text-right')}
+    ${sep}
+    ${btn(`rteLink('${id}')`,'Add link (Ctrl+K)','bi-link-45deg')}
+    ${btn(`document.getElementById('${id}-img').click()`,'Insert image','bi-image')}
+    <input type="file" id="${id}-img" accept="image/*" multiple style="display:none" onchange="rteInsertImage('${id}', event)">
+    ${btn(`rteExec('${id}','insertHorizontalRule')`,'Divider line','bi-dash-lg')}
+    ${btn(`rteExec('${id}','removeFormat')`,'Clear formatting','bi-eraser')}
   </div>`;
 }
 function rteEditorHTML(id, placeholder, existingHTML){
   // existing content may be rich text from the editor OR plain text (older notes, built-in answers such as "List<T>")
   let body = '';
   if(existingHTML) body = isRich(existingHTML) ? sanitizeHTML(existingHTML) : esc(existingHTML).replace(/\n/g,'<br>');
-  return `${rteToolbarHTML(id)}<div id="${escA(id)}" class="rte-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="${escA(placeholder)}" data-placeholder="${escA(placeholder)}">${body}</div>`;
+  return `${rteToolbarHTML(id)}<div id="${escA(id)}" class="rte-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="${escA(placeholder)}" data-placeholder="${escA(placeholder)}">${body}</div><div class="rte-hint">Paste text, images or links · drop images in · click an image to resize</div>`;
 }
 function rteExec(id, cmd){
-  const el = document.getElementById(id); if(!el) return;
-  el.focus();
+  const el = rteFocus(id); if(!el) return;
+  document.execCommand('styleWithCSS', false, false);
   document.execCommand(cmd, false, null);
 }
 function rteHighlight(id, color){
-  const el = document.getElementById(id); if(!el) return;
-  el.focus();
+  if(!rteFocus(id)) return;
   document.execCommand('styleWithCSS', false, true);
   if(!document.execCommand('hiliteColor', false, color)) document.execCommand('backColor', false, color);
+  document.execCommand('styleWithCSS', false, false);
+}
+function rteTextColor(id, color){
+  if(!rteFocus(id)) return;
+  document.execCommand('styleWithCSS', false, true);
+  document.execCommand('foreColor', false, color);
+  document.execCommand('styleWithCSS', false, false);
+}
+function rteAlign(id, cmd){
+  if(!rteFocus(id)) return;
+  document.execCommand('styleWithCSS', false, true);
+  document.execCommand(cmd, false, null);
+  document.execCommand('styleWithCSS', false, false);
+}
+function rteBlock(id, tag){
+  if(!tag || !rteFocus(id)) return;
+  document.execCommand('formatBlock', false, '<'+tag+'>');
+}
+function rteSize(id, size){
+  if(!size || !rteFocus(id)) return;
+  document.execCommand('styleWithCSS', false, false);
+  document.execCommand('fontSize', false, size);
+}
+function rteLink(id){
+  if(!rteFocus(id)) return;
+  const saved = RTE_SEL.get(id), hasText = !!(saved && saved.toString());
+  const raw = prompt('Link address (e.g. https://example.com):', 'https://');
+  if(!raw) return;
+  const url = normUrl(raw);
+  if(!url){ alert('That does not look like a web link.'); return; }
+  rteFocus(id);
+  if(hasText) document.execCommand('createLink', false, url);
+  else document.execCommand('insertHTML', false, `<a href="${escA(url)}">${esc(url)}</a>`);
+}
+// Insert one or more image files at the caret (shrunk so notes stay small enough to store and sync).
+async function rteInsertImageFiles(id, files){
+  const el = rteFocus(id); if(!el) return;
+  for(const file of files){
+    if(!/^image\//.test(file.type)){ continue; }
+    try{
+      const dataUrl = await shrinkImage(file, 1000, 0.8);
+      rteFocus(id);
+      document.execCommand('insertImage', false, dataUrl);
+    }catch(err){ alert('Could not insert "'+(file.name||'image')+'": '+(err.message||err)); }
+  }
 }
 async function rteInsertImage(id, e){
-  const file = e.target.files[0]; e.target.value = ''; if(!file) return;
-  if(!/^image\//.test(file.type)){ alert('Please choose an image file.'); return; }
-  try{
-    const dataUrl = await shrinkImage(file, 1000, 0.8);     // keeps notes small enough to store and sync
-    const el = document.getElementById(id); if(!el) return;
-    el.focus();
-    document.execCommand('insertImage', false, dataUrl);
-  }catch(err){ alert('Could not insert that image: '+(err.message||err)); }
+  const files = [...e.target.files]; e.target.value = ''; if(!files.length) return;
+  if(!files.some(f=>/^image\//.test(f.type))){ alert('Please choose an image file.'); return; }
+  await rteInsertImageFiles(id, files);
 }
 // Reads an editor's content back out — empty editors (just a stray <br>) come back as ''.
 function rteGetHTML(id){
   const el = document.getElementById(id);
   if(!el) return '';
-  const html = sanitizeHTML(el.innerHTML).trim();
+  // the browser sometimes stamps the editor's own default size onto text it re-wraps: that is not a choice the user made
+  const html = sanitizeHTML(el.innerHTML).replace(/font-size:\s*0\.95rem;?\s*/gi,'').replace(/\sstyle=""/g,'').trim();
   return (html==='<br>' || html==='' || stripTags(html).trim()==='' && !/<img/i.test(html)) ? '' : html;
 }
+// Bullet-point fields: an editor that holds a list. Stored as an array of strings (plain text, or rich HTML when formatted).
+function pointsToListHTML(points){
+  const items = (points||[]).map(p=>'<li>'+(isRich(p) ? sanitizeHTML(p) : esc(p))+'</li>').join('');
+  return '<ul>'+(items || '<li><br></li>')+'</ul>';
+}
+function rteGetPoints(id){
+  const html = rteGetHTML(id); if(!html) return [];
+  const d = document.createElement('div'); d.innerHTML = html;
+  let items = [...d.querySelectorAll('li')].filter(li=>!li.parentElement.closest('li')).map(li=>li.innerHTML.replace(/(<br\s*\/?>\s*)+$/i,'').trim());
+  if(!items.length){   // no list was used: one point per line / paragraph
+    items = html.replace(/<(div|p)[^>]*>/gi,'\n').replace(/<\/(div|p)>/gi,'').replace(/<br\s*\/?>/gi,'\n').split('\n').map(x=>x.trim());
+  }
+  return items
+    .map(x=> /<[a-z]/i.test(x) ? x : (()=>{ const t=document.createElement('div'); t.innerHTML=x; return (t.textContent||'').trim(); })())
+    .filter(x=>x && (stripTags(x).trim()!=='' || /<img/i.test(x)));
+}
 
+// Pasted web/Word/Docs content brings its own black/white colours, which would be unreadable in dark mode: drop only those.
+function rteNormalizePasted(root){
+  const rgb = v => { const m = /rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)(?:[\s,\/]+([\d.]+))?/i.exec(v||''); if(m) return [+m[1],+m[2],+m[3], m[4]===undefined?1:+m[4]];
+    const h = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec((v||'').trim()); if(!h) return null; let x = h[1]; if(x.length===3) x = x.split('').map(c=>c+c).join(''); return [parseInt(x.slice(0,2),16),parseInt(x.slice(2,4),16),parseInt(x.slice(4,6),16),1]; };
+  root.querySelectorAll('[style]').forEach(el=>{
+    const c = rgb(el.style.color), bg = rgb(el.style.backgroundColor);
+    if(c && (Math.max(c[0],c[1],c[2])<=70 || Math.min(c[0],c[1],c[2])>=215)) el.style.removeProperty('color');
+    if(bg && (bg[3]===0 || Math.min(bg[0],bg[1],bg[2])>=235)) el.style.removeProperty('background-color');
+    if(!el.getAttribute('style')) el.removeAttribute('style');
+  });
+  return root;
+}
 document.addEventListener('paste', async e=>{
   const ed = e.target && e.target.closest ? e.target.closest('.rte-editor') : null;
   if(!ed) return;
   e.preventDefault();
   const cd = e.clipboardData || window.clipboardData;
-  const img = [...(cd.files||[])].find(f=>/^image\//.test(f.type));
-  if(img){ try{ document.execCommand('insertImage', false, await shrinkImage(img, 1000, 0.8)); }catch(err){ alert('Could not paste that image.'); } return; }
+  const imgs = [...(cd.files||[])].filter(f=>/^image\//.test(f.type));
+  const html = cd.getData('text/html');
+  let clean = '';
+  if(html){
+    const d = document.createElement('div'); d.innerHTML = sanitizeHTML(html);
+    rteNormalizePasted(d); clean = d.innerHTML.trim();
+  }
+  const hasText = clean && stripTags(clean).trim() !== '';
+  if(hasText && clean.length < 2*1024*1024){ document.execCommand('insertHTML', false, clean); return; }   // keeps bold, colours, lists, links, tables, inline images…
+  if(imgs.length){ await rteInsertImageFiles(ed.id, imgs); return; }                                        // a screenshot / copied image
+  if(clean && /<img/i.test(clean) && clean.length < 2*1024*1024){ document.execCommand('insertHTML', false, clean); return; }
   document.execCommand('insertText', false, cd.getData('text/plain'));
+});
+// Dropping image files onto a text box inserts them where they land.
+async function rteDropFiles(ed, e){
+  const imgs = [...e.dataTransfer.files].filter(f=>/^image\//.test(f.type));
+  if(!imgs.length){ if(window.UI) UI.toast('Only images can be dropped into a text box — use the upload box for PDFs', 'bi-info-circle-fill'); return; }
+  ed.focus();
+  try{
+    const r = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
+    if(r && ed.contains(r.startContainer)){ const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); RTE_SEL.set(ed.id, r.cloneRange()); }
+  }catch(_){}
+  await rteInsertImageFiles(ed.id, imgs);
+}
+// Click an image inside a text box to cycle its width: full → 75% → 50% → 25%.
+document.addEventListener('click', e=>{
+  const img = e.target && e.target.tagName==='IMG' && e.target.closest ? (e.target.closest('.rte-editor') ? e.target : null) : null;
+  if(!img) return;
+  const sizes = ['100%','75%','50%','25%'], cur = img.getAttribute('width') || '100%';
+  const next = sizes[(sizes.indexOf(cur)+1) % sizes.length];
+  img.setAttribute('width', next); img.removeAttribute('height');
+  if(window.UI) UI.toast('Image width '+next, 'bi-aspect-ratio');
+});
+document.addEventListener('keydown', e=>{
+  if((e.ctrlKey||e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase()==='k'){
+    const ed = e.target && e.target.closest ? e.target.closest('.rte-editor') : null;
+    if(ed){ e.preventDefault(); rteLink(ed.id); }
+  }
 });
 
 // Lightweight, non-blocking duplicate/overlap check: warns if a new title looks like it
@@ -1237,7 +1537,7 @@ async function submitContentForm(category){
   itemData.summary = rteGetHTML('naf-summary');
   if(type==='Paragraph') itemData.summary = rteGetHTML('naf-para');
   if(type==='PDF') itemData.summary = rteGetHTML('naf-para');
-  if(type==='Bullets') itemData.points = document.getElementById('naf-bullets').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(type==='Bullets') itemData.points = rteGetPoints('naf-bullets');
   if(type==='Diagram') itemData.steps = document.getElementById('naf-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(type==='Post' || type==='Link' || type==='Video') itemData.url = normUrl(document.getElementById('naf-url').value);
 
@@ -1250,51 +1550,48 @@ async function submitContentForm(category){
 
   if(isMediaType && pendingMedia){
     const mediaKey = 'media-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
-    await idbPut(mediaKey, pendingMedia.dataUrl);
+    const busy = busyStart();
+    try{ await idbPut(mediaKey, pendingMedia.dataUrl, busy.progress); } finally { busy.done(); }
     itemData.mediaKey = mediaKey;
     itemData.mediaName = pendingMedia.name;
   } else if(keepOldMedia){
     itemData.mediaKey = old.mediaKey; itemData.mediaName = old.mediaName;
   }
 
+  let movedNote = '';
   if(editingItem){
     if(old.mediaKey && old.mediaKey!==itemData.mediaKey) idbDelete(old.mediaKey);   // replaced, or type changed away from PDF/Image
-    const custom = customAuthors.find(a=>a.id===authorId);
-    if(custom){
+    const secEl = document.getElementById('naf-move-section'), autEl = document.getElementById('naf-move-author');
+    itemData.section = (secEl && secEl.value) || old.section || 'community';
+    const targetId = (autEl && autEl.value) || authorId;
+    const moveAuthor = targetId!==authorId && getAllAuthors().some(a=>a.id===targetId);
+    const owner = customOwnerOf(old.id);
+    if(moveAuthor){
+      // move to another author card: take it out of where it is stored, put it into the target
+      let moved;
+      if(owner){ const i = owner.items.findIndex(x=>x.id===old.id); moved = dropStale({...owner.items[i], ...itemData, id: old.id}, itemData); owner.items.splice(i,1); }
+      else { deletedItemIds.add(old.id); localStorage.setItem('dotnet_deleted_items', JSON.stringify([...deletedItemIds])); moved = dropStale({...old, ...itemData, id: old.id+'-m'+Date.now()}, itemData); }
+      insertDocsItem(targetId, moved);
+      const t = getAllAuthors().find(a=>a.id===targetId);
+      movedNote = 'Moved to ' + (t ? t.name : 'another author');
+    } else if(owner){
       // edit the REAL stored author - getAllAuthors() hands back copies, so changing those was never saved
-      const i = custom.items.findIndex(x=>x.id===old.id);
-      if(i>-1){
-        const merged = {...custom.items[i], ...itemData, id: old.id};
-        ['points','steps','url','mediaKey','mediaName'].forEach(k=>{ if(!(k in itemData)) delete merged[k]; });   // drop fields of the previous type
-        custom.items[i] = merged;
-      }
+      const i = owner.items.findIndex(x=>x.id===old.id);
+      if(i>-1) owner.items[i] = dropStale({...owner.items[i], ...itemData, id: old.id}, itemData);
       persistCustomAuthors();
     } else {
-      ['points','steps','url','mediaKey','mediaName'].forEach(k=>{ if(!(k in itemData)) itemData[k] = null; });
+      STALE_KEYS.forEach(k=>{ if(!(k in itemData)) itemData[k] = null; });
       itemOverrides[old.id] = itemData; // built-in item: store only the changed fields as an override
       lsSave('dotnet_item_overrides', itemOverrides);
     }
+    if(!movedNote && itemData.section !== (old.section||'community')){ const sx = docsSections.find(x=>x.key===itemData.section); movedNote = 'Moved to ' + (sx ? sx.label : 'another tab'); }
   } else {
     const newItem = {id: authorId+'-'+Date.now(), ...itemData};
-    const custom = customAuthors.find(a=>a.id===authorId);
-    const twin = customAuthors.find(a=>a.id===authorId+'-mine');
-    if(custom){
-      custom.items.unshift(newItem);               // real stored author (the old code pushed onto a copy, so item #2+ vanished)
-      persistCustomAuthors();
-    } else if(twin){
-      twin.items.unshift(newItem);                 // built-in author already has a custom twin: reuse it instead of making another card
-      persistCustomAuthors();
-    } else if(author){
-      // author is a built-in card: keep new items under a custom twin so they persist
-      customAuthors.push({id: authorId+'-mine', name: author.name, role: author.role, avatar: author.avatar, linkedin: author.linkedin || '#', items:[newItem]});
-      persistCustomAuthors();
-    } else {
-      customAuthors.push({id:authorId, name, role, avatar: initialsOf(name), linkedin: itemData.url || '#', items:[newItem]});
-      persistCustomAuthors();
-    }
+    insertDocsItem(authorId, newItem, {name, role, linkedin: itemData.url});
   }
   const wasEdit = !!editingItem;
   closeContentForm();
+  if(movedNote && window.UI) UI.toast(movedNote);
   if(!wasEdit && activeDocsSection !== (itemData.section||'community')){
     setDocsSubtab(itemData.section||'community');
   } else {
@@ -2750,6 +3047,7 @@ let advDeleted = new Set(lsJSON('dotnet_adv_deleted', '[]'));
 let advCustom = lsJSON('dotnet_adv_custom', '[]');
 let editingAdvItem = null;
 let pendingAdvMedia = null;
+let advDraft = null; // keeps the title when switching type while editing
 
 function getAllAdvItems(){
   const seed = ADV_TOPICS.map((t,i)=>({id:'adv-seed-'+i, type:'Bullets', badgeColor:t.color, title:t.title, summary:t.desc, points:t.points}));
@@ -2816,12 +3114,22 @@ function attachAdvDragEvents(el){
 }
 
 function deleteAdvItem(id){
-  if(!confirm('Delete this topic?')) return;
   const item = getAllAdvItems().find(i=>i.id===id);
-  if(item && item.mediaKey) idbDelete(item.mediaKey);
-  if(id.startsWith('adv-seed-')){ advDeleted.add(id); localStorage.setItem('dotnet_adv_deleted', JSON.stringify([...advDeleted])); }
-  else { advCustom = advCustom.filter(i=>i.id!==id); localStorage.setItem('dotnet_adv_custom', JSON.stringify(advCustom)); }
+  if(!item) return;
+  const isSeed = id.startsWith('adv-seed-');
+  let idx = -1, removed = null;
+  if(isSeed){ advDeleted.add(id); localStorage.setItem('dotnet_adv_deleted', JSON.stringify([...advDeleted])); }
+  else {
+    idx = advCustom.findIndex(i=>i.id===id); if(idx<0) return;
+    removed = advCustom[idx]; advCustom = advCustom.filter(i=>i.id!==id);
+    localStorage.setItem('dotnet_adv_custom', JSON.stringify(advCustom));
+  }
   renderAdvanced();
+  toastUndo('Deleted "'+clipText(item.title)+'"', ()=>{
+    if(isSeed){ advDeleted.delete(id); localStorage.setItem('dotnet_adv_deleted', JSON.stringify([...advDeleted])); }
+    else { advCustom.splice(Math.min(idx, advCustom.length), 0, removed); localStorage.setItem('dotnet_adv_custom', JSON.stringify(advCustom)); }
+    renderAdvanced();
+  }, ()=>{ if(item.mediaKey) idbDelete(item.mediaKey); });
 }
 function editAdvItem(id){ openAdvForm(id); }
 
@@ -2834,7 +3142,7 @@ function advCategoryForType(type){
 
 // ---- Step 1: ask what kind of advanced topic to add (mirrors Docs Hub) ----
 function openAdvChooser(){
-  editingAdvItem = null; pendingAdvMedia = null;
+  editingAdvItem = null; pendingAdvMedia = null; advDraft = null;
   const slot = document.getElementById('adv-form-slot');
   slot.innerHTML = `
     <div class="author-form">
@@ -2855,31 +3163,32 @@ function openAdvForm(itemId, category){
   const isEdit = !!itemId;
   editingAdvItem = itemId; pendingAdvMedia = null;
   const item = isEdit ? getAllAdvItems().find(i=>i.id===itemId) : null;
-  if(isEdit) category = advCategoryForType(item.type);
+  if(isEdit && !category) category = advCategoryForType(item.type);
   if(!isEdit && !category){ openAdvChooser(); return; }
+  const draft = advDraft; advDraft = null;
 
   let typeSpecificHTML = '';
   if(category==='PDF'){
     typeSpecificHTML = `
-      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF or drop it here<input type="file" id="adv-pdf-input" accept="application/pdf" style="display:none" onclick="event.stopPropagation()" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
-      <div class="col-12"><label>Topic / notes <span class="text-muted fw-normal">(optional, collapsible)</span></label><textarea id="adv-para" class="form-control" rows="2">${esc(isEdit && item.type==='PDF'?item.summary||'':'')}</textarea></div>`;
+      <div class="col-12"><label>PDF file ${isEdit && item.mediaKey && item.type==='PDF' ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-pdf-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose a PDF or drop it here<input type="file" id="adv-pdf-input" accept="application/pdf" style="display:none" onclick="event.stopPropagation()" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name-pdf">${esc(isEdit && item.type==='PDF'?(item.mediaName||'Existing PDF kept'):'')}</div></div>
+      <div class="col-12"><label>Topic / notes <span class="text-muted fw-normal">(optional, collapsible)</span></label>${rteEditorHTML('adv-para','Write your notes here…', isEdit && item.type==='PDF'?item.summary||'':'')}</div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image or drop it here<input type="file" id="adv-image-input" accept="image/*" style="display:none" onclick="event.stopPropagation()" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
-      <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label><textarea id="adv-summary" class="form-control" rows="2">${esc(isEdit && item.type==='Image'?item.summary||'':'')}</textarea></div>`;
+      <div class="col-12"><label>Image file ${isEdit && item.mediaKey && item.type==='Image' ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image or drop it here<input type="file" id="adv-image-input" accept="image/*" style="display:none" onclick="event.stopPropagation()" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
+      <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('adv-summary','Short description…', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
       <div class="col-12"><label>Link URL <span class="text-danger">*required</span> <span class="text-muted fw-normal">— video links play right here</span></label><input id="adv-url" class="form-control" value="${escA(isEdit && item.url?item.url:'')}" placeholder="https://..."></div>
-      <div class="col-12"><label>Short summary <span class="text-muted fw-normal">(optional)</span></label><textarea id="adv-summary" class="form-control" rows="2">${esc(isEdit?item.summary||'':'')}</textarea></div>`;
+      <div class="col-12"><label>Short summary <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('adv-summary','Short description…', isEdit?item.summary||'':'')}</div>`;
   } else {
     typeSpecificHTML = `
       <div class="col-md-5"><label>Content type</label><select id="adv-type" class="form-select" onchange="renderAdvTypeFields()">
         <option value="Bullets">Bullets</option><option value="Paragraph">Paragraph</option><option value="Diagram">Mini Roadmap Diagram</option>
       </select></div>
-      <div class="col-12 adv-type-field" data-type="Paragraph"><label>Paragraph text</label><textarea id="adv-para" class="form-control" rows="3">${esc(isEdit && item.type==='Paragraph'?item.summary||'':'')}</textarea></div>
-      <div class="col-12 adv-type-field" data-type="Bullets"><label>Bullet points (one per line)</label><textarea id="adv-bullets" class="form-control" rows="3">${esc(isEdit && item.points?item.points.join('\n'):'')}</textarea></div>
+      <div class="col-12 adv-type-field" data-type="Paragraph"><label>Paragraph text</label>${rteEditorHTML('adv-para','Write your notes here…', isEdit && item.type==='Paragraph'?item.summary||'':'')}</div>
+      <div class="col-12 adv-type-field" data-type="Bullets"><label>Bullet points</label>${rteEditorHTML('adv-bullets','Type your points — press Enter for the next bullet', pointsToListHTML(isEdit && item.points ? item.points : []))}</div>
       <div class="col-12 adv-type-field" data-type="Diagram"><label>Steps (one per line)</label><textarea id="adv-steps" class="form-control" rows="3">${esc(isEdit && item.steps?item.steps.join('\n'):'')}</textarea></div>
-      <div class="col-12"><label>Short summary <span class="text-muted fw-normal">(optional)</span></label><textarea id="adv-summary" class="form-control" rows="2">${esc(isEdit && item.type!=='Paragraph'?item.summary||'':'')}</textarea></div>`;
+      <div class="col-12"><label>Short summary <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('adv-summary','Short description…', isEdit && item.type!=='Paragraph'?item.summary||'':'')}</div>`;
   }
 
   const catMeta = {PDF:{icon:'bi-file-earmark-pdf-fill',label:'PDF'},Image:{icon:'bi-image',label:'Image'},Link:{icon:'bi-link-45deg',label:'Link'},Content:{icon:'bi-text-paragraph',label:'Content'}}[category];
@@ -2888,7 +3197,8 @@ function openAdvForm(itemId, category){
     <div class="author-form">
       <h6 class="form-title"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit topic':'Add '+catMeta.label+' topic'}</h6>
       <div class="row g-2">
-        <div class="col-12"><label>Topic title <span class="text-danger">*required</span></label><input id="adv-title" class="form-control" value="${escA(isEdit?item.title:'')}" placeholder="e.g. Rate Limiting Strategies"></div>
+        <div class="col-12"><label>Topic title <span class="text-danger">*required</span></label><input id="adv-title" class="form-control" value="${escA(draft ? draft.title : (isEdit?item.title:''))}" placeholder="e.g. Rate Limiting Strategies"></div>
+        ${isEdit ? typeSwitcherHTML(category,'switchAdvFormType') : ''}
         ${typeSpecificHTML}
       </div>
       <div class="d-flex gap-2 mt-3 flex-wrap">
@@ -2897,10 +3207,16 @@ function openAdvForm(itemId, category){
         ${!isEdit ? `<button class="btn btn-link btn-sm text-muted" onclick="openAdvChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
       </div>
     </div>`;
-  if(category==='Content'){ document.getElementById('adv-type').value = isEdit?item.type:'Bullets'; renderAdvTypeFields(); }
+  if(category==='Content'){ document.getElementById('adv-type').value = (isEdit && ['Bullets','Paragraph','Diagram'].includes(item.type)) ? item.type : 'Bullets'; renderAdvTypeFields(); }
   slot.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
-function closeAdvForm(){ document.getElementById('adv-form-slot').innerHTML=''; editingAdvItem=null; pendingAdvMedia=null; }
+function closeAdvForm(){ document.getElementById('adv-form-slot').innerHTML=''; editingAdvItem=null; pendingAdvMedia=null; advDraft=null; }
+function switchAdvFormType(cat){
+  if(!editingAdvItem) return;
+  const t = document.getElementById('adv-title');
+  advDraft = {title: t ? t.value : ''};
+  openAdvForm(editingAdvItem, cat);
+}
 function renderAdvTypeFields(){
   const type = document.getElementById('adv-type').value;
   document.querySelectorAll('.adv-type-field').forEach(f=>f.classList.toggle('active', f.dataset.type===type));
@@ -2925,31 +3241,35 @@ async function submitAdvForm(category){
 
   let data = {type, title, badgeColor: TYPE_COLOR[type]};
   const summaryEl = document.getElementById('adv-summary');
-  data.summary = summaryEl ? summaryEl.value.trim() : '';
-  if(type==='Paragraph') data.summary = document.getElementById('adv-para').value.trim();
-  if(type==='PDF'){ const p=document.getElementById('adv-para'); if(p) data.summary = p.value.trim(); }
-  if(type==='Bullets') data.points = document.getElementById('adv-bullets').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  data.summary = summaryEl ? rteGetHTML('adv-summary') : '';
+  if(type==='Paragraph') data.summary = rteGetHTML('adv-para');
+  if(type==='PDF'){ const p=document.getElementById('adv-para'); if(p) data.summary = rteGetHTML('adv-para'); }
+  if(type==='Bullets') data.points = rteGetPoints('adv-bullets');
   if(type==='Diagram') data.steps = document.getElementById('adv-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(type==='Link' || type==='Video') data.url = normUrl(document.getElementById('adv-url').value);
-  if((type==='Image'||type==='PDF') && pendingAdvMedia){
-    const key = 'media-adv-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
-    await idbPut(key, pendingAdvMedia.dataUrl);
-    data.mediaKey = key; data.mediaName = pendingAdvMedia.name;
-  }
-  if(!editingAdvItem && type==='PDF' && !pendingAdvMedia){ alert('Please choose a PDF file to upload.'); return; }
-  if(!editingAdvItem && type==='Image' && !pendingAdvMedia){ alert('Please choose an image file to upload.'); return; }
+  const old = editingAdvItem ? getAllAdvItems().find(i=>i.id===editingAdvItem) : null;
+  if(editingAdvItem && !old){ alert('That topic no longer exists.'); closeAdvForm(); renderAdvanced(); return; }
+  const isMediaType = (type==='Image'||type==='PDF');
+  const keepOld = !!(old && isMediaType && !pendingAdvMedia && old.mediaKey && old.type===type);
+  if(isMediaType && !pendingAdvMedia && !keepOld){ alert(type==='PDF' ? 'Please choose a PDF file to upload.' : 'Please choose an image file to upload.'); return; }
   if((type==='Link'||type==='Video') && !data.url){ alert('Please enter a valid web link (https://…).'); return; }
+  if(isMediaType && pendingAdvMedia){
+    const key = 'media-adv-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+    const busy = busyStart();
+    try{ await idbPut(key, pendingAdvMedia.dataUrl, busy.progress); } finally { busy.done(); }
+    data.mediaKey = key; data.mediaName = pendingAdvMedia.name;
+  } else if(keepOld){ data.mediaKey = old.mediaKey; data.mediaName = old.mediaName; }
 
   if(editingAdvItem){
-    const old = getAllAdvItems().find(i=>i.id===editingAdvItem);
-    if((type==='Image'||type==='PDF') && !pendingAdvMedia && old.mediaKey){ data.mediaKey=old.mediaKey; data.mediaName=old.mediaName; }
+    if(old.mediaKey && old.mediaKey!==data.mediaKey) idbDelete(old.mediaKey);   // replaced, or switched away from PDF/Image
     if(editingAdvItem.startsWith('adv-seed-')){
+      STALE_KEYS.forEach(k=>{ if(!(k in data)) data[k] = null; });   // clear the built-in topic's old bullets/link/etc.
       advOverrides[editingAdvItem] = data;
       localStorage.setItem('dotnet_adv_overrides', JSON.stringify(advOverrides));
     } else {
       const idx = advCustom.findIndex(i=>i.id===editingAdvItem);
       if(idx<0){ alert('That topic no longer exists.'); closeAdvForm(); renderAdvanced(); return; }
-      advCustom[idx] = {...old, ...data, id:old.id};
+      advCustom[idx] = dropStale({...old, ...data, id:old.id}, data);
       localStorage.setItem('dotnet_adv_custom', JSON.stringify(advCustom));
     }
   } else {
@@ -3213,12 +3533,22 @@ function deleteQASection(key){
 }
 
 function deleteQAItem(id){
-  if(!confirm('Delete this question?')) return;
   const item = getAllQAItems().find(i=>i.id===id);
-  if(item && item.mediaKey) idbDelete(item.mediaKey);
-  if(id.startsWith('qa-seed-')){ qaDeleted.add(id); localStorage.setItem('dotnet_qa_deleted', JSON.stringify([...qaDeleted])); }
-  else { customQA = customQA.filter(i=>i.id!==id); localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA)); }
+  if(!item) return;
+  const isSeed = id.startsWith('qa-seed-');
+  let idx = -1, removed = null;
+  if(isSeed){ qaDeleted.add(id); localStorage.setItem('dotnet_qa_deleted', JSON.stringify([...qaDeleted])); }
+  else {
+    idx = customQA.findIndex(i=>i.id===id); if(idx<0) return;
+    removed = customQA[idx]; customQA = customQA.filter(i=>i.id!==id);
+    localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
+  }
   renderInterview();
+  toastUndo('Deleted "'+clipText(item.q)+'"', ()=>{
+    if(isSeed){ qaDeleted.delete(id); localStorage.setItem('dotnet_qa_deleted', JSON.stringify([...qaDeleted])); }
+    else { customQA.splice(Math.min(idx, customQA.length), 0, removed); localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA)); }
+    renderInterview();
+  }, ()=>{ if(item.mediaKey) idbDelete(item.mediaKey); });
 }
 function editQAItem(id){ openQAForm(id); }
 
@@ -3279,6 +3609,10 @@ function deleteQACategory(catName){
   renderInterview();
 }
 
+function qaSectionOf(it){
+  if(it.section) return it.section;
+  return String(it.id).startsWith('qa-seed-') ? 'builtin' : 'custom';
+}
 function qaCategoryForType(type){
   if(!type) return 'Content';
   if(type==='PDF') return 'PDF';
@@ -3380,6 +3714,7 @@ function openQAForm(itemId, category){
         <div class="col-md-6"><label>Question <span class="text-danger">*</span></label><input id="qa-q" class="form-control" placeholder="e.g. What is ref vs out?" value="${escA(draft ? draft.q : (isEdit?item.q:''))}"></div>
         ${isEdit ? typeSwitcherHTML(category,'switchQAFormType') : ''}
         ${typeSpecificHTML}
+        ${isEdit ? `<div class="col-12"><label>Move to tab</label><select id="qa-move-section" class="form-select">${qaSections.map(x=>`<option value="${escA(x.key)}" ${x.key===qaSectionOf(item)?'selected':''}>${esc(x.label)}</option>`).join('')}</select></div>` : ''}
       </div>
       <div class="d-flex gap-2 mt-2 flex-wrap">
         <button class="btn btn-primary btn-sm" onclick="submitQAForm('${category}')"><i class="bi bi-check2 me-1"></i>${isEdit?'Save':'Add'}</button>
@@ -3422,7 +3757,8 @@ async function submitQAForm(category){
       if(!pendingQAMedia && !keepOld){ alert(type==='PDF' ? 'Please choose a PDF file to upload.' : 'Please choose an image file to upload.'); return; }
       if(pendingQAMedia){
         const key = 'media-qa-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
-        await idbPut(key, pendingQAMedia.dataUrl);
+        const busy = busyStart();
+        try{ await idbPut(key, pendingQAMedia.dataUrl, busy.progress); } finally { busy.done(); }
         data.mediaKey = key; data.mediaName = pendingQAMedia.name;
       } else { data.mediaKey = old.mediaKey; data.mediaName = old.mediaName; }
     }
@@ -3433,7 +3769,13 @@ async function submitQAForm(category){
   }
 
   const wasEdit = !!editingQAItem;
+  let movedNote = '';
   if(wasEdit){
+    const secEl = document.getElementById('qa-move-section');
+    if(secEl && secEl.value){
+      data.section = secEl.value;
+      if(data.section !== qaSectionOf(old)){ const sx = qaSections.find(x=>x.key===data.section); movedNote = 'Moved to ' + (sx ? sx.label : 'another tab'); }
+    }
     if(old.mediaKey && old.mediaKey!==data.mediaKey) idbDelete(old.mediaKey);   // replaced, or switched away from PDF/Image
     if(editingQAItem.startsWith('qa-seed-')){
       qaOverrides[editingQAItem] = data;
@@ -3457,6 +3799,7 @@ async function submitQAForm(category){
   } else {
     renderInterview();
   }
+  if(movedNote && window.UI) UI.toast(movedNote);
 }
 
 function toggleQA(id, itemId, el){
@@ -3616,42 +3959,161 @@ const backupKeys = () => Object.keys(localStorage).filter(k=>BACKUP_KEY_RE.test(
 function exportBackup(){
   const data = {};
   backupKeys().forEach(k=>{ data[k] = localStorage.getItem(k); });
-  const payload = {app:'dotnet-tracker', version:2, exportedAt: new Date().toISOString(), note:'Images and PDFs are stored in your account and are not part of this file.', data};
-  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'dotnet-tracker-backup-' + ymd(new Date()) + '.json';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+  const payload = {app:'dotnet-tracker', version:2, exportedAt: new Date().toISOString(), note:'Images and PDFs are not part of this file. Use "Backup + files (.zip)" to include them.', data};
+  downloadBlob(new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}), 'dotnet-tracker-backup-' + ymd(new Date()) + '.json');
+}
+
+// ---- minimal ZIP (store-only) writer/reader, so a backup can carry uploaded PDFs/images without any library ----
+const CRC_TABLE = (()=>{ const t = new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = (c&1) ? (0xEDB88320 ^ (c>>>1)) : (c>>>1); t[n] = c>>>0; } return t; })();
+function crc32(u8){ let c = 0xFFFFFFFF; for(let i=0;i<u8.length;i++) c = CRC_TABLE[(c ^ u8[i]) & 255] ^ (c>>>8); return (c ^ 0xFFFFFFFF)>>>0; }
+function zipStore(files){   // files: [{name, data:Uint8Array}] -> Uint8Array
+  const enc = new TextEncoder(), parts = [], central = []; let offset = 0;
+  files.forEach(f=>{
+    const name = enc.encode(f.name), crc = crc32(f.data), size = f.data.length;
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true); lh.setUint16(8,0,true);
+    lh.setUint16(10,0,true); lh.setUint16(12,0x21,true); lh.setUint32(14,crc,true); lh.setUint32(18,size,true); lh.setUint32(22,size,true);
+    lh.setUint16(26,name.length,true); lh.setUint16(28,0,true);
+    parts.push(new Uint8Array(lh.buffer), name, f.data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true); ch.setUint16(8,0x0800,true); ch.setUint16(10,0,true);
+    ch.setUint16(12,0,true); ch.setUint16(14,0x21,true); ch.setUint32(16,crc,true); ch.setUint32(20,size,true); ch.setUint32(24,size,true);
+    ch.setUint16(28,name.length,true); ch.setUint32(42,offset,true);
+    central.push(new Uint8Array(ch.buffer), name);
+    offset += 30 + name.length + size;
+  });
+  const cdSize = central.reduce((n,x)=>n+x.byteLength,0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true); end.setUint16(8,files.length,true); end.setUint16(10,files.length,true); end.setUint32(12,cdSize,true); end.setUint32(16,offset,true);
+  const all = [...parts, ...central, new Uint8Array(end.buffer)];
+  const out = new Uint8Array(all.reduce((n,x)=>n+x.byteLength,0)); let p = 0;
+  all.forEach(x=>{ out.set(x,p); p += x.byteLength; });
+  return out;
+}
+function zipRead(buf){   // reads zips written by zipStore (no compression)
+  const u8 = new Uint8Array(buf), dv = new DataView(buf), dec = new TextDecoder(), out = []; let p = 0;
+  while(p+30 <= u8.length && dv.getUint32(p,true)===0x04034b50){
+    const flags = dv.getUint16(p+6,true), method = dv.getUint16(p+8,true), size = dv.getUint32(p+18,true), nlen = dv.getUint16(p+26,true), xlen = dv.getUint16(p+28,true);
+    if(method!==0 || (flags & 8)) throw new Error('This zip is compressed. Please restore a zip that was created by "Backup + files (.zip)" in this app.');
+    const start = p+30+nlen+xlen;
+    if(start+size > u8.length) throw new Error('This zip file looks damaged.');
+    out.push({name: dec.decode(u8.subarray(p+30,p+30+nlen)), data: u8.subarray(start,start+size)});
+    p = start + size;
+  }
+  if(!out.length) throw new Error('That is not a valid backup zip.');
+  return out;
+}
+function dataUrlToBytes(d){ const bin = atob(d.slice(d.indexOf(',')+1)), u = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i); return u; }
+function dataUrlMime(d){ const m = /^data:([^;,]+)/.exec(d); return m ? m[1] : 'application/octet-stream'; }
+function bytesToDataUrl(u8, mime){ let s = ''; for(let i=0;i<u8.length;i+=0x8000) s += String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return 'data:'+mime+';base64,'+btoa(s); }
+const BACKUP_MIME_EXT = {'application/pdf':'pdf','image/png':'png','image/jpeg':'jpg','image/gif':'gif','image/webp':'webp'};
+
+// Every uploaded PDF/image the app still references, wherever it lives.
+function collectMediaRefs(){
+  const refs = [];
+  getAllAuthors().forEach(a=>a.items.forEach(i=>{ if(i.mediaKey) refs.push({key:i.mediaKey, name:i.mediaName||i.title, title:i.title, where:'Docs Hub'}); }));
+  getAllQAItems().forEach(i=>{ if(i.mediaKey) refs.push({key:i.mediaKey, name:i.mediaName||i.q, title:i.q, where:'Interview Q&A'}); });
+  getAllAdvItems().forEach(i=>{ if(i.mediaKey) refs.push({key:i.mediaKey, name:i.mediaName||i.title, title:i.title, where:'Advanced+'}); });
+  Object.entries(dayNotes).forEach(([n,e])=>{ if(e && e.mediaKey) refs.push({key:e.mediaKey, name:e.mediaName||('Day '+n+' note image'), title:'Day '+n+' note', where:'Notes'}); });
+  const seen = new Set();
+  return refs.filter(r=>!seen.has(r.key) && seen.add(r.key));
+}
+async function exportFullBackup(){
+  const refs = collectMediaRefs(), pt = progressToast('Preparing backup…');
+  let missing = 0;
+  try{
+    const data = {}; backupKeys().forEach(k=>{ data[k] = localStorage.getItem(k); });
+    const files = [], manifest = [];
+    for(let i=0;i<refs.length;i++){
+      const r = refs[i]; pt.set('Collecting files '+(i+1)+' of '+refs.length+'…');
+      let d = null; try{ d = await idbGet(r.key); }catch(e){ console.error(e); }
+      if(!d){ missing++; continue; }
+      const mime = dataUrlMime(d), path = 'media/'+r.key+'.'+(BACKUP_MIME_EXT[mime]||'bin');
+      files.push({name:path, data:dataUrlToBytes(d)});
+      manifest.push({key:r.key, file:path, name:r.name, mime, where:r.where, title:r.title});
+    }
+    const payload = {app:'dotnet-tracker', version:3, exportedAt:new Date().toISOString(), note:'Settings, notes and lists are in "data"; uploaded files are in media/ and listed in "media".', data, media:manifest};
+    files.unshift({name:'backup.json', data:new TextEncoder().encode(JSON.stringify(payload,null,2))});
+    pt.set('Building zip…');
+    downloadBlob(new Blob([zipStore(files)], {type:'application/zip'}), 'dotnet-tracker-backup-with-files-'+ymd(new Date())+'.zip');
+  } catch(err){ console.error(err); alert('Could not build the backup: '+(err.message||err)); return; }
+  finally { pt.close(); }
+  if(window.UI) UI.toast('Backup downloaded' + (missing ? ' · '+missing+' file(s) could not be read' : ''));
 }
 function triggerImportBackup(){ document.getElementById('backup-import-input').click(); }
-function importBackup(e){
+async function importBackup(e){
   const file = e.target.files[0]; e.target.value=''; if(!file) return;
+  let isZip = /\.zip$/i.test(file.name) || /zip/.test(file.type);
+  if(!isZip){ try{ const h = new Uint8Array(await file.slice(0,4).arrayBuffer()); isZip = h[0]===0x50 && h[1]===0x4B; }catch(err){} }   // "PK" = zip, whatever the file is called
+  if(isZip){
+    if(file.size > 250*1024*1024){ alert('That zip is too large to be a backup.'); return; }
+    file.arrayBuffer().then(buf=>{
+      let entries; try{ entries = zipRead(buf); }catch(err){ alert(err.message); return; }
+      const bj = entries.find(x=>x.name==='backup.json');
+      if(!bj){ alert('This zip has no backup.json — it was not created by this app.'); return; }
+      let payload; try{ payload = JSON.parse(new TextDecoder().decode(bj.data)); }catch(err){ alert('backup.json inside the zip is not valid.'); return; }
+      applyBackupPayload(payload, entries);
+    }).catch(err=>alert('Could not read that file: '+(err.message||err)));
+    return;
+  }
   if(file.size > 20*1024*1024){ alert('That file is too large to be a backup.'); return; }
   const reader = new FileReader();
   reader.onload = ()=>{
     let payload;
     try{ payload = JSON.parse(reader.result); }catch(err){ alert('That file is not a valid backup (invalid JSON).'); return; }
-    if(!payload || typeof payload.data!=='object' || payload.data===null || Array.isArray(payload.data)){ alert('That file is not a valid backup — expected a dotnet-tracker export.'); return; }
-    // accept only well-formed keys whose values are JSON text
-    const incoming = {};
-    for(const [k,v] of Object.entries(payload.data)){
-      if(!BACKUP_KEY_RE.test(k) || BACKUP_SKIP.has(k) || typeof v!=='string') continue;
-      if(k!=='dotnet_display_name' && k!=='dotnet_start_date' && k!=='dotnet_active_docs_section' && k!=='dotnet_active_qa_section'){
-        try{ JSON.parse(v); }catch(err){ continue; }
-      }
-      incoming[k] = v;
-    }
-    const n = Object.keys(incoming).length;
-    if(!n){ alert('No restorable data was found in that file.'); return; }
-    if(!confirm(`Restore ${n} saved items from this backup? Your current progress, notes, Docs Hub, Q&A and resume will be replaced.`)) return;
-    backupKeys().forEach(k=>{ if(!(k in incoming)) localStorage.removeItem(k); });
-    let failed = false;
-    Object.entries(incoming).forEach(([k,v])=>{ try{ localStorage.setItem(k, v); }catch(err){ failed = true; } });
-    if(failed){ alert('Some items were too large to restore.'); }
-    (window.Cloud ? Cloud.flush() : Promise.resolve()).then(()=>{ alert('Backup restored. Reloading…'); location.reload(); });
+    applyBackupPayload(payload, null);
   };
   reader.readAsText(file);
+}
+async function applyBackupPayload(payload, entries){
+  if(!payload || typeof payload.data!=='object' || payload.data===null || Array.isArray(payload.data)){ alert('That file is not a valid backup — expected a dotnet-tracker export.'); return; }
+  // accept only well-formed keys whose values are JSON text
+  const incoming = {};
+  for(const [k,v] of Object.entries(payload.data)){
+    if(!BACKUP_KEY_RE.test(k) || BACKUP_SKIP.has(k) || typeof v!=='string') continue;
+    if(k!=='dotnet_display_name' && k!=='dotnet_start_date' && k!=='dotnet_active_docs_section' && k!=='dotnet_active_qa_section'){
+      try{ JSON.parse(v); }catch(err){ continue; }
+    }
+    incoming[k] = v;
+  }
+  const n = Object.keys(incoming).length;
+  if(!n){ alert('No restorable data was found in that file.'); return; }
+  const mediaList = (entries && Array.isArray(payload.media)) ? payload.media.filter(m=>m && typeof m.key==='string' && /^[A-Za-z0-9_.-]{1,100}$/.test(m.key) && typeof m.file==='string' && Object.prototype.hasOwnProperty.call(BACKUP_MIME_EXT, m.mime)) : [];
+  if(!confirm(`Restore ${n} saved items${mediaList.length ? ' and '+mediaList.length+' uploaded file'+(mediaList.length===1?'':'s') : ''} from this backup? Your current progress, notes, Docs Hub, Q&A and resume will be replaced.`)) return;
+  if(mediaList.length){
+    const pt = progressToast('Restoring files…');
+    try{
+      for(let i=0;i<mediaList.length;i++){
+        const m = mediaList[i], ent = entries.find(x=>x.name===m.file); if(!ent) continue;
+        pt.set('Restoring file '+(i+1)+' of '+mediaList.length+'…');
+        try{ await idbPut(m.key, bytesToDataUrl(ent.data, m.mime)); }catch(err){ console.error(err); }
+      }
+    } finally { pt.close(); }
+  }
+  backupKeys().forEach(k=>{ if(!(k in incoming)) localStorage.removeItem(k); });
+  let failed = false;
+  Object.entries(incoming).forEach(([k,v])=>{ try{ localStorage.setItem(k, v); }catch(err){ failed = true; } });
+  if(failed){ alert('Some items were too large to restore.'); }
+  (window.Cloud ? Cloud.flush() : Promise.resolve()).then(()=>{ alert('Backup restored. Reloading…'); location.reload(); });
+}
+// "Uploads & storage" card: how much space the PDFs/images use, biggest first.
+async function measureUploads(btn){
+  const out = document.getElementById('storage-usage-out'); if(!out) return;
+  const refs = collectMediaRefs();
+  if(!refs.length){ out.textContent = 'No uploaded files yet.'; return; }
+  if(btn) btn.disabled = true;
+  const rows = []; let total = 0;
+  for(let i=0;i<refs.length;i++){
+    out.textContent = 'Measuring '+(i+1)+' of '+refs.length+'…';
+    let d = null; try{ d = await idbGet(refs[i].key); }catch(e){}
+    const bytes = d ? Math.round((d.length - d.indexOf(',') - 1)*0.75) : 0;
+    total += bytes; rows.push({...refs[i], bytes});
+  }
+  rows.sort((a,b)=>b.bytes-a.bytes);
+  out.innerHTML = `<div class="mb-2"><strong>${rows.length}</strong> file${rows.length===1?'':'s'} · <strong>${fmtBytes(total)}</strong> in total</div>` +
+    rows.slice(0,8).map(r=>`<div class="d-flex justify-content-between gap-2 border-top py-1"><span class="text-truncate">${esc(clipText(r.name||r.title,48))} <span class="text-muted">· ${esc(r.where)}</span></span><span class="text-nowrap">${r.bytes ? fmtBytes(r.bytes) : 'unreadable'}</span></div>`).join('') +
+    (rows.length>8 ? `<div class="text-muted pt-1">…and ${rows.length-8} smaller file${rows.length-8===1?'':'s'}</div>` : '');
+  if(btn){ btn.disabled = false; btn.textContent = 'Recalculate'; }
 }
 function getLocalStorageSizeKB(){
   let total = 0;
@@ -3699,12 +4161,20 @@ function renderProfile(){
 
   <div class="phase-card mb-3 pad">
     <h6 class="card-title"><i class="bi bi-shield-check"></i>Backup &amp; restore</h6>
-    <p class="small text-muted mb-2">Everything is stored in Firebase under your account (~${getLocalStorageSizeKB()} KB of settings and notes, plus uploads). The backup file holds your settings, notes and lists — uploaded images and PDFs stay in your account.</p>
+    <p class="small text-muted mb-2">Everything is stored in Firebase under your account (~${getLocalStorageSizeKB()} KB of settings and notes, plus uploads). <strong>Backup + files (.zip)</strong> also includes every uploaded PDF and image; the small .json backup holds settings, notes and lists only.</p>
     <div class="d-flex gap-2 flex-wrap">
-      <button class="btn btn-sm btn-primary" onclick="exportBackup()"><i class="bi bi-download me-1"></i>Download backup</button>
+      <button class="btn btn-sm btn-primary" onclick="exportFullBackup()"><i class="bi bi-file-earmark-zip me-1"></i>Backup + files (.zip)</button>
+      <button class="btn btn-sm btn-outline-primary" onclick="exportBackup()"><i class="bi bi-download me-1"></i>Settings only (.json)</button>
       <button class="btn btn-sm btn-outline-primary" onclick="triggerImportBackup()"><i class="bi bi-upload me-1"></i>Restore from backup</button>
-      <input type="file" id="backup-import-input" accept="application/json,.json" style="display:none" onchange="importBackup(event)">
+      <input type="file" id="backup-import-input" accept="application/json,.json,application/zip,.zip" style="display:none" onchange="importBackup(event)">
     </div>
+  </div>
+
+  <div class="phase-card mb-3 pad">
+    <h6 class="card-title"><i class="bi bi-hdd"></i>Uploads &amp; storage</h6>
+    <p class="small text-muted mb-2">See how much space your uploaded PDFs and images use, biggest first.</p>
+    <button class="btn btn-sm btn-outline-primary" onclick="measureUploads(this)">Calculate</button>
+    <div id="storage-usage-out" class="small mt-2"></div>
   </div>
 
   <details class="phase-card mb-3 profile-details">
