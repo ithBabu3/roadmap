@@ -3,7 +3,12 @@ let appModalInstance = null;
 function openModal(html){
   const body = document.getElementById('appModalBody');
   body.innerHTML = html;
-  if(!appModalInstance) appModalInstance = new bootstrap.Modal(document.getElementById('appModal'));
+  if(!appModalInstance){
+    const mEl = document.getElementById('appModal');
+    appModalInstance = new bootstrap.Modal(mEl);
+    mEl.addEventListener('hide.bs.modal', ()=>draftFlush());      // keep what was typed if the dialog is closed by accident
+    mEl.addEventListener('hidden.bs.modal', ()=>{ _draft = null; });
+  }
   appModalInstance.show();
 }
 function closeModal(){
@@ -753,7 +758,7 @@ function itemBodyHTML(item){
     const isLinkedIn = /linkedin\.com/i.test(item.url);
     html += `<a class="item-open" href="${escA(safeUrl(item.url))}" target="_blank" rel="noopener noreferrer">${isLinkedIn?'Open on LinkedIn':'Open link'} <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a>`;
   }
-  return html;
+  return html + tagChipsHTML(item);
 }
 
 // Looks up an item's data no matter which board it lives on (Docs Hub author items,
@@ -834,7 +839,7 @@ function renderAuthorPosts(){
         el.draggable = true;
         el.dataset.itemId = item.id;
         el.dataset.type = item.type;
-        el.dataset.search = item.mediaName || '';
+        el.dataset.search = (item.mediaName || '') + ' ' + (item.tags||[]).join(' ');
         el.innerHTML = `
           <i class="bi bi-grip-vertical item-handle"></i>
           <div class="item-body">
@@ -1228,6 +1233,7 @@ function openContentForm(authorId, itemId, category){
       <h6 class="form-title"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit content':'Add '+catMeta.label}</h6>
       <div class="row g-2">
         <div class="col-12"><label>Heading / title <span class="text-danger">*</span></label><input id="naf-title" class="form-control" placeholder="e.g. Minimal APIs in .NET 8" value="${escA(draft ? draft.title : (isEdit?item.title:''))}" oninput="checkTopicOverlap()"><div id="naf-topic-hint"></div></div>
+        ${tagFieldHTML('naf-tags', isEdit ? item.tags : [])}
         ${isEdit ? typeSwitcherHTML(category,'switchContentFormType') : ''}
         ${typeSpecificHTML}
         ${isEdit ? `<div class="col-md-6"><label>Move to tab</label><select id="naf-move-section" class="form-select">${docsSections.filter(x=>x.key!=='resources').map(x=>`<option value="${escA(x.key)}" ${x.key===(item.section||'community')?'selected':''}>${esc(x.label)}</option>`).join('')}</select></div>
@@ -1249,6 +1255,7 @@ function openContentForm(authorId, itemId, category){
     </div>`);
   if(category==='Content'){ document.getElementById('naf-type').value = (isEdit && ['Paragraph','Bullets','Diagram','Post'].includes(item.type)) ? item.type : 'Paragraph'; renderTypeFields(); }
   if((isEdit||presetAuthor) && authorNameVal){ const opt = document.querySelector('#appModalBody .optional-fields'); const btn = document.querySelector('#appModalBody .optional-toggle'); if(opt){ opt.classList.add('open'); btn.querySelector('i').className='bi bi-chevron-down'; } }
+  draftSetup('docs|'+(isEdit?'e:'+itemId:'n:'+(pendingAuthorForAdd?pendingAuthorForAdd.id:'')+':'+(pendingDocsSection||''))+'|'+category, ()=>openContentForm(authorId,itemId,category));
 }
 function toggleOptionalAuthorFields(btn){
   const wrap = btn.nextElementSibling;
@@ -1267,6 +1274,9 @@ document.addEventListener('selectionchange', ()=>{
   const r = sel.getRangeAt(0), n = r.commonAncestorContainer, host = n.nodeType===1 ? n : n.parentElement;
   const ed = host && host.closest ? host.closest('.rte-editor') : null;
   if(ed && ed.id) RTE_SEL.set(ed.id, r.cloneRange());
+  // show the row/column buttons only while the caret is inside a table
+  document.querySelectorAll('.rte-toolbar.in-table').forEach(t=>{ if(!ed || t.nextElementSibling!==ed) t.classList.remove('in-table'); });
+  if(ed){ const tb = ed.previousElementSibling; if(tb && tb.classList.contains('rte-toolbar')) tb.classList.toggle('in-table', !!(host.closest && host.closest('td,th'))); }
 });
 function rteFocus(id){
   const el = document.getElementById(id); if(!el) return null;
@@ -1298,6 +1308,8 @@ function rteToolbarHTML(id){
     ${btn(`rteLink('${id}')`,'Add link (Ctrl+K)','bi-link-45deg')}
     ${btn(`document.getElementById('${id}-img').click()`,'Insert image','bi-image')}
     <input type="file" id="${id}-img" accept="image/*" multiple style="display:none" onchange="rteInsertImage('${id}', event)">
+    ${btn(`rteTableInsert('${id}')`,'Insert table','bi-table')}
+    <span class="rte-tbl-tools">${['addRow|+ Row|Add a row below','addCol|+ Col|Add a column to the right','delRow|− Row|Delete this row','delCol|− Col|Delete this column','delTable|✕ Table|Delete the whole table'].map(x=>{ const [op,lbl,tip]=x.split('|'); return `<button type="button" class="rte-txt-btn" tabindex="-1" onmousedown="event.preventDefault()" onclick="rteTable('${id}','${op}')" title="${tip}" aria-label="${tip}">${lbl}</button>`; }).join('')}</span>
     ${btn(`rteExec('${id}','insertHorizontalRule')`,'Divider line','bi-dash-lg')}
     ${btn(`rteExec('${id}','removeFormat')`,'Clear formatting','bi-eraser')}
   </div>`;
@@ -1374,7 +1386,7 @@ function rteGetHTML(id){
   if(!el) return '';
   // the browser sometimes stamps the editor's own default size onto text it re-wraps: that is not a choice the user made
   const html = sanitizeHTML(el.innerHTML).replace(/font-size:\s*0\.95rem;?\s*/gi,'').replace(/\sstyle=""/g,'').trim();
-  return (html==='<br>' || html==='' || stripTags(html).trim()==='' && !/<img/i.test(html)) ? '' : html;
+  return (html==='<br>' || html==='' || stripTags(html).trim()==='' && !/<(img|table|hr)/i.test(html)) ? '' : html;
 }
 // Bullet-point fields: an editor that holds a list. Stored as an array of strings (plain text, or rich HTML when formatted).
 function pointsToListHTML(points){
@@ -1443,12 +1455,232 @@ document.addEventListener('click', e=>{
   img.setAttribute('width', next); img.removeAttribute('height');
   if(window.UI) UI.toast('Image width '+next, 'bi-aspect-ratio');
 });
+function rtePlaceCaret(el){ const r = document.createRange(); r.selectNodeContents(el); r.collapse(true); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+function rteTableInsert(id){
+  if(!rteFocus(id)) return;
+  const raw = prompt('Table size — rows × columns (e.g. 3x3):', '3x3'); if(!raw) return;
+  const m = /(\d+)\s*[x×*,\s]\s*(\d+)/i.exec(raw);
+  if(!m){ alert('Please type it like 3x3 (rows × columns).'); return; }
+  const rows = Math.min(20, Math.max(1, +m[1])), cols = Math.min(8, Math.max(1, +m[2]));
+  let html = '<table><tbody>';
+  for(let r=0;r<rows;r++){ const t = r===0 ? 'th' : 'td'; html += '<tr>' + Array.from({length:cols}, ()=>`<${t}><br></${t}>`).join('') + '</tr>'; }
+  html += '</tbody></table><p><br></p>';
+  rteFocus(id);
+  document.execCommand('insertHTML', false, html);
+}
+function rteCellOf(id){
+  const ed = document.getElementById(id), sel = getSelection(); if(!ed || !sel.rangeCount) return null;
+  const n = sel.anchorNode, el = n && (n.nodeType===1 ? n : n.parentElement);
+  const c = el && el.closest ? el.closest('td,th') : null;
+  return c && ed.contains(c) ? c : null;
+}
+function rteTable(id, op){
+  const ed = rteFocus(id); const cell = ed && rteCellOf(id); if(!cell) return;
+  const tr = cell.parentElement, table = cell.closest('table'), idx = cell.cellIndex;
+  const mk = t => { const c = document.createElement(t); c.innerHTML = '<br>'; return c; };
+  let focus = cell;
+  if(op==='addRow'){ const n = document.createElement('tr'); [...tr.cells].forEach(()=>n.appendChild(mk('td'))); tr.after(n); focus = n.cells[Math.min(idx, n.cells.length-1)]; }
+  else if(op==='addCol'){ [...table.rows].forEach(r=>{ const ref = r.cells[idx], c = mk(ref && ref.tagName==='TH' ? 'th' : 'td'); if(ref) ref.after(c); else r.appendChild(c); }); focus = cell.nextElementSibling; }
+  else if(op==='delRow'){ const next = tr.nextElementSibling || tr.previousElementSibling; tr.remove(); if(!table.rows.length){ table.remove(); focus = null; } else focus = next && next.cells[Math.min(idx, next.cells.length-1)]; }
+  else if(op==='delCol'){ [...table.rows].forEach(r=>{ if(r.cells[idx]) r.cells[idx].remove(); }); if(![...table.rows].some(r=>r.cells.length)){ table.remove(); focus = null; } else focus = tr.cells[Math.min(idx, tr.cells.length-1)]; }
+  else if(op==='delTable'){ table.remove(); focus = null; }
+  if(focus) rtePlaceCaret(focus);
+  ed.dispatchEvent(new Event('input', {bubbles:true}));
+}
 document.addEventListener('keydown', e=>{
+  const ed = e.target && e.target.closest ? e.target.closest('.rte-editor') : null;
+  if(!ed) return;
   if((e.ctrlKey||e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase()==='k'){
-    const ed = e.target && e.target.closest ? e.target.closest('.rte-editor') : null;
-    if(ed){ e.preventDefault(); rteLink(ed.id); }
+    e.preventDefault(); e.stopPropagation();      // Ctrl/⌘+K inside a text box = add link (not the quick-search palette)
+    rteLink(ed.id); return;
+  }
+  if(e.key==='Tab' && !e.ctrlKey && !e.metaKey && !e.altKey){     // Tab / Shift+Tab walks through table cells
+    const cell = rteCellOf(ed.id); if(!cell) return;
+    e.preventDefault();
+    const cells = [...cell.closest('table').querySelectorAll('th,td')], i = cells.indexOf(cell) + (e.shiftKey ? -1 : 1);
+    if(i >= cells.length){ rteTable(ed.id, 'addRow'); const nr = cell.parentElement.nextElementSibling; if(nr) rtePlaceCaret(nr.cells[0]); }
+    else if(i >= 0) rtePlaceCaret(cells[i]);
   }
 });
+// the quick-note panel's toolbar lives in index.html: give it the full toolbar too
+(function(){ const tb = document.querySelector('#quick-note-form .rte-toolbar'); if(tb) tb.outerHTML = rteToolbarHTML('quick-note-text'); })();
+
+// ===================== DRAFTS: what you typed in a form survives an accidental close / refresh =====================
+const DRAFT_KEY = 'dn_drafts';      // device-local on purpose (not synced, not in backups)
+let _draft = null, _draftTimer = null;
+function draftLoad(){ try{ return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; }catch(e){ return {}; } }
+function draftWrite(all){
+  const keep = Object.keys(all).sort((a,b)=>all[b].t-all[a].t).slice(0,10), out = {};
+  keep.forEach(k=>{ out[k] = all[k]; });
+  try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(out)); }
+  catch(e){ try{ const k = _draft && _draft.key; localStorage.setItem(DRAFT_KEY, JSON.stringify(k && out[k] ? {[k]:out[k]} : {})); }catch(e2){} }   // storage full: keep just this one
+}
+function draftCollect(root){
+  const f = {}, sel = {}, ed = {};
+  root.querySelectorAll('input,textarea').forEach(el=>{ if(el.id && !el.readOnly && !/^(file|color|button|checkbox|radio|hidden)$/.test(el.type)) f[el.id] = el.value; });
+  root.querySelectorAll('select').forEach(el=>{ if(el.id) sel[el.id] = el.value; });
+  root.querySelectorAll('.rte-editor').forEach(el=>{ if(el.id) ed[el.id] = sanitizeHTML(el.innerHTML); });
+  return {f, s:sel, e:ed};
+}
+function draftHasContent(d){
+  return Object.values(d.f).some(v=>String(v).trim()) || Object.values(d.e).some(h=>stripTags(h).trim() || /<(img|table|hr)/i.test(h));
+}
+function draftFlush(){
+  clearTimeout(_draftTimer);
+  const d = _draft; if(!d || !d.dirty || !d.root || !d.root.isConnected) return;
+  const data = draftCollect(d.root), all = draftLoad();
+  if(draftHasContent(data)) all[d.key] = {t:Date.now(), ...data}; else delete all[d.key];
+  draftWrite(all);
+}
+function draftClear(){
+  clearTimeout(_draftTimer);
+  if(_draft){ const all = draftLoad(); delete all[_draft.key]; draftWrite(all); }
+  _draft = null;
+}
+function draftDiscard(){
+  if(!_draft) return;
+  const re = _draft.reopen, all = draftLoad(); delete all[_draft.key]; draftWrite(all);
+  _draft = null;
+  if(re) re();
+}
+function draftApply(root, d){
+  Object.entries(d.s||{}).forEach(([id,v])=>{ const el = document.getElementById(id); if(el && root.contains(el) && [...el.options].some(o=>o.value===v)){ el.value = v; el.dispatchEvent(new Event('change', {bubbles:true})); } });
+  Object.entries(d.f||{}).forEach(([id,v])=>{ const el = document.getElementById(id); if(el && root.contains(el) && !el.readOnly) el.value = v; });
+  Object.entries(d.e||{}).forEach(([id,h])=>{ const el = document.getElementById(id); if(el && root.contains(el)) el.innerHTML = sanitizeHTML(h); });
+  const when = new Date(d.t), today = new Date().toDateString()===when.toDateString();
+  const label = today ? when.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : when.toLocaleDateString([], {day:'numeric', month:'short'});
+  const t = root.querySelector('.form-title');
+  if(t) t.insertAdjacentHTML('afterend', `<div class="draft-banner" role="status"><i class="bi bi-clock-history me-1" aria-hidden="true"></i>Unsaved draft from ${esc(label)} restored — re-attach any file. <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline" onclick="draftDiscard()">Discard draft</button></div>`);
+}
+// Call once a form's DOM exists. key identifies the form (what + which item/author/topic + which type).
+function draftSetup(key, reopen){
+  draftFlush();
+  const root = document.querySelector('#appModalBody .author-form') || document.querySelector('#adv-form-slot .author-form');
+  _draft = {key, root, reopen, dirty:false};
+  if(!root) return;
+  const d = draftLoad()[key];
+  if(d && Date.now() - d.t < 14*864e5) draftApply(root, d);
+}
+['input','change'].forEach(ev=>document.addEventListener(ev, e=>{
+  if(!_draft || !_draft.root || !_draft.root.contains(e.target)) return;
+  _draft.dirty = true; clearTimeout(_draftTimer); _draftTimer = setTimeout(draftFlush, 700);
+}, true));
+window.addEventListener('pagehide', draftFlush);
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) draftFlush(); });
+
+// ===================== TAGS + SEARCH EVERYTHING =====================
+function parseTags(str){
+  const out = [];
+  String(str||'').split(/[,;\n]+/).forEach(t=>{
+    t = t.trim().replace(/^#+/,'').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9+#._-]/g,'').slice(0,24);
+    if(t && !out.includes(t)) out.push(t);
+  });
+  return out.slice(0,10);
+}
+function allTags(){
+  const m = new Map(), add = it => (it.tags||[]).forEach(t=>m.set(t,(m.get(t)||0)+1));
+  getAllAuthors().forEach(a=>a.items.forEach(add)); getAllQAItems().forEach(add); getAllAdvItems().forEach(add);
+  return m;
+}
+function tagFieldHTML(id, tags){
+  const opts = [...allTags().keys()].sort().map(t=>`<option value="${escA(t)}">`).join('');
+  return `<div class="col-12"><label>Tags <span class="text-muted fw-normal">(optional · comma separated · find it later with search)</span></label><input id="${id}" class="form-control" list="${id}-list" autocomplete="off" placeholder="e.g. ef-core, performance, sql" value="${escA((tags||[]).join(', '))}"><datalist id="${id}-list">${opts}</datalist></div>`;
+}
+function tagChipsHTML(item){
+  const t = item && item.tags;
+  if(!t || !t.length) return '';
+  return `<div class="item-tags">${t.map(x=>`<button type="button" class="tag-chip" onclick="event.stopPropagation();searchTag('${escA(x)}')" title="Search #${escA(x)}">#${esc(x)}</button>`).join('')}</div>`;
+}
+function searchTag(t){ if(window.UI && UI.openPalette) UI.openPalette('#'+t); }
+function popularTags(){
+  return [...allTags().entries()].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).slice(0,6)
+    .map(([t,n])=>({g:'Popular tags', t:'#'+t, s:n+' item'+(n===1?'':'s'), i:'bi-hash', run:()=>searchTag(t)}));
+}
+// --- jump to a result: switch tab / section, expand it, scroll and flash ---
+function goTab(name){ const b = [...document.querySelectorAll('.tab-btn')].find(x=>(x.getAttribute('onclick')||'').includes("showTab('"+name+"'")); if(b) b.click(); }
+function flashEl(el){ if(!el) return; el.scrollIntoView({block:'center', behavior:'smooth'}); el.classList.add('search-flash'); setTimeout(()=>el.classList.remove('search-flash'), 2400); }
+function jumpToDocsItem(authorId, itemId, section){
+  goTab('author');
+  if(section && section!==activeDocsSection && docsSections.some(x=>x.key===section)) setDocsSubtab(section);
+  const si = document.getElementById('docs-search-input'); if(si) si.value = '';
+  authorCollapsed[authorId] = false; itemCollapsed[itemId] = false;
+  lsSave('dotnet_author_collapsed', authorCollapsed); lsSave('dotnet_item_collapsed', itemCollapsed);
+  renderAuthorPosts(); filterDocsHub();
+  setTimeout(()=>flashEl(document.querySelector('.content-item[data-item-id="'+CSS.escape(itemId)+'"]')), 80);
+}
+function jumpToQAItem(id, section){
+  goTab('interview');
+  const si = document.getElementById('qa-search-input'); if(si) si.value = '';
+  if(section && section!==activeQASection && qaSections.some(x=>x.key===section)) setQASubtab(section); else renderInterview();
+  setTimeout(()=>{
+    const el = document.querySelector('.interview-q[data-item-id="'+CSS.escape(id)+'"]'); if(!el) return;
+    const row = el.querySelector('.qa-row'); if(row && row.getAttribute('aria-expanded')!=='true') row.click();
+    flashEl(el);
+  }, 80);
+}
+function jumpToAdvItem(id){
+  goTab('projects');
+  const b = [...document.querySelectorAll('.proj-subtab')].find(x=>(x.getAttribute('onclick')||'').includes("'advanced'")); if(b) b.click();
+  advCollapsed[id] = false; lsSave('dotnet_adv_collapsed', advCollapsed);
+  renderAdvanced();
+  setTimeout(()=>flashEl(document.querySelector('#adv-list [data-item-id="'+CSS.escape(id)+'"]')), 80);
+}
+// --- the index behind the Ctrl/⌘+K palette: Docs Hub, Interview Q&A, Advanced+ topics and day notes ---
+let _idxCache = null, _idxAt = 0;
+function contentIndex(){
+  if(_idxCache && Date.now()-_idxAt < 1500) return _idxCache;
+  const out = [], plain = h => stripTags(h||'').replace(/\s+/g,' ').trim();
+  const body = it => [plain(it.summary), (it.points||[]).map(plain).join(' '), (it.steps||[]).map(x=>typeof x==='string'?x:'').join(' '), plain(it.a)].join(' ').trim();
+  getAllAuthors().forEach(a=>a.items.forEach(it=>{
+    const sec = docsSections.find(x=>x.key===(it.section||'community'));
+    out.push({kind:'Docs Hub', icon:TYPE_ICON[it.type]||'bi-file-text', title:it.title||'Untitled', where:a.name+(sec?' · '+sec.label:''), body:body(it), tags:it.tags||[], file:it.mediaName||'', nav:()=>jumpToDocsItem(a.id, it.id, it.section||'community')});
+  }));
+  getAllQAItems().forEach(it=>{
+    out.push({kind:'Interview Q&A', icon:it.type ? (TYPE_ICON[it.type]||'bi-file-text') : 'bi-patch-question', title:it.q, where:it.cat, body:body(it), tags:it.tags||[], file:it.mediaName||'', nav:()=>jumpToQAItem(it.id, qaSectionOf(it))});
+  });
+  getAllAdvItems().forEach(it=>{
+    out.push({kind:'Advanced topics', icon:TYPE_ICON[it.type]||'bi-lightning-charge', title:it.title, where:'Projects › Advanced', body:body(it), tags:it.tags||[], file:it.mediaName||'', nav:()=>jumpToAdvItem(it.id)});
+  });
+  Object.entries(dayNotes).forEach(([n,e])=>{
+    if(!e) return;
+    const text = e.type==='bullets' ? (e.points||[]).join(' ') : plain(e.text);
+    out.push({kind:'My notes', icon:'bi-sticky', title:'Day '+n+' note', where:'Notes', body:text, tags:[], file:e.mediaName||'', nav:()=>{ if(window.UI) UI.goToDay(+n, true); }});
+  });
+  _idxCache = out; _idxAt = Date.now();
+  return out;
+}
+function contentSearch(q){
+  q = String(q||'').trim().toLowerCase(); if(!q) return [];
+  const idx = contentIndex();
+  const row = (e, sc, toks) => {
+    let snip = '';
+    if(toks && toks.length){ const i = e.body.toLowerCase().indexOf(toks[0]); if(i>=0) snip = (i>40?'…':'') + e.body.slice(Math.max(0,i-40), i+90).trim() + (e.body.length>i+90?'…':''); }
+    if(!snip) snip = e.body.slice(0,110);
+    return {g:e.kind, t:e.title, s:(e.where + (snip?' · '+snip:'')).slice(0,170), i:e.icon, r:e.tags[0]?'#'+e.tags[0]:'', run:e.nav, sc};
+  };
+  if(q[0]==='#'){
+    const tag = q.slice(1);
+    if(!tag) return popularTags();
+    return idx.filter(e=>e.tags.some(t=>t.startsWith(tag))).slice(0,40).map(e=>row(e, 10, null));
+  }
+  const toks = q.split(/\s+/), rows = [];
+  idx.forEach(e=>{
+    const t = e.title.toLowerCase(), g = e.tags.join(' '), all = t+' '+g+' '+(e.body+' '+e.file+' '+e.where).toLowerCase();
+    if(!toks.every(k=>all.includes(k))) return;
+    let sc = 1;
+    if(t.includes(q)) sc += 10; if(t.startsWith(q)) sc += 5; if(toks.every(k=>t.includes(k))) sc += 4;
+    if(e.tags.includes(q)) sc += 8; else if(toks.every(k=>g.includes(k))) sc += 3;
+    rows.push({e, sc});
+  });
+  rows.sort((a,b)=>b.sc-a.sc);
+  const per = {}, res = [];
+  rows.forEach(r=>{ per[r.e.kind] = (per[r.e.kind]||0)+1; if(per[r.e.kind] <= 8) res.push(row(r.e, r.sc, toks)); });
+  const tagHit = [...allTags().entries()].filter(([t])=>toks.length===1 && t.includes(toks[0])).slice(0,3)
+    .map(([t,n])=>({g:'Tags', t:'#'+t, s:n+' item'+(n===1?'':'s')+' tagged', i:'bi-hash', sc:6, run:()=>searchTag(t)}));
+  return [...tagHit, ...res];
+}
+
+
 
 // Lightweight, non-blocking duplicate/overlap check: warns if a new title looks like it
 // already exists in the day-by-day Roadmap or elsewhere in Community Content, so you can
@@ -1535,6 +1767,7 @@ async function submitContentForm(category){
   let itemData = {type, title, badgeColor: TYPE_COLOR[type]};
   if(!editingItem) itemData.section = pendingDocsSection || 'community';
   itemData.summary = rteGetHTML('naf-summary');
+  itemData.tags = parseTags((document.getElementById('naf-tags')||{}).value);
   if(type==='Paragraph') itemData.summary = rteGetHTML('naf-para');
   if(type==='PDF') itemData.summary = rteGetHTML('naf-para');
   if(type==='Bullets') itemData.points = rteGetPoints('naf-bullets');
@@ -1590,6 +1823,7 @@ async function submitContentForm(category){
     insertDocsItem(authorId, newItem, {name, role, linkedin: itemData.url});
   }
   const wasEdit = !!editingItem;
+  draftClear();
   closeContentForm();
   if(movedNote && window.UI) UI.toast(movedNote);
   if(!wasEdit && activeDocsSection !== (itemData.section||'community')){
@@ -3198,6 +3432,7 @@ function openAdvForm(itemId, category){
       <h6 class="form-title"><i class="bi ${isEdit?'bi-pencil-square':catMeta.icon} me-1"></i>${isEdit?'Edit topic':'Add '+catMeta.label+' topic'}</h6>
       <div class="row g-2">
         <div class="col-12"><label>Topic title <span class="text-danger">*required</span></label><input id="adv-title" class="form-control" value="${escA(draft ? draft.title : (isEdit?item.title:''))}" placeholder="e.g. Rate Limiting Strategies"></div>
+        ${tagFieldHTML('adv-tags', isEdit ? item.tags : [])}
         ${isEdit ? typeSwitcherHTML(category,'switchAdvFormType') : ''}
         ${typeSpecificHTML}
       </div>
@@ -3208,9 +3443,10 @@ function openAdvForm(itemId, category){
       </div>
     </div>`;
   if(category==='Content'){ document.getElementById('adv-type').value = (isEdit && ['Bullets','Paragraph','Diagram'].includes(item.type)) ? item.type : 'Bullets'; renderAdvTypeFields(); }
+  draftSetup('adv|'+(isEdit?'e:'+itemId:'n')+'|'+category, ()=>openAdvForm(itemId, category));
   slot.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
-function closeAdvForm(){ document.getElementById('adv-form-slot').innerHTML=''; editingAdvItem=null; pendingAdvMedia=null; advDraft=null; }
+function closeAdvForm(){ draftFlush(); _draft = null; document.getElementById('adv-form-slot').innerHTML=''; editingAdvItem=null; pendingAdvMedia=null; advDraft=null; }
 function switchAdvFormType(cat){
   if(!editingAdvItem) return;
   const t = document.getElementById('adv-title');
@@ -3239,7 +3475,7 @@ async function submitAdvForm(category){
   else if(category==='Link'){ const url=normUrl(document.getElementById('adv-url').value); type = getVideoEmbedInfo(url) ? 'Video' : 'Link'; }
   else type = document.getElementById('adv-type').value;
 
-  let data = {type, title, badgeColor: TYPE_COLOR[type]};
+  let data = {type, title, badgeColor: TYPE_COLOR[type], tags: parseTags((document.getElementById('adv-tags')||{}).value)};
   const summaryEl = document.getElementById('adv-summary');
   data.summary = summaryEl ? rteGetHTML('adv-summary') : '';
   if(type==='Paragraph') data.summary = rteGetHTML('adv-para');
@@ -3277,6 +3513,7 @@ async function submitAdvForm(category){
     advCustom.push(newItem);
     localStorage.setItem('dotnet_adv_custom', JSON.stringify(advCustom));
   }
+  draftClear();
   closeAdvForm();
   renderAdvanced();
 }
@@ -3331,6 +3568,9 @@ function findRelatedContent(question){
 // mid-tag would break the markup — they're shown in full instead.
 function qaAnswerHTML(q){
   if(q.type) return itemBodyHTML(q);
+  return qaPlainAnswerHTML(q) + tagChipsHTML(q);
+}
+function qaPlainAnswerHTML(q){
   const text = q.a || '';
   // Only editor output counts as rich text. Plain answers such as "Span<T> is a ref struct" must be escaped, not parsed.
   if(isRich(text) || text.length <= 220) return `<div class="item-summary mb-0">${rich(text)}</div>`;
@@ -3712,6 +3952,7 @@ function openQAForm(itemId, category){
       <div class="row g-2">
         <div class="col-md-6"><label>Category</label><input id="qa-cat" class="form-control" list="qa-cat-list" placeholder="e.g. C# Core" value="${escA(draft ? draft.cat : (isEdit ? item.cat : pendingQACategory))}"><datalist id="qa-cat-list">${existingCats.map(cn=>`<option value="${escA(cn)}">`).join('')}</datalist></div>
         <div class="col-md-6"><label>Question <span class="text-danger">*</span></label><input id="qa-q" class="form-control" placeholder="e.g. What is ref vs out?" value="${escA(draft ? draft.q : (isEdit?item.q:''))}"></div>
+        ${tagFieldHTML('qa-tags', isEdit ? item.tags : [])}
         ${isEdit ? typeSwitcherHTML(category,'switchQAFormType') : ''}
         ${typeSpecificHTML}
         ${isEdit ? `<div class="col-12"><label>Move to tab</label><select id="qa-move-section" class="form-select">${qaSections.map(x=>`<option value="${escA(x.key)}" ${x.key===qaSectionOf(item)?'selected':''}>${esc(x.label)}</option>`).join('')}</select></div>` : ''}
@@ -3722,6 +3963,7 @@ function openQAForm(itemId, category){
         ${!isEdit ? `<button class="btn btn-link btn-sm text-muted p-0 ps-2" onclick="openQATypeChooser(pendingQADestination)"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
       </div>
     </div>`);
+  draftSetup('qa|'+(isEdit?'e:'+itemId:'n:'+pendingQACategory+':'+pendingQADestination)+'|'+category, ()=>openQAForm(itemId, category));
 }
 function closeQAForm(){ closeModal(); editingQAItem=null; pendingQAMedia=null; qaDraft=null; }
 async function handleQAMediaFile(e){
@@ -3745,7 +3987,7 @@ async function submitQAForm(category){
   const old = editingQAItem ? getAllQAItems().find(i=>i.id===editingQAItem) : null;
   if(editingQAItem && !old){ alert('That question no longer exists.'); closeQAForm(); renderInterview(); return; }
 
-  let data = {cat, q};
+  let data = {cat, q, tags: parseTags((document.getElementById('qa-tags')||{}).value)};
   if(type){
     data.type = type; data.badgeColor = TYPE_COLOR[type];
     data.summary = rteGetHTML('qa-summary');
@@ -3792,6 +4034,7 @@ async function submitQAForm(category){
     customQA.unshift({id:'qa-custom-'+Date.now(), section: pendingQADestination, ...data});
     localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
   }
+  draftClear();
   closeQAForm();
   // editing keeps you on the tab you are on; only a brand-new item jumps to its destination tab
   if(!wasEdit && activeQASection !== pendingQADestination){

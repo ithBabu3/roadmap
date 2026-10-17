@@ -227,10 +227,15 @@ function allDays() {
 }
 function palSearch(q) {
   q = q.trim().toLowerCase(); const acts = actions();
-  if (!q) { const nx = allDays().filter(x => x.i === "bi-circle").slice(0, 4); return [...acts.slice(0, 5), ...acts.slice(5, 9), ...nx]; }
+  const content = typeof contentSearch === "function" ? contentSearch(q) : [];
+  if (!q) { const nx = allDays().filter(x => x.i === "bi-circle").slice(0, 4); const pop = typeof popularTags === "function" ? popularTags() : []; return [...acts.slice(0, 5), ...acts.slice(5, 9), ...nx, ...pop]; }
+  if (q[0] === "#") return content;                                   // "#sql" = only things tagged sql
   const toks = q.split(/\s+/);
   const score = it => { const h = (it.hay || (it.t + " " + it.s).toLowerCase()); if (!toks.every(k => h.includes(k))) return -1; return (it.t.toLowerCase().includes(q) ? 10 : 0) + (it.t.toLowerCase().startsWith(q) ? 5 : 0) + 1; };
-  return [...acts, ...allDays()].map(it => [score(it), it]).filter(x => x[0] >= 0).sort((a, b) => b[0] - a[0]).slice(0, 40).map(x => x[1]);
+  const base = [...acts, ...allDays()].map(it => [score(it), it]).filter(x => x[0] >= 0);
+  const all = [...base, ...content.map(it => [it.sc || 1, it])].sort((a, b) => b[0] - a[0]).slice(0, 40).map(x => x[1]);
+  const order = []; all.forEach(it => { if (!order.includes(it.g)) order.push(it.g); });   // keep each group together
+  return all.sort((a, b) => order.indexOf(a.g) - order.indexOf(b.g));
 }
 function palRender() {
   const q = $("pal-q").value, list = $("pal-list"); palItems = palSearch(q);
@@ -246,7 +251,7 @@ function palRender() {
 function palRun(i) { const it = palItems[i]; if (!it) return; closePalette(); setTimeout(it.run, 60); }
 function buildPalette() {
   const back = document.createElement("div"); back.className = "pal-back"; back.id = "pal-back";
-  back.innerHTML = `<div class="pal" role="dialog" aria-label="Quick search"><div class="pal-input"><i class="bi bi-search"></i><input id="pal-q" placeholder="Search days, jump to a section, run an action…" autocomplete="off" spellcheck="false"><kbd>Esc</kbd></div>
+  back.innerHTML = `<div class="pal" role="dialog" aria-label="Quick search"><div class="pal-input"><i class="bi bi-search"></i><input id="pal-q" placeholder="Search days, docs, questions, notes, #tags…" autocomplete="off" spellcheck="false"><kbd>Esc</kbd></div>
     <div class="pal-list" id="pal-list"></div>
     <div class="pal-foot"><span><kbd>↑</kbd> <kbd>↓</kbd> navigate</span><span><kbd>Enter</kbd> select</span><span><kbd>/</kbd> search this page</span><span><kbd>Ctrl</kbd>+<kbd>K</kbd> open anywhere</span></div></div>`;
   document.body.appendChild(back);
@@ -260,7 +265,7 @@ function buildPalette() {
     else if (e.key === "Enter") { e.preventDefault(); palRun(palSel); }
   });
 }
-function openPalette() { if (!$("pal-back")) buildPalette(); $("pal-back").classList.add("show"); $("pal-q").value = ""; palSel = 0; palRender(); setTimeout(() => $("pal-q").focus(), 30); }
+function openPalette(pre) { if (!$("pal-back")) buildPalette(); $("pal-back").classList.add("show"); $("pal-q").value = typeof pre === "string" ? pre : ""; palSel = 0; palRender(); setTimeout(() => $("pal-q").focus(), 30); }
 function closePalette() { $("pal-back")?.classList.remove("show"); }
 $("open-palette")?.addEventListener("click", openPalette);
 

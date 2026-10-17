@@ -878,3 +878,15 @@ code{background:var(--surface-3);color:var(--primary-ink);padding:1px 6px;border
 .rte-editor table,.item-summary table,.note-text table{border-collapse:collapse;max-width:100%;display:block;overflow-x:auto;}
 .rte-editor td,.rte-editor th,.item-summary td,.item-summary th,.note-text td,.note-text th{border:1px solid var(--border-strong);padding:.25rem .5rem;}
 .item-points li img{max-width:100%;}
+
+/* ---- tables in editors, tags, drafts, search jump ---- */
+.rte-tbl-tools{display:none;}
+.rte-toolbar.in-table .rte-tbl-tools{display:flex;align-items:center;gap:2px;padding-left:4px;margin-left:2px;border-left:1px solid var(--border-strong);}
+.rte-toolbar .rte-txt-btn{width:auto;padding:0 7px;font-size:.74rem;font-weight:600;white-space:nowrap;}
+.rte-editor th,.item-summary th,.note-text th{background:var(--surface-2);font-weight:700;}
+.item-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.tag-chip{border:1px solid var(--border-strong);background:var(--surface-2);color:var(--primary-ink);border-radius:999px;padding:1px 9px;font-size:.74rem;font-weight:600;cursor:pointer;line-height:1.5;}
+.tag-chip:hover{background:var(--gold);color:#1a2133;border-color:var(--gold);}
+.draft-banner{background:var(--surface-2);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:6px 10px;font-size:.82rem;margin:6px 0 4px;color:var(--text-2);}
+.search-flash{animation:searchFlash 2.4s ease;}
+@keyframes searchFlash{0%,60%{box-shadow:0 0 0 3px var(--gold);background:var(--surface-2);}100%{box-shadow:0 0 0 0 transparent;}}
