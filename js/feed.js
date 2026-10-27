@@ -63,6 +63,7 @@
     try {
       getAllAuthors().forEach(a => a.items.forEach(it => all.push({ fid: "doc:" + it.id, src: "docs", type: it.type, title: it.title, ts: tsFromId(it.id),
         summary: it.summary, points: it.points, steps: it.steps, url: it.url, mediaKey: it.mediaKey, mediaName: it.mediaName, id: it.id,
+        images: it.images,
         by: a.name, section: it.section || "community", raw: it })));
     } catch (e) { console.error("feed: docs", e); }
 
@@ -81,7 +82,7 @@
       getAllQAItems().forEach(q => {
         const mine = String(q.id).startsWith("qa-custom-");
         const it = { fid: "qa:" + q.id, src: mine ? "qa" : "builtin", type: q.type || "Q&A", title: q.q, ts: tsFromId(q.id), cat: q.cat, id: q.id, qsec: q.section };
-        if (q.type) Object.assign(it, { summary: q.summary, points: q.points, steps: q.steps, url: q.url, mediaKey: q.mediaKey, mediaName: q.mediaName });
+        if (q.type) Object.assign(it, { summary: q.summary, points: q.points, steps: q.steps, url: q.url, mediaKey: q.mediaKey, mediaName: q.mediaName, images: q.images });
         else it.summary = q.a;
         all.push(it);
       });
@@ -89,7 +90,7 @@
 
     try {
       getAllAdvItems().forEach(t => all.push({ fid: "adv:" + t.id, src: String(t.id).startsWith("adv-seed-") ? "builtin" : "adv", type: t.type || "Bullets",
-        title: t.title, ts: tsFromId(t.id), summary: t.summary, points: t.points, steps: t.steps, url: t.url, mediaKey: t.mediaKey, mediaName: t.mediaName, id: t.id }));
+        title: t.title, ts: tsFromId(t.id), summary: t.summary, points: t.points, steps: t.steps, url: t.url, mediaKey: t.mediaKey, mediaName: t.mediaName, id: t.id, images: t.images }));
     } catch (e) { console.error("feed: adv", e); }
 
     try {
@@ -211,9 +212,12 @@
   }
 
   const ytId = src => { const m = String(src).match(/embed\/([\w-]+)/); return m ? m[1] : ""; };
-  function mediaHTML(it) {
+  
+    function mediaHTML(it) {
     let h = "";
-    if (it.mediaKey && (it.type === "Image" || it.src === "notes")) h += `<img class="feed-img" data-media="${esc(it.mediaKey)}" alt="${esc(it.title)}" loading="lazy">`;
+    if (it.type === "Image" || (it.src === "notes" && it.mediaKey)) {
+      h += imageSliderHTML({ type: "Image", title: it.title, images: it.images, mediaKey: it.mediaKey, mediaName: it.mediaName });
+    }
     if (it.mediaKey && it.type === "PDF") h += `<div class="item-pdf-box"><i class="bi bi-file-earmark-pdf-fill"></i><span class="item-pdf-name">${esc(it.mediaName || "Attached PDF")}</span><button class="btn btn-sm btn-outline-danger" onclick="downloadStoredMedia('${esc(it.id)}')"><i class="bi bi-download me-1"></i>Download</button></div>`;
     if (it.url && (it.type === "Video" || it.type === "Link" || it.src === "links")) {
       const vid = typeof getVideoEmbedInfo === "function" ? getVideoEmbedInfo(it.url) : null;
@@ -310,6 +314,7 @@
   document.addEventListener("visibilitychange", () => { if (document.hidden && activePlayer) pausePlayer(activePlayer); });
 
   function hydrate(root) {
+    hydrateSliders(root);
     root.querySelectorAll("img[data-media]").forEach(img => {
       const key = img.dataset.media; delete img.dataset.media;
       idbGet(key).then(url => { if (url) img.src = url; else img.remove(); }).catch(() => img.remove());
@@ -368,7 +373,7 @@
   }
 
   let lastSig = "";
-  const signature = all => JSON.stringify([prefs, query, prefs.sort === "shuffle" ? seed : 0]) + "|" + all.map(i => [i.fid, i.title, String(i.summary || "").length, (i.points || []).length, i.url, i.ts].join(":")).join(",");
+  const signature = all => JSON.stringify([prefs, query, prefs.sort === "shuffle" ? seed : 0]) + "|" + all.map(i => [i.fid, i.title, String(i.summary || "").length, (i.points || []).length, (i.images || []).length, i.url, i.ts].join(":")).join(",");
   function show() {                       // called when the tab opens: only rebuild if something changed
     if (!$("feed-list")) return;
     if ($("feed-list").children.length && signature(gather()) === lastSig) return;

@@ -109,6 +109,12 @@ function downloadBlob(blob, name){
     if(z.kind==='box'){
       const input = z.el.querySelector('input[type=file]'); if(!input) return;
       const f = files[0], accept = input.accept || '';
+      if(input.multiple){
+      const imgs = files.filter(x=>/^image\//.test(x.type));
+      if(!imgs.length){ alert('Please drop image files.'); return; }
+        try{ const dt = new DataTransfer(); imgs.forEach(x=>dt.items.add(x)); input.files = dt.files; }catch(err){ alert('Drag & drop is not supported in this browser — please click to choose the files.'); return; }
+        input.dispatchEvent(new Event('change', {bubbles:true})); return;
+      }
       const ok = accept.startsWith('image/') ? /^image\//.test(f.type) : accept==='application/pdf' ? fileKind(f)==='PDF' : true;
       if(!ok){ alert(accept.startsWith('image/') ? 'Please drop an image file.' : 'Please drop a PDF file.'); return; }
       feedFileInput(input, f);
@@ -174,18 +180,7 @@ function bulkAddAdv(files){
   }, renderAdvanced);
 }
 
-// Full-screen image preview (click an uploaded image).
-function openLightbox(img){
-  if(!img || !img.src) return;
-  const ov = document.createElement('div'); ov.className = 'lightbox'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','Image preview'); ov.tabIndex = -1;
-  ov.innerHTML = '<img alt=""><button type="button" class="lightbox-close" aria-label="Close preview"><i class="bi bi-x-lg"></i></button>';
-  const big = ov.querySelector('img'); big.src = img.src; big.alt = img.alt || '';
-  const onKey = e=>{ if(e.key==='Escape') close(); };
-  const close = ()=>{ ov.remove(); document.removeEventListener('keydown', onKey); };
-  ov.addEventListener('click', e=>{ if(e.target!==big) close(); });
-  document.addEventListener('keydown', onKey);
-  document.body.appendChild(ov); ov.focus();
-}
+
 // Best-effort page count: reads the PDF's page tree (works for most PDFs; returns null if it can't tell).
 function pdfPageCount(dataUrl){
   try{
@@ -197,7 +192,156 @@ function pdfPageCount(dataUrl){
   }catch(e){ return null; }
 }
 function fmtBytes(n){ return n>=1048576 ? (n/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(n/1024))+' KB'; }
+// ===================== MULTI-IMAGE: helpers, picker, slider =====================
+const itemImages = it => (it && it.images && it.images.length) ? it.images
+  : (it && it.type==='Image' && it.mediaKey ? [{key:it.mediaKey, name:it.mediaName||''}] : []);
+const itemMediaKeys = it => [...new Set([...((it&&it.images)||[]).map(i=>i.key), it&&it.mediaKey].filter(Boolean))];
+// delete stored files that the saved item no longer uses
+function pruneMedia(oldItem, newData){
+  const keep = new Set(itemMediaKeys(newData));
+  itemMediaKeys(oldItem).forEach(k=>{ if(!keep.has(k)) idbDelete(k); });
+}
 
+// ---- picker (used inside the add/edit forms) ----
+const IMGPICK = {};   // pickerId -> [{key,name} (already stored) | {dataUrl,name} (new)]
+let _pickDrag = null;
+function imgPickerHTML(id, existing){
+  IMGPICK[id] = (existing||[]).map(x=>({key:x.key, name:x.name||'image'}));
+  return `<div class="img-picker">
+    <div class="media-drop" onclick="document.getElementById('${id}-in').click()"><i class="bi bi-images me-1"></i>Choose images or drop them here — as many as you like<input type="file" id="${id}-in" accept="image/*" multiple style="display:none" onclick="event.stopPropagation()" onchange="imgPickerAdd('${id}',this)"></div>
+    <div class="img-picker-grid" id="${id}-grid"></div>
+    <div class="small text-muted mt-1">Drag thumbnails or use ‹ › to reorder. The first image is the cover.</div>
+  </div>`;
+}
+async function imgPickerAdd(id, input){
+  const files = [...input.files].filter(f=>/^image\//.test(f.type)); input.value = '';
+  if(!files.length){ alert('Please choose image files.'); return; }
+  const list = IMGPICK[id] || (IMGPICK[id] = []), pt = progressToast('Reading images…');
+  try{
+    for(let n=0;n<files.length;n++){
+      pt.set('Reading image '+(n+1)+' of '+files.length+'…');
+      try{ list.push({dataUrl: await shrinkImage(files[n]), name: files[n].name}); }
+      catch(e){ alert('Could not read "'+files[n].name+'": '+(e.message||e)); }
+    }
+  } finally { pt.close(); }
+  imgPickerRender(id);
+}
+function imgPickerMove(id, i, d){ const l = IMGPICK[id]; if(!l || i+d<0 || i+d>=l.length) return; [l[i], l[i+d]] = [l[i+d], l[i]]; imgPickerRender(id); }
+function imgPickerRemove(id, i){ IMGPICK[id].splice(i,1); imgPickerRender(id); }
+function imgPickerRender(id){
+  const grid = document.getElementById(id+'-grid'); if(!grid) return;
+  const list = IMGPICK[id] || [];
+  grid.innerHTML = list.map((x,i)=>`<div class="img-tile" draggable="true" data-i="${i}" title="${escA(x.name||'')}"><img alt="" draggable="false"><span class="img-n">${i+1}</span>
+    <div class="img-tile-btns">
+      <button type="button" onclick="imgPickerMove('${id}',${i},-1)" aria-label="Move earlier" ${i===0?'disabled':''}><i class="bi bi-chevron-left"></i></button>
+      <button type="button" class="rm" onclick="imgPickerRemove('${id}',${i})" aria-label="Remove image"><i class="bi bi-x-lg"></i></button>
+      <button type="button" onclick="imgPickerMove('${id}',${i},1)" aria-label="Move later" ${i===list.length-1?'disabled':''}><i class="bi bi-chevron-right"></i></button>
+    </div></div>`).join('');
+  grid.querySelectorAll('.img-tile').forEach(t=>{
+    const i = +t.dataset.i, img = t.querySelector('img');
+    if(list[i].dataUrl) img.src = list[i].dataUrl; else idbGet(list[i].key).then(d=>{ if(d) img.src = d; });
+    t.addEventListener('dragstart', e=>{ _pickDrag = {id,i}; t.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',''); e.stopPropagation(); });
+    t.addEventListener('dragend', ()=>{ t.classList.remove('dragging'); grid.querySelectorAll('.img-tile').forEach(x=>x.classList.remove('drag-over-item')); });
+    t.addEventListener('dragover', e=>{ if(_pickDrag && _pickDrag.id===id){ e.preventDefault(); e.stopPropagation(); t.classList.add('drag-over-item'); } });
+    t.addEventListener('dragleave', ()=>t.classList.remove('drag-over-item'));
+    t.addEventListener('drop', e=>{
+      if(!_pickDrag || _pickDrag.id!==id) return;
+      e.preventDefault(); e.stopPropagation();
+      if(_pickDrag.i!==i){ const [m] = list.splice(_pickDrag.i,1); list.splice(i,0,m); }
+      _pickDrag = null; imgPickerRender(id);
+    });
+  });
+}
+// uploads the new ones, returns the final ordered [{key,name}]
+async function imgPickerCommit(id, prefix, busy){
+  const list = IMGPICK[id] || [], todo = list.filter(x=>!x.key), total = todo.length || 1;
+  const prog = new Map(); let next = 0;
+  const report = ()=> busy.progress([...prog.values()].reduce((a,b)=>a+b,0) / total);
+  const worker = async ()=>{
+    while(next < todo.length){
+      const x = todo[next++];
+      const key = prefix + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+      await idbPut(key, x.dataUrl, p=>{ prog.set(key, p); report(); });
+      prog.set(key, 1); report();
+      x.key = key; delete x.dataUrl;
+    }
+  };
+  await Promise.all(Array.from({length: Math.min(3, todo.length)}, worker));
+  return list.map(x=>({key:x.key, name:x.name}));
+}
+
+// ---- slider (used wherever an Image item is shown) ----
+function imageSliderHTML(item){
+  const imgs = itemImages(item); if(!imgs.length) return '';
+  const many = imgs.length > 1, label = item.title || item.q || 'Image';
+  return `<div class="img-slider" data-title="${escA(label)}">
+    <div class="img-stage">
+      <div class="img-track" tabindex="0" role="group" aria-label="Image slider" onscroll="sliderSync(this)" onkeydown="sliderKey(event,this)">
+        ${imgs.map((im,i)=>`<figure class="img-slide"><img data-key="${escA(im.key)}" data-name="${escA(im.name||'')}" draggable="false" alt="${escA(label+' — '+(i+1)+' of '+imgs.length)}" title="Click to enlarge" onclick="openLightbox(this)"></figure>`).join('')}
+      </div>
+      ${many ? `<button type="button" class="img-nav prev" onclick="sliderGo(this,-1)" aria-label="Previous image"><i class="bi bi-chevron-left"></i></button>
+      <button type="button" class="img-nav next" onclick="sliderGo(this,1)" aria-label="Next image"><i class="bi bi-chevron-right"></i></button>
+      <span class="img-count">1 / ${imgs.length}</span>` : ''}
+    </div>
+    ${many ? `<div class="img-dots">${imgs.map((_,i)=>`<button type="button" class="img-dot ${i===0?'on':''}" onclick="sliderDot(this,${i})" aria-label="Go to image ${i+1}"></button>`).join('')}</div>` : ''}
+    <div class="item-media-actions">
+      <span class="item-media-name img-cap">${esc(imgs[0].name||'')}</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="sliderDownload(this)"><i class="bi bi-download me-1"></i>Download</button>
+      ${many ? `<button type="button" class="btn btn-sm btn-outline-secondary" onclick="sliderDownloadAll(this)"><i class="bi bi-file-earmark-zip me-1"></i>All (.zip)</button>` : ''}
+    </div>
+  </div>`;
+}
+function hydrateSliders(scope){
+  (scope||document).querySelectorAll('.img-slider img[data-key]:not([src])').forEach(img=>{
+    idbGet(img.dataset.key).then(d=>{ if(d) img.src = d; else img.alt = 'Could not load this image'; });
+  });
+}
+const sliderIdx = t => Math.round(t.scrollLeft / Math.max(1, t.clientWidth));
+function sliderSync(t){
+  const s = t.closest('.img-slider'), i = sliderIdx(t), n = t.children.length;
+  const c = s.querySelector('.img-count'); if(c) c.textContent = (i+1)+' / '+n;
+  s.querySelectorAll('.img-dot').forEach((d,k)=>d.classList.toggle('on', k===i));
+  const im = t.children[i] && t.children[i].querySelector('img'), cap = s.querySelector('.img-cap');
+  if(cap && im) cap.textContent = im.dataset.name || '';
+}
+function sliderTo(s, i, instant){
+  const t = s.querySelector('.img-track'), n = t.children.length; i = (i+n)%n;
+  t.scrollTo({left:i*t.clientWidth, behavior: instant ? 'auto' : 'smooth'});
+}
+function sliderGo(btn, d){ const s = btn.closest('.img-slider'); sliderTo(s, sliderIdx(s.querySelector('.img-track'))+d); }
+function sliderDot(btn, i){ sliderTo(btn.closest('.img-slider'), i); }
+function sliderKey(e, t){
+  if(e.key==='ArrowRight'){ e.preventDefault(); sliderTo(t.closest('.img-slider'), sliderIdx(t)+1); }
+  else if(e.key==='ArrowLeft'){ e.preventDefault(); sliderTo(t.closest('.img-slider'), sliderIdx(t)-1); }
+}
+function sliderDownload(btn){
+  const t = btn.closest('.img-slider').querySelector('.img-track'), img = t.children[sliderIdx(t)].querySelector('img');
+  if(!img || !img.src){ alert('Image is still loading.'); return; }
+  downloadBlob(dataUrlToBlob(img.src), img.dataset.name || 'image.jpg');
+}
+function sliderDownloadAll(btn){
+  const s = btn.closest('.img-slider'), imgs = [...s.querySelectorAll('img[data-key]')].filter(i=>i.src);
+  if(!imgs.length){ alert('Images are still loading.'); return; }
+  const files = imgs.map((im,i)=>({name: String(i+1).padStart(2,'0')+'-'+(im.dataset.name||'image.jpg').replace(/[\\/]/g,'_'), data: dataUrlToBytes(im.src)}));
+  downloadBlob(new Blob([zipStore(files)], {type:'application/zip'}), (s.dataset.title||'images').replace(/[^\w.-]+/g,'_')+'.zip');
+}
+// Full-screen preview, with next/previous when the image belongs to a slider
+function openLightbox(img){
+  if(!img || !img.src) return;
+  const slider = img.closest('.img-slider');
+  const list = slider ? [...slider.querySelectorAll('img[src]')] : [img];
+  let idx = Math.max(0, list.indexOf(img)); const many = list.length > 1;
+  const ov = document.createElement('div'); ov.className = 'lightbox'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','Image preview'); ov.tabIndex = -1;
+  ov.innerHTML = '<img alt=""><button type="button" class="lightbox-close" aria-label="Close preview"><i class="bi bi-x-lg"></i></button>' +
+    (many ? '<button type="button" class="lightbox-nav prev" aria-label="Previous"><i class="bi bi-chevron-left"></i></button><button type="button" class="lightbox-nav next" aria-label="Next"><i class="bi bi-chevron-right"></i></button><span class="lightbox-count"></span>' : '');
+  const big = ov.querySelector('img'), cnt = ov.querySelector('.lightbox-count');
+  const show = i=>{ idx = (i+list.length)%list.length; big.src = list[idx].src; big.alt = list[idx].alt || ''; if(cnt) cnt.textContent = (idx+1)+' / '+list.length; };
+  const onKey = e=>{ if(e.key==='Escape') close(); else if(many && e.key==='ArrowRight') show(idx+1); else if(many && e.key==='ArrowLeft') show(idx-1); };
+  const close = ()=>{ ov.remove(); document.removeEventListener('keydown', onKey); if(slider && many) sliderTo(slider, idx, true); };
+  ov.addEventListener('click', e=>{ if(e.target===ov || e.target.closest('.lightbox-close')) close(); else if(e.target.closest('.lightbox-nav.prev')) show(idx-1); else if(e.target.closest('.lightbox-nav.next')) show(idx+1); });
+  document.addEventListener('keydown', onKey);
+  show(idx); document.body.appendChild(ov); ov.focus();
+}
 // Accepts "example.com/page" as well as full URLs; returns '' for anything that isn't a web link.
 function normUrl(u){
   u = String(u||'').trim();
@@ -646,7 +790,7 @@ function getAllAuthors(){
 }
 // The stored (custom) author that really holds an item, whichever card it is shown in.
 function customOwnerOf(itemId){ return customAuthors.find(a=>a.items.some(i=>i.id===itemId)); }
-const STALE_KEYS = ['points','steps','url','mediaKey','mediaName'];
+const STALE_KEYS = ['points','steps','url','mediaKey','mediaName','images'];
 function dropStale(obj, data){ STALE_KEYS.forEach(k=>{ if(!(k in data)) delete obj[k]; }); return obj; }
 // Puts a new item into an author's stored card (creating the hidden twin for built-in authors).
 function insertDocsItem(authorId, item, fallback){
@@ -740,10 +884,7 @@ function itemBodyHTML(item){
   if(item.type==='Diagram' && item.steps){
     html += `<div class="diagram-flow">${item.steps.map((s,i)=>`<span class="diagram-step">${esc(s)}</span>${i<item.steps.length-1?'<i class="bi bi-arrow-right diagram-arrow" aria-hidden="true"></i>':''}`).join('')}</div>`;
   }
-  if(item.type==='Image' && item.mediaKey){
-    html += `<img class="item-media-img" id="img-${escA(item.id)}" alt="${escA(item.title)}" title="Click to enlarge" onclick="openLightbox(this)">
-      <div class="item-media-actions">${item.mediaName ? `<span class="item-media-name"><i class="bi bi-paperclip me-1" aria-hidden="true"></i>${esc(item.mediaName)}</span>` : ''}<button class="btn btn-sm btn-outline-secondary" onclick="downloadStoredMedia('${item.id}')"><i class="bi bi-download me-1"></i>Download</button></div>`;
-  }
+  if(item.type==='Image') html += imageSliderHTML(item);
   if(item.type==='PDF' && item.mediaKey){
     html += `<div class="item-pdf-box"><i class="bi bi-file-earmark-pdf-fill"></i><span class="item-pdf-name">${esc(item.mediaName||'Attached PDF')}</span><button class="btn btn-sm btn-outline-primary" onclick="togglePdfPreview('${item.id}')"><i class="bi bi-eye me-1"></i>Preview</button><button class="btn btn-sm btn-outline-danger" onclick="downloadStoredMedia('${item.id}')"><i class="bi bi-download me-1"></i>Download</button></div><div id="pdf-preview-${item.id}" style="display:none"></div>`;
   }
@@ -856,15 +997,13 @@ function renderAuthorPosts(){
           </div>`;
         list.appendChild(el);
         attachItemDragEvents(el, author.id);
-        if(!itemClosed && item.type==='Image' && item.mediaKey){
-          idbGet(item.mediaKey).then(dataUrl=>{ const img=document.getElementById('img-'+item.id); if(img && dataUrl) img.src = dataUrl; });
-        }
+        
       });
     }
 
     attachAuthorDragEvents(card);
   });
-
+  hydrateSliders(board);
   if(board.children.length===0){
     board.innerHTML = `<p class="small text-muted text-center py-4"><i class="bi bi-inbox me-1"></i>Nothing in this section yet — tap "Add new content" above to add something here.</p>`;
   }
@@ -1166,7 +1305,8 @@ function deleteItem(authorId, itemId){
     if(owner){ owner.items.splice(Math.min(idx, owner.items.length), 0, removed); persistCustomAuthors(); }
     else { deletedItemIds.delete(itemId); localStorage.setItem('dotnet_deleted_items', JSON.stringify([...deletedItemIds])); }
     renderAuthorPosts();
-  }, ()=>{ if(item.mediaKey) idbDelete(item.mediaKey); });
+  }, ()=>{ itemMediaKeys(item).forEach(k=>idbDelete(k));  });
+      
 }
 
 // ---- CRUD: add / edit form ----
@@ -1203,7 +1343,7 @@ function openContentForm(authorId, itemId, category){
       <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional, collapsible)</span></label>${rteEditorHTML('naf-para','What\'s inside this PDF, briefly...', isEdit && item.type==='PDF'?item.summary||'':'')}</div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey && item.type==='Image' ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('naf-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image or drop it here<input type="file" id="naf-image-input" accept="image/*" style="display:none" onclick="event.stopPropagation()" onchange="handleMediaFile(event)"></div><div class="media-preview-name" id="naf-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
+      <div class="col-12"><label>Images <span class="text-danger">*</span> <span class="text-muted fw-normal">— add as many as you want, they show as a slider</span></label>${imgPickerHTML('naf-imgs', isEdit && item.type==='Image' ? itemImages(item) : [])}</div>
       <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('naf-summary','One or two lines of context', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
@@ -1256,6 +1396,7 @@ function openContentForm(authorId, itemId, category){
   if(category==='Content'){ document.getElementById('naf-type').value = (isEdit && ['Paragraph','Bullets','Diagram','Post'].includes(item.type)) ? item.type : 'Paragraph'; renderTypeFields(); }
   if((isEdit||presetAuthor) && authorNameVal){ const opt = document.querySelector('#appModalBody .optional-fields'); const btn = document.querySelector('#appModalBody .optional-toggle'); if(opt){ opt.classList.add('open'); btn.querySelector('i').className='bi bi-chevron-down'; } }
   draftSetup('docs|'+(isEdit?'e:'+itemId:'n:'+(pendingAuthorForAdd?pendingAuthorForAdd.id:'')+':'+(pendingDocsSection||''))+'|'+category, ()=>openContentForm(authorId,itemId,category));
+  if(category==='Image') imgPickerRender('naf-imgs');
 }
 function toggleOptionalAuthorFields(btn){
   const wrap = btn.nextElementSibling;
@@ -1646,6 +1787,7 @@ function contentIndex(){
     const text = e.type==='bullets' ? (e.points||[]).join(' ') : plain(e.text);
     out.push({kind:'My notes', icon:'bi-sticky', title:'Day '+n+' note', where:'Notes', body:text, tags:[], file:e.mediaName||'', nav:()=>{ if(window.UI) UI.goToDay(+n, true); }});
   });
+  jobApps.forEach(j=>out.push({kind:'Job applications', icon:'bi-briefcase', title:(j.company||'Untitled')+(j.role?' — '+j.role:''), where:jobStatusInfo(j.status)[1], body:[j.location, (j.jd||'').slice(0,400), plain(j.notes)].filter(Boolean).join(' '), tags:[], file:'', nav:()=>jumpToJobApp(j.id)}));
   _idxCache = out; _idxAt = Date.now();
   return out;
 }
@@ -1776,24 +1918,25 @@ async function submitContentForm(category){
 
   const old = editingItem ? (author && author.items.find(i=>i.id===editingItem.itemId)) : null;
   if(editingItem && !old){ alert('That item no longer exists.'); closeContentForm(); renderAuthorPosts(); return; }
-  const isMediaType = (type==='Image' || type==='PDF');
-  const keepOldMedia = !!(old && isMediaType && !pendingMedia && old.mediaKey && old.type===type);
-  if(isMediaType && !pendingMedia && !keepOldMedia){ alert(type==='PDF' ? 'Please choose a PDF file to upload.' : 'Please choose an image file to upload.'); return; }
-  if((type==='Link'||type==='Video'||type==='Post') && !itemData.url){ alert('Please enter a valid web link (https://…).'); return; }
-
-  if(isMediaType && pendingMedia){
-    const mediaKey = 'media-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
-    const busy = busyStart();
-    try{ await idbPut(mediaKey, pendingMedia.dataUrl, busy.progress); } finally { busy.done(); }
-    itemData.mediaKey = mediaKey;
-    itemData.mediaName = pendingMedia.name;
-  } else if(keepOldMedia){
-    itemData.mediaKey = old.mediaKey; itemData.mediaName = old.mediaName;
-  }
+ const isImg = type==='Image', isPDF = type==='PDF';
+const keepOldMedia = !!(old && isPDF && !pendingMedia && old.mediaKey && old.type==='PDF');
+if(isPDF && !pendingMedia && !keepOldMedia){ alert('Please choose a PDF file to upload.'); return; }
+if(isImg && !(IMGPICK['naf-imgs']||[]).length){ alert('Please add at least one image.'); return; }
+if((type==='Link'||type==='Video'||type==='Post') && !itemData.url){ alert('Please enter a valid web link (https://…).'); return; }
+if(isPDF && pendingMedia){
+  const mediaKey = 'media-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+  const busy = busyStart();
+  try{ await idbPut(mediaKey, pendingMedia.dataUrl, busy.progress); } finally { busy.done(); }
+  itemData.mediaKey = mediaKey; itemData.mediaName = pendingMedia.name;
+} else if(keepOldMedia){ itemData.mediaKey = old.mediaKey; itemData.mediaName = old.mediaName; }
+if(isImg){
+  const busy = busyStart();
+  try{ const imgs = await imgPickerCommit('naf-imgs','media-',busy); itemData.images = imgs; itemData.mediaKey = imgs[0].key; itemData.mediaName = imgs[0].name; } finally { busy.done(); }
+}
 
   let movedNote = '';
   if(editingItem){
-    if(old.mediaKey && old.mediaKey!==itemData.mediaKey) idbDelete(old.mediaKey);   // replaced, or type changed away from PDF/Image
+    pruneMedia(old, itemData);   // replaced, or type changed away from PDF/Image
     const secEl = document.getElementById('naf-move-section'), autEl = document.getElementById('naf-move-author');
     itemData.section = (secEl && secEl.value) || old.section || 'community';
     const targetId = (autEl && autEl.value) || authorId;
@@ -2214,6 +2357,8 @@ function resumeSectionSummary(key, count, extraLabel){
       <i class="bi bi-caret-down-fill ${idx>=last?'disabled':''}" onclick="event.preventDefault();moveResumeSection('${key}',1)" title="Move section down"></i>
     </span>
     ${RESUME_SECTION_LABELS[key]}${count!==undefined?` (${count})`:''} ${extraLabel?`<span class="text-muted fw-normal" style="font-size:0.68rem">${extraLabel}</span>`:''}
+    ${(resumeData.hidden||[]).includes(key) ? '<span class="badge text-bg-secondary ms-1" style="font-size:.62rem">hidden from resume</span>' : ''}
+    <i class="bi ${(resumeData.hidden||[]).includes(key)?'bi-eye-slash':'bi-eye'} resume-eye" role="button" tabindex="0" onclick="event.preventDefault();event.stopPropagation();toggleResumeSection('${key}')" title="${(resumeData.hidden||[]).includes(key)?'Show this section on the resume':'Hide this section from the resume'}" aria-label="Show or hide this section"></i>
   </summary>`;
 }
 
@@ -2241,7 +2386,7 @@ function restoreResumeDefault(){
   if(!confirm('Replace your current resume with the blank starting template?\n\nYour current version is saved first as "Backup before restore", so you can switch back to it from Tailored versions.')) return;
   resumeVersions.push({id:'v'+Date.now(), name:'Backup before restore ' + new Date().toLocaleDateString(), data: JSON.parse(JSON.stringify(resumeData)), savedAt: Date.now()});
   lsSave('dotnet_resume_versions', resumeVersions);
-  resumeData = JSON.parse(JSON.stringify(DEFAULT_RESUME));
+  resumeData = resumeMigrate(JSON.parse(JSON.stringify(DEFAULT_RESUME)));
   activeResumeVersionId = '';
   lsSave('dotnet_resume_active_version', '');
   saveResumeData();
@@ -2272,10 +2417,24 @@ function renderResumeBuilder(){
       </div>
 
       <div class="phase-card mb-3" style="padding:0.9rem 1rem">
-        <h6 class="fw-bold mb-2" style="font-size:0.85rem"><i class="bi bi-bullseye me-2 text-primary"></i>ATS Match Check <span class="text-muted fw-normal">(optional)</span></h6>
-        <textarea id="resume-jd-input" class="form-control form-control-sm mb-2" rows="3" placeholder="Paste a job description here to see your keyword match score..."></textarea>
-        <button class="btn btn-primary btn-sm mb-2" onclick="checkATSMatch()"><i class="bi bi-search me-1"></i>Check ATS Match</button>
-        <div id="resume-ats-result"><p class="small text-muted mb-0">Paste a job description above, then tap "Check ATS Match".</p></div>
+        <h6 class="fw-bold mb-2" style="font-size:0.85rem"><i class="bi bi-briefcase me-2 text-primary"></i>Job applications <span class="text-muted fw-normal">(optional)</span></h6>
+        <div id="job-tracker"></div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+          <div class="phase-card h-100" id="resume-ats-card" style="padding:0.9rem 1rem">
+            <h6 class="fw-bold mb-2" style="font-size:0.85rem"><i class="bi bi-bullseye me-2 text-primary"></i>ATS Match Check <span class="text-muted fw-normal">(optional)</span></h6>
+            <textarea id="resume-jd-input" class="form-control form-control-sm mb-2" rows="3" placeholder="Paste a job description here to see your keyword match score…" oninput="onJdInput(this.value)"></textarea>
+            <div id="resume-ats-result"></div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="phase-card h-100" style="padding:0.9rem 1rem">
+            <h6 class="fw-bold mb-2" style="font-size:0.85rem"><i class="bi bi-heart-pulse me-2 text-primary"></i>Resume health <span class="text-muted fw-normal">(quick checks)</span></h6>
+            <div id="resume-health"></div>
+          </div>
+        </div>
       </div>
 
       <div class="resume-toolbar">
@@ -2285,8 +2444,13 @@ function renderResumeBuilder(){
           <span id="resume-save-status" class="small text-muted" role="status">Changes save automatically</span>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-          <button class="btn btn-sm btn-outline-primary" onclick="downloadResumePDF()"><i class="bi bi-file-earmark-pdf me-1"></i>Download PDF</button>
-          <button class="btn btn-sm btn-outline-primary" onclick="downloadResumeTxt()"><i class="bi bi-filetype-txt me-1"></i>Plain text (ATS)</button>
+          <button class="btn btn-sm btn-outline-primary" onclick="downloadResumePDF()"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</button>
+          <button class="btn btn-sm btn-outline-primary" onclick="downloadResumeDocx()"><i class="bi bi-file-earmark-word me-1"></i>Word</button>
+          <button class="btn btn-sm btn-outline-primary" onclick="downloadResumeTxt()"><i class="bi bi-filetype-txt me-1"></i>Text (ATS)</button>
+          <button class="btn btn-sm btn-outline-primary" onclick="downloadResumeMd()"><i class="bi bi-markdown me-1"></i>Markdown</button>
+          <button class="btn btn-sm btn-outline-primary" onclick="downloadResumeJson()" title="A backup you can import later or on another device"><i class="bi bi-braces me-1"></i>JSON</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('resume-import-input').click()"><i class="bi bi-upload me-1"></i>Import</button>
+          <input type="file" id="resume-import-input" accept="application/json,.json" style="display:none" onchange="importResumeJson(event)">
         </div>
       </div>
 
@@ -2310,14 +2474,21 @@ function renderResumeBuilder(){
         </div>
         <div class="col-lg-6">
           <h6 class="fw-bold mb-2" style="font-size:0.82rem"><i class="bi bi-eye me-2 text-primary"></i>Live preview</h6>
-          <div id="resume-preview" class="resume-doc"></div>
+          <div class="phase-card mb-2" style="padding:.7rem .9rem"><div id="resume-design"></div></div>
+          <div id="resume-page-info" class="resume-page-info"></div>
+          <div id="resume-paper-box" class="resume-paper-box"><div id="resume-preview" class="resume-doc resume-paper"></div></div>
         </div>
       </div>
     `;
   }
   renderResumeVersionSelect();
   renderResumeEditor();
+  renderResumeDesign();
+  renderJobTracker();
+  const jd = document.getElementById('resume-jd-input'); if(jd) jd.value = resumeData.jd || '';
   updateResumePreview();
+  const box = document.getElementById('resume-paper-box');
+  if(box && !box.dataset.ro && window.ResizeObserver){ box.dataset.ro = '1'; new ResizeObserver(()=>fitResumePreview()).observe(box); }
 }
 
 // ---- Tailored resume versions: save/switch/delete named snapshots of resumeData ----
@@ -2355,10 +2526,13 @@ function switchResumeVersion(id){
   if(!resumeData.languages) resumeData.languages = [];
   if(!resumeData.customSections) resumeData.customSections = [];
   if(!resumeData.sectionOrder) resumeData.sectionOrder = ['summary','skills','experience','projects','education','achievements','certifications','languages','customSections'];
+  resumeMigrate(resumeData);
   activeResumeVersionId = id;
   localStorage.setItem('dotnet_resume_active_version', activeResumeVersionId);
   saveResumeData();
   renderResumeEditor();
+  renderResumeDesign();
+  syncJdBox();
   updateResumePreview();
 }
 function deleteResumeVersion(){
@@ -2537,6 +2711,11 @@ function renderResumeEditor(){
         <div class="col-md-6"><label>Title / role</label><input class="form-control form-control-sm" value="${escA(d.title||'')}" oninput="resumeData.title=this.value;saveAndPreview()"></div>
         <div class="col-md-6"><label>Email</label><input class="form-control form-control-sm" value="${escA(d.email)}" oninput="resumeData.email=this.value;saveAndPreview()"></div>
         <div class="col-md-6"><label>Phone</label><input class="form-control form-control-sm" value="${escA(d.phone)}" oninput="resumeData.phone=this.value;saveAndPreview()"></div>
+        <div class="col-12"><label>Location <span class="text-muted fw-normal">(city, country — optional)</span></label><input class="form-control form-control-sm" value="${escA(d.location||'')}" oninput="resumeData.location=this.value;saveAndPreview()"></div>
+        <div class="col-12"><label>Links <span class="text-muted fw-normal">(LinkedIn, GitHub, portfolio…)</span></label>
+          ${d.links.map((l,i)=>`<div class="d-flex gap-1 mb-1"><input class="form-control form-control-sm" style="max-width:110px" placeholder="Label" aria-label="Link label" value="${escA(l.label)}" oninput="resumeData.links[${i}].label=this.value;saveResumeData()"><input class="form-control form-control-sm" placeholder="linkedin.com/in/you" aria-label="Link address" value="${escA(l.url)}" oninput="setResumeLink(${i},this.value)"><button class="btn btn-sm btn-outline-danger" onclick="removeResumeLink(${i})" aria-label="Remove link"><i class="bi bi-x-lg"></i></button></div>`).join('')}
+          <div class="d-flex gap-1 flex-wrap mt-1"><button class="btn btn-sm btn-outline-primary" onclick="addResumeLink('LinkedIn')">+ LinkedIn</button><button class="btn btn-sm btn-outline-primary" onclick="addResumeLink('GitHub')">+ GitHub</button><button class="btn btn-sm btn-outline-primary" onclick="addResumeLink('Portfolio')">+ Portfolio</button><button class="btn btn-sm btn-outline-secondary" onclick="addResumeLink('')">+ Other</button></div>
+        </div>
       </div>
     </details>`;
 
@@ -2558,93 +2737,551 @@ function resumePreviewHTML(){
     languages: () => d.languages.length ? `<h2>Languages</h2>${d.languages.filter(l=>l.name).map(l=>`<div class="resume-skill-line"><strong>${esc(l.name)}:</strong> ${esc(l.level)}</div>`).join('')}` : '',
     customSections: () => (d.customSections||[]).filter(sec=>sec.title).map(sec=>`<h2>${esc(sec.title)}</h2><ul>${(sec.bullets||[]).map(b=>`<li>${esc(b)}</li>`).join('')}</ul>`).join('')
   };
+  const contact = [d.email, d.phone, d.location].filter(x=>x && x.trim()).map(esc)
+    .concat(d.links.filter(l=>l.url.trim()).map(l=>{ const u = normUrl(l.url); return u ? `<a href="${escA(safeUrl(u))}" target="_blank" rel="noopener noreferrer">${esc(resumeLinkShort(l.url))}</a>` : esc(l.url); }));
   return `
     <h1>${esc(d.name)}</h1>
-    <div class="resume-contact">${d.title?esc(d.title)+' &nbsp;•&nbsp; ':''}${esc(d.email)}${d.phone?' &nbsp;•&nbsp; '+esc(d.phone):''}</div>
-    ${resumeData.sectionOrder.map(key => sectionRenderers[key] ? sectionRenderers[key]() : '').join('')}
+    ${d.title ? `<div class="resume-headline">${esc(d.title)}</div>` : ''}
+    <div class="resume-contact">${contact.join(' &nbsp;•&nbsp; ')}</div>
+    ${resumeVisible().map(key => sectionRenderers[key] ? sectionRenderers[key]() : '').join('')}
   `;
 }
 
 function updateResumePreview(){
   const p = document.getElementById('resume-preview');
-  if(p) p.innerHTML = resumePreviewHTML();
+  if(p){ p.innerHTML = resumePreviewHTML(); applyResumeStyle(p); fitResumePreview(); }
   updateATSScore();
+  renderResumeHealth();
 }
 
-// ---- Lightweight, client-side ATS keyword match against a pasted job description ----
-const RESUME_STOPWORDS = new Set(['the','and','a','an','to','of','in','on','for','with','is','are','as','at','by','or','be','this','that','from','will','have','has','you','your','we','our','they','their','it','its','who','what','why','how','can','able','including','etc','also','into','across','than','then','such','using','use','used']);
-function resumeExtractKeywords(text){
-  return [...new Set((text||'').toLowerCase().replace(/[^a-z0-9+#.\s]/g,' ').split(/\s+/).filter(w=>w.length>2 && !RESUME_STOPWORDS.has(w)))];
+// ===================== RESUME: design, health check, smarter ATS, exports, job tracker =====================
+const RESUME_DEFAULT_STYLE = {template:'classic', accent:'#1f3a7a', font:'serif', size:'m', page:'a4'};
+const RESUME_ACCENTS = ['#1f3a7a','#0f766e','#7c2d12','#6d28d9','#be123c','#111827'];
+const RESUME_ALL_SECTIONS = ['summary','skills','experience','projects','education','achievements','certifications','languages','customSections'];
+const RESUME_SCHEMA = {
+  skills:['cat','items'], experience:['company','role','date'], projects:['title','tech','date'], education:['degree','school','year','detail'],
+  achievements:['title','org','date'], certifications:['name','issuer','date','url'], languages:['name','level'], customSections:['id','title']
+};
+const RESUME_BULLET_LISTS = ['experience','projects','achievements','customSections'];
+// Makes any resume object (old saves, imported JSON) safe and complete: right types, every new field present.
+function resumeMigrate(d){
+  if(!d || typeof d!=='object') return d;
+  Object.entries(RESUME_SCHEMA).forEach(([k,fields])=>{
+    d[k] = (Array.isArray(d[k]) ? d[k] : []).filter(x=>x && typeof x==='object').map(x=>{
+      fields.forEach(f=>{ x[f] = x[f]==null ? '' : String(x[f]); });
+      if(RESUME_BULLET_LISTS.includes(k)) x.bullets = (Array.isArray(x.bullets) ? x.bullets : []).map(b=>String(b));
+      return x;
+    });
+  });
+  ['name','title','email','phone','summary','location','jd'].forEach(k=>{ d[k] = d[k]==null ? '' : String(d[k]); });
+  d.links = (Array.isArray(d.links) ? d.links : []).filter(l=>l && typeof l==='object').map(l=>({label:String(l.label||''), url:String(l.url||'')})).slice(0,8);
+  d.hidden = (Array.isArray(d.hidden) ? d.hidden : []).filter(k=>RESUME_ALL_SECTIONS.includes(k));
+  d.sectionOrder = (Array.isArray(d.sectionOrder) ? d.sectionOrder : []).filter(k=>RESUME_ALL_SECTIONS.includes(k));
+  RESUME_ALL_SECTIONS.forEach(k=>{ if(!d.sectionOrder.includes(k)) d.sectionOrder.push(k); });
+  const st = {...RESUME_DEFAULT_STYLE, ...(d.style && typeof d.style==='object' ? d.style : {})};
+  if(!['classic','modern','compact'].includes(st.template)) st.template = 'classic';
+  if(!['serif','sans'].includes(st.font)) st.font = 'serif';
+  if(!['s','m','l'].includes(st.size)) st.size = 'm';
+  if(!['a4','letter'].includes(st.page)) st.page = 'a4';
+  if(!/^#[0-9a-f]{6}$/i.test(st.accent)) st.accent = RESUME_DEFAULT_STYLE.accent;
+  d.style = st;
+  return d;
+}
+resumeMigrate(resumeData);
+const resumeVisible = () => resumeData.sectionOrder.filter(k=>!resumeData.hidden.includes(k));
+function toggleResumeSection(key){
+  const h = resumeData.hidden, i = h.indexOf(key);
+  if(i>=0) h.splice(i,1); else h.push(key);
+  saveResumeData(); renderResumeEditor(); updateResumePreview();
+}
+// ---- contact: location + links ----
+function resumeLinkShort(u){ return String(u||'').replace(/^https?:\/\//i,'').replace(/^www\./i,'').replace(/\/$/,''); }
+function resumeContactList(){
+  const d = resumeData;
+  return [d.email, d.phone, d.location, ...d.links.map(l=>resumeLinkShort(l.url))].filter(x=>x && String(x).trim());
+}
+function addResumeLink(label){
+  if(resumeData.links.length >= 8){ alert('You can add up to 8 links.'); return; }
+  resumeData.links.push({label:label||'', url:''}); saveResumeData(); renderResumeEditor();
+}
+function setResumeLink(i, url){ if(resumeData.links[i]){ resumeData.links[i].url = url; saveAndPreview(); } }
+function removeResumeLink(i){ resumeData.links.splice(i,1); saveResumeData(); renderResumeEditor(); updateResumePreview(); }
+
+// ---- look & layout ----
+function applyResumeStyle(el){
+  if(!el) return;
+  const st = resumeData.style;
+  el.className = el.className.replace(/\b(rt|rf|rs)-\w+/g,'').trim();
+  el.classList.add('resume-doc','rt-'+st.template,'rf-'+st.font,'rs-'+st.size);
+  el.style.setProperty('--ra', st.accent);
+}
+function resumePageSpec(){
+  const letter = resumeData.style.page==='letter';
+  const wMm = letter ? 215.9 : 210, hMm = letter ? 279.4 : 297, mMm = 12, px = mm => mm*96/25.4;
+  return {letter, widthPx:px(wMm), marginPx:px(mMm), innerPx:px(hMm-2*mMm), label: letter ? 'Letter' : 'A4'};
+}
+let _resumePages = null;
+// Shows the resume at true paper size (scaled to fit), draws page-break guides and works out the page count.
+function fitResumePreview(){
+  const paper = document.getElementById('resume-preview'), box = document.getElementById('resume-paper-box');
+  if(!paper || !box || !paper.offsetWidth) return;      // tab not visible: nothing to measure yet (re-run when it is shown)
+  const spec = resumePageSpec();
+  paper.style.width = spec.widthPx + 'px';
+  paper.style.padding = spec.marginPx + 'px';
+  paper.querySelectorAll('.resume-page-guide').forEach(g=>g.remove());
+  const contentH = paper.scrollHeight - 2*spec.marginPx;
+  const pages = Math.max(0.05, contentH / spec.innerPx);
+  _resumePages = pages;
+  for(let k=1; k<Math.ceil(pages-0.02); k++){
+    const g = document.createElement('div'); g.className = 'resume-page-guide'; g.style.top = (spec.marginPx + k*spec.innerPx) + 'px';
+    g.innerHTML = '<span title="Page '+(k+1)+' starts here">page '+(k+1)+'</span>';
+    paper.appendChild(g);
+  }
+  const k = Math.min(1, (box.clientWidth || spec.widthPx) / spec.widthPx);
+  paper.style.transform = 'scale('+k+')';
+  box.style.height = (paper.offsetHeight * k) + 'px';
+  const info = document.getElementById('resume-page-info');
+  if(info){
+    const p1 = Math.round(pages*10)/10;
+    const cls = pages <= 1.02 ? 'ok' : pages <= 2.02 ? 'warn' : 'bad';
+    info.className = 'resume-page-info ' + cls;
+    info.innerHTML = `<i class="bi ${cls==='ok'?'bi-check-circle-fill':'bi-file-earmark-text'} me-1"></i>≈ ${p1<=1?'1 page':p1+' pages'} on ${spec.label}` +
+      (pages > 1.02 ? ` · <button type="button" class="btn btn-link btn-sm p-0 align-baseline" onclick="autoFitResume()">Fit to one page</button>` : '');
+  }
+}
+function setResumeStyle(key, val){
+  resumeData.style[key] = val;
+  saveResumeData(); renderResumeDesign(); updateResumePreview();
+}
+// Tries tighter layouts until the resume fits on one page; leaves it alone if it can't.
+function autoFitResume(){
+  const st = resumeData.style, orig = {...st};
+  if(_resumePages!==null && _resumePages <= 1.02){ if(window.UI) UI.toast('Already fits on one page'); return; }
+  const tries = [{size:'m'},{size:'s'},{template:'compact',size:'m'},{template:'compact',size:'s'}];
+  for(const t of tries){
+    Object.assign(st, orig, t);
+    const p = document.getElementById('resume-preview'); if(p){ p.innerHTML = resumePreviewHTML(); applyResumeStyle(p); fitResumePreview(); }
+    if(_resumePages <= 1.02){ saveResumeData(); renderResumeDesign(); updateResumePreview(); if(window.UI) UI.toast('Fitted to one page'); return; }
+  }
+  Object.assign(st, orig); updateResumePreview();
+  alert('Even the tightest layout runs over one page. Shorten some bullets, hide a section (the eye icon) or drop older roles.');
+}
+function renderResumeDesign(){
+  const box = document.getElementById('resume-design'); if(!box) return;
+  const st = resumeData.style;
+  const seg = (key, opts) => `<div class="btn-group btn-group-sm" role="group" aria-label="${key}">${opts.map(([v,l])=>`<button type="button" class="btn ${st[key]===v?'btn-dark':'btn-outline-secondary'}" onclick="setResumeStyle('${key}','${v}')">${l}</button>`).join('')}</div>`;
+  box.innerHTML = `
+    <div class="d-flex flex-wrap gap-3 align-items-center">
+      <div><div class="small text-muted mb-1">Template</div>${seg('template',[['classic','Classic'],['modern','Modern'],['compact','Compact']])}</div>
+      <div><div class="small text-muted mb-1">Font</div>${seg('font',[['serif','Serif'],['sans','Sans']])}</div>
+      <div><div class="small text-muted mb-1">Text size</div>${seg('size',[['s','Small'],['m','Medium'],['l','Large']])}</div>
+      <div><div class="small text-muted mb-1">Paper</div>${seg('page',[['a4','A4'],['letter','Letter']])}</div>
+      <div><div class="small text-muted mb-1">Accent colour <span class="text-muted">(Modern)</span></div>
+        <div class="d-flex gap-1 align-items-center">${RESUME_ACCENTS.map(c=>`<button type="button" class="resume-swatch ${st.accent.toLowerCase()===c?'on':''}" style="background:${c}" onclick="setResumeStyle('accent','${c}')" aria-label="Accent ${c}"></button>`).join('')}
+        <label class="resume-swatch custom" title="Pick any colour"><i class="bi bi-plus"></i><input type="color" value="${escA(st.accent)}" onchange="setResumeStyle('accent',this.value)" aria-label="Custom accent colour"></label></div></div>
+    </div>`;
+}
+
+// ---- resume health check (rules of thumb, not a verdict) ----
+const RESUME_WEAK_STARTS = ['responsible for','worked on','helped','assisted','tasked with','duties included','in charge of','involved in','participated in','handled','dealt with'];
+const RESUME_STRONG = new Set(('led built designed developed delivered launched created improved reduced increased managed owned drove implemented optimized optimised automated migrated architected mentored coached negotiated analyzed analysed resolved streamlined established introduced shipped scaled secured simplified trained planned organized organised coordinated generated saved won grew cut boosted achieved earned supported presented wrote tested deployed maintained refactored integrated configured monitored researched evaluated reviewed audited produced processed sold served advised hired onboarded redesigned rebuilt initiated spearheaded executed administered operated prepared leveraged championed collaborated contributed partnered translated unified standardized standardised modernized modernised accelerated eliminated expanded consolidated diagnosed investigated documented facilitated mapped forecasted budgeted recruited supervised directed oversaw cleared closed raised published taught guided assembled drafted').split(' '));
+const RESUME_METRIC_RE = /\d|%|[$€£₹]|\b(?:dozens|hundreds|thousands|millions?|billions?|double[ds]?|triple[ds]?|half)\b/i;
+function resumeBullets(){
+  const d = resumeData, vis = new Set(resumeVisible()), out = [];
+  const add = (sec, label, arr) => (arr||[]).forEach(b=>{ if(b && String(b).trim()) out.push({sec, label, text:String(b).trim()}); });
+  if(vis.has('experience')) d.experience.forEach(x=>add('Experience', x.company||x.role||'a job', x.bullets));
+  if(vis.has('projects')) d.projects.forEach(x=>add('Projects', x.title||'a project', x.bullets));
+  if(vis.has('achievements')) d.achievements.forEach(x=>add('Achievements', x.title||'an award', x.bullets));
+  if(vis.has('customSections')) d.customSections.forEach(x=>add(x.title||'Custom', x.title||'section', x.bullets));
+  return out;
+}
+function resumeHealth(){
+  const d = resumeData, vis = new Set(resumeVisible()), issues = [];
+  const bad = (title, items) => issues.push({lv:'bad', title, items});
+  const warn = (title, items) => issues.push({lv:'warn', title, items});
+  const tip = (title, items) => issues.push({lv:'tip', title, items});
+  const clip = (s,n) => s.length>n ? s.slice(0,n)+'…' : s;
+  // 1. placeholders & contact basics
+  const all = [d.name,d.title,d.summary,d.email,d.phone,d.location, ...d.skills.map(s=>s.cat+' '+s.items), ...resumeBullets().map(b=>b.text),
+    ...d.experience.flatMap(x=>[x.company,x.role,x.date]), ...d.education.flatMap(e=>[e.degree,e.school,e.year])].join(' \n ');
+  const ph = (all.match(/\[[^\]\n]{2,60}\]/g)||[]);
+  if(ph.length) bad(ph.length+' placeholder'+(ph.length===1?'':'s')+' like '+ph[0]+' still need replacing', ph.slice(0,4));
+  if(!d.name.trim() || /your full name/i.test(d.name)) bad('Add your real name');
+  if(!d.email.trim() || /you@example\.com/i.test(d.email)) bad('Add your real email address');
+  else if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email.trim())) warn('That email address looks incomplete', [d.email]);
+  if(!d.phone.trim() || /\+00 00000/.test(d.phone)) warn('Add a phone number (recruiters like to call)');
+  if(!d.links.some(l=>/linkedin/i.test(l.url))) tip('Add your LinkedIn link under Contact — most recruiters look for it');
+  // 2. summary
+  if(vis.has('summary')){
+    const words = d.summary.trim().split(/\s+/).filter(Boolean).length;
+    if(!words) warn('Write a short summary (2–3 lines) aimed at the job you want');
+    else if(words < 18) tip('Your summary is very short ('+words+' words) — aim for about 25–60');
+    else if(words > 90) tip('Your summary is long ('+words+' words) — trim it to 2–4 lines');
+    if(/\b(i|my|me)\b/i.test(d.summary)) tip('Avoid first-person words (I, my) in the summary — write it without them');
+  }
+  // 3. bullets
+  const bullets = resumeBullets().filter(b=>!/\[[^\]]+\]/.test(b.text));
+  if(bullets.length){
+    const weak = bullets.filter(b=>RESUME_WEAK_STARTS.some(w=>b.text.toLowerCase().startsWith(w)));
+    if(weak.length) warn(weak.length+' bullet'+(weak.length===1?'':'s')+' start with a weak phrase ("responsible for", "worked on"…) — start with what you did', weak.slice(0,3).map(b=>clip(b.text,70)));
+    const noVerb = bullets.filter(b=>{
+      const w = (b.text.toLowerCase().match(/^[a-z]+/)||[''])[0];
+      return !weak.includes(b) && w && !RESUME_STRONG.has(w) && !RESUME_STRONG.has(w.replace(/s$/,'')) && !/ed$/.test(w) && !/^(?:built|led|ran|won|grew|cut|drove|wrote|made|set|sold|taught|spent|brought|began|chose|found|held|kept|met|paid|put|read|sent|took|thought|understood|oversaw)$/.test(w);
+    });
+    if(noVerb.length) tip(noVerb.length+' bullet'+(noVerb.length===1?'':'s')+' don\'t start with an action verb (Led, Built, Reduced, Delivered…)', noVerb.slice(0,3).map(b=>clip(b.text,70)));
+    const withNum = bullets.filter(b=>RESUME_METRIC_RE.test(b.text)).length;
+    if(withNum/bullets.length < 0.4) warn('Only '+withNum+' of '+bullets.length+' bullets include a number — add %, money, team size, volume or time saved');
+    const long = bullets.filter(b=>b.text.length > 230 || b.text.split(/\s+/).length > 38);
+    if(long.length) tip(long.length+' bullet'+(long.length===1?' is':'s are')+' very long — keep each to about 1–2 lines', long.slice(0,2).map(b=>clip(b.text,70)));
+    const short = bullets.filter(b=>b.text.split(/\s+/).length < 5);
+    if(short.length) tip(short.length+' bullet'+(short.length===1?' is':'s are')+' very short — say what you did and the result', short.slice(0,2).map(b=>b.text));
+    const firsts = {}; bullets.forEach(b=>{ const w = (b.text.toLowerCase().match(/^[a-z]+/)||[''])[0]; if(w) firsts[w] = (firsts[w]||0)+1; });
+    const rep = Object.entries(firsts).filter(([w,n])=>n>=3 && RESUME_STRONG.has(w)||n>=4).sort((a,b)=>b[1]-a[1])[0];
+    if(rep) tip('"'+rep[0]+'" starts '+rep[1]+' bullets — vary your opening verbs');
+  }
+  if(vis.has('experience')){
+    d.experience.forEach((x,i)=>{
+      const n = x.bullets.filter(b=>b.trim()).length;
+      if(x.company && n===0) warn('"'+x.company+'" has no bullet points');
+      else if(n > 7) tip('"'+(x.company||'A job')+'" has '+n+' bullets — keep the strongest 4–6');
+    });
+    const dates = d.experience.map(x=>x.date).filter(Boolean);
+    const kinds = new Set(dates.map(s=>/[A-Za-z]{3,}\s*\d{4}/.test(s) ? 'Mon YYYY' : /\d{1,2}[\/.-]\d{4}/.test(s) ? 'MM/YYYY' : /^\s*\d{4}/.test(s) ? 'YYYY' : 'other'));
+    if(kinds.size > 1) tip('Date formats are mixed ('+[...kinds].join(', ')+') — pick one style, e.g. Mon YYYY');
+    if(d.experience.some(x=>x.company && !x.date.trim())) warn('Some jobs have no dates');
+  }
+  if(vis.has('skills') && !d.skills.some(s=>s.items.trim() && !/^\[/.test(s.items))) warn('Add your key skills (use the same words as the job advert)');
+  if(vis.has('education') && !d.education.some(e=>e.degree.trim() && !/^\[/.test(e.degree))) tip('Add your education (or hide the section with the eye icon)');
+  // 4. length
+  if(_resumePages!==null){
+    if(_resumePages > 2.05) bad('The resume is about '+(Math.round(_resumePages*10)/10)+' pages — cut it to 2 pages or fewer');
+    else if(_resumePages > 1.05) tip('It runs to about '+(Math.round(_resumePages*10)/10)+' pages. One page is ideal under ~10 years of experience (try "Fit to one page")');
+  }
+  const pen = {bad:14, warn:7, tip:3};
+  const score = Math.max(0, 100 - issues.reduce((n,i)=>n+pen[i.lv],0));
+  return {score, issues};
+}
+function renderResumeHealth(){
+  const box = document.getElementById('resume-health'); if(!box) return;
+  const {score, issues} = resumeHealth();
+  const color = score>=85?'#16a34a':score>=65?'#2563eb':score>=40?'#d97706':'#dc2626';
+  const label = score>=85?'Strong':score>=65?'Good':score>=40?'Needs work':'Rough draft';
+  const ic = {bad:['bi-x-octagon-fill','#dc2626'], warn:['bi-exclamation-triangle-fill','#d97706'], tip:['bi-lightbulb-fill','#2563eb']};
+  box.innerHTML = `<div class="d-flex align-items-center gap-3 mb-2"><div style="font-size:1.9rem;font-weight:800;color:${color};line-height:1">${score}</div>
+      <div class="small text-muted"><b style="color:${color}">${label}</b><br>${issues.length ? issues.length+' thing'+(issues.length===1?'':'s')+' to look at' : 'Nothing to fix — nice work'}</div></div>` +
+    issues.map(i=>`<div class="resume-issue"><i class="bi ${ic[i.lv][0]}" style="color:${ic[i.lv][1]}" aria-hidden="true"></i><div><div>${esc(i.title)}</div>${i.items&&i.items.length?`<div class="resume-issue-eg">${i.items.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:''}</div></div>`).join('');
+}
+
+// ---- smarter ATS keyword match ----
+const ATS_STOP = new Set('the and a an to of in on for with is are as at by or be this that from will have has you your we our they their it its who what why how can able about into over under between through both may might could would should must also than then them these those such other more most any all each per one two three not but get got just very well while where when there here out up down off use using used new make made take taking including include includes etc plus nice good great strong excellent proven demonstrated required preferred responsibilities responsibility looking join role position candidate candidates experience experienced years year work working team teams ability skills skill knowledge understanding familiarity proficiency proficient relevant related across within ensure help support opportunity company business environment minimum degree bachelor master equivalent similar based high level day time need needs want best part full while ideal seeking responsible duties qualifications requirements benefits salary apply essential critical key important strongly highly net'.split(' '));
+const ATS_TECH = ['asp.net core','asp.net','entity framework core','entity framework','ef core','c#','.net core','.net','ci/cd','rest api','restful','web api','microservices','sql server','azure devops','azure','aws','gcp','docker','kubernetes','git','linq','blazor','signalr','grpc','rabbitmq','redis','kafka','mongodb','postgresql','mysql','oracle','angular','react','vue','typescript','javascript','node.js','python','java','sql','nosql','agile','scrum','tdd','unit testing','design patterns','dependency injection','oauth','jwt','html','css','tailwind','terraform','jenkins','github actions','selenium','jira','excel','power bi','tableau','salesforce','sap','project management','stakeholder management','customer service','data analysis','machine learning','api','cloud','security','testing','automation'];
+function atsEscape(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+function atsHas(text, term){
+  if(/^[^a-z0-9]|[^a-z0-9]$/.test(term)) return text.includes(term);
+  if(new RegExp('(^|[^a-z0-9+#])'+atsEscape(term)+'($|[^a-z0-9+#])').test(text)) return true;
+  if(!term.includes(' ') && term.length >= 6){                      // "managing" ~ "management"
+    const stem = term.replace(/(ing|ment|ation|ions?|ed|es|s)$/,'');
+    if(stem.length >= 5) return new RegExp('(^|[^a-z0-9])'+atsEscape(stem)).test(text);
+  }
+  return false;
+}
+function atsExtract(jd){
+  const text = ' ' + jd.toLowerCase().replace(/[\n\r\t]+/g,' ') + ' ';
+  const terms = new Map();                                           // term -> weight
+  ATS_TECH.forEach(t=>{ const m = text.match(new RegExp('(^|[^a-z0-9+#])'+atsEscape(t)+'(?=$|[^a-z0-9+#])','g')); if(m) terms.set(t, 3 + m.length); });
+  const words = text.replace(/[^a-z0-9+#.\s/-]/g,' ').split(/\s+/).map(w=>w.replace(/^[.\-/]+|[.\-/]+$/g,'')).filter(Boolean);
+  const ok = w => w.length > 2 && !ATS_STOP.has(w) && !/^\d+$/.test(w);
+  const uni = new Map(), bi = new Map();
+  words.forEach((w,i)=>{ if(ok(w)) uni.set(w,(uni.get(w)||0)+1); if(ok(w) && ok(words[i+1]||'')){ const b = w+' '+words[i+1]; bi.set(b,(bi.get(b)||0)+1); } });
+  bi.forEach((n,b)=>{ if(n >= 2 && !terms.has(b)) terms.set(b, 2 + n); });
+  const short = words.length < 70;
+  uni.forEach((n,w)=>{ if((n >= 2 || short) && !terms.has(w)) terms.set(w, n); });
+  // "asp.net" and "asp.net core" are one skill: keep only the longer known phrase
+  [...terms.keys()].forEach(t=>{ if(ATS_TECH.includes(t) && [...terms.keys()].some(u=>u!==t && ATS_TECH.includes(u) && u.length>t.length && u.includes(t))) terms.delete(t); });
+  const chosen = [...terms.entries()].sort((a,b)=>b[1]-a[1]).slice(0,45);
+  const phrases = chosen.filter(([t])=>t.includes(' ')).map(([t])=>t);
+  return chosen.filter(([t])=>t.includes(' ') || !phrases.some(p=>p.split(' ').includes(t) && !ATS_TECH.includes(t)));
 }
 function resumeToPlainText(){
-  const d = resumeData;
-  return [
-    d.name, d.title, d.summary,
-    d.skills.map(s=>s.cat+' '+s.items).join(' '),
-    d.education.map(e=>e.degree+' '+e.school+' '+(e.detail||'')).join(' '),
-    d.experience.map(x=>x.company+' '+x.role+' '+x.bullets.join(' ')).join(' '),
-    d.projects.map(p=>p.title+' '+p.tech+' '+p.bullets.join(' ')).join(' '),
-    d.achievements.map(a=>a.title+' '+a.org+' '+a.bullets.join(' ')).join(' '),
-    (d.certifications||[]).map(cert=>cert.name+' '+cert.issuer).join(' '),
-    (d.languages||[]).map(l=>l.name+' '+l.level).join(' '),
-    (d.customSections||[]).map(sec=>sec.title+' '+(sec.bullets||[]).join(' ')).join(' ')
-  ].join(' ').toLowerCase();
+  return resumeModel().map(b=>[b.title, ...(b.paras||[]), ...(b.lines||[]).map(l=>l.b+' '+l.t), ...(b.entries||[]).flatMap(e=>[e.head,e.sub,e.note,...e.bullets])].join(' ')).join(' ').concat(' ', resumeData.name, ' ', resumeData.title).toLowerCase();
 }
+function onJdInput(v){
+  resumeData.jd = v;
+  clearTimeout(window._jdT); window._jdT = setTimeout(()=>{ saveResumeData(); updateATSScore(); }, 350);
+}
+function syncJdBox(){ const el = document.getElementById('resume-jd-input'); if(el) el.value = resumeData.jd || ''; updateATSScore(); }
 function updateATSScore(){
-  const jdEl = document.getElementById('resume-jd-input');
-  const box = document.getElementById('resume-ats-result');
+  const jdEl = document.getElementById('resume-jd-input'), box = document.getElementById('resume-ats-result');
   if(!jdEl || !box) return;
   const jdText = jdEl.value.trim();
-  if(!jdText){ box.innerHTML = '<p class="small text-muted mb-0">Paste a job description above, then tap "Check ATS Match" to see your keyword score and what\'s missing.</p>'; return; }
-  const jdWords = resumeExtractKeywords(jdText);
-  const resumeText = resumeToPlainText();
-  const matched = jdWords.filter(w=>resumeText.includes(w));
-  const missing = jdWords.filter(w=>!resumeText.includes(w)).slice(0,18);
-  const score = jdWords.length ? Math.round(matched.length/jdWords.length*100) : 0;
+  if(!jdText){ box.innerHTML = '<p class="small text-muted mb-0">Paste a job description above to see your keyword score and what is missing.</p>'; return; }
+  const terms = atsExtract(jdText), text = resumeToPlainText();
+  if(!terms.length){ box.innerHTML = '<p class="small text-muted mb-0">Paste a longer job description so there are keywords to compare.</p>'; return; }
+  const total = terms.reduce((n,[,w])=>n+w,0);
+  const hit = [], miss = [];
+  terms.forEach(([t,w])=> (atsHas(text,t) ? hit : miss).push([t,w]));
+  const score = Math.round(hit.reduce((n,[,w])=>n+w,0) / total * 100);
   const color = score>=70?'#16a34a':score>=40?'#d97706':'#dc2626';
   box.innerHTML = `
-    <div class="d-flex align-items-center gap-3 mb-2">
-      <div style="font-size:1.9rem;font-weight:800;color:${color};line-height:1">${score}%</div>
-      <div class="small text-muted">Keyword match with this job description<br>(${matched.length} of ${jdWords.length} key terms found)</div>
-    </div>
-    ${missing.length ? `<div class="small mb-0"><strong>Consider adding these keywords:</strong><div class="mt-1">${missing.map(w=>`<span class="badge rounded-pill" style="background:#fef3c7;color:#92400e;margin:2px 3px 0 0;font-weight:600">${esc(w)}</span>`).join('')}</div></div>` : `<div class="small text-success mb-0"><i class="bi bi-check-circle me-1"></i>Great keyword coverage for this JD.</div>`}
-  `;
+    <div class="d-flex align-items-center gap-3 mb-2"><div style="font-size:1.9rem;font-weight:800;color:${color};line-height:1">${score}%</div>
+      <div class="small text-muted">Weighted keyword match<br>${hit.length} of ${terms.length} key terms found</div></div>
+    ${miss.length ? `<div class="small mb-2"><strong>Missing</strong> <span class="text-muted">— tap + to add one to your skills (only if it is true for you)</span><div class="mt-1">${miss.slice(0,20).map(([t])=>`<button type="button" class="ats-chip miss" onclick="addResumeKeyword(this.dataset.k)" data-k="${escA(t)}" title="Add to skills">${esc(t)} <i class="bi bi-plus-lg"></i></button>`).join('')}</div></div>` : ''}
+    ${hit.length ? `<div class="small"><strong>Found</strong><div class="mt-1">${hit.slice(0,24).map(([t])=>`<span class="ats-chip hit">${esc(t)}</span>`).join('')}</div></div>` : ''}`;
+}
+function addResumeKeyword(term){
+  term = String(term||'').trim(); if(!term) return;
+  const cat = 'Keywords from job description';
+  let g = resumeData.skills.find(s=>s.cat===cat);
+  if(!g){ g = {cat, items:''}; resumeData.skills.push(g); }
+  if(!g.items.toLowerCase().split(/\s*,\s*/).includes(term.toLowerCase())) g.items = g.items ? g.items + ', ' + term : term;
+  saveResumeData(); renderResumeEditor(); updateResumePreview();
+  if(window.UI) UI.toast('Added "'+term+'" to Skills');
 }
 function checkATSMatch(){ updateATSScore(); }
 
-// ---- Download: PDF via print (isolates just the resume), and a plain-text ATS-safe copy ----
+// ---- one model, many exports ----
+function resumeModel(){
+  const d = resumeData, out = [];
+  resumeVisible().forEach(k=>{
+    if(k==='summary' && d.summary.trim()) out.push({title:'Summary', paras:[d.summary.trim()]});
+    else if(k==='skills'){ const lines = d.skills.filter(s=>s.cat.trim()||s.items.trim()).map(s=>({b:s.cat.trim(), t:s.items.trim()})); if(lines.length) out.push({title:'Skills', lines}); }
+    else if(k==='experience'){ const e = d.experience.filter(x=>x.company.trim()).map(x=>({head:x.company, date:x.date, sub:x.role, note:'', bullets:x.bullets.filter(b=>b.trim())})); if(e.length) out.push({title:'Work Experience', entries:e}); }
+    else if(k==='projects'){ const e = d.projects.filter(x=>x.title.trim()).map(x=>({head:x.title, date:x.date, sub:x.tech, note:'', bullets:x.bullets.filter(b=>b.trim())})); if(e.length) out.push({title:'Projects', entries:e}); }
+    else if(k==='education'){ const e = d.education.filter(x=>x.degree.trim()).map(x=>({head:x.degree, date:x.year, sub:x.school, note:x.detail, bullets:[]})); if(e.length) out.push({title:'Education', entries:e}); }
+    else if(k==='achievements'){ const e = d.achievements.filter(x=>x.title.trim()).map(x=>({head:x.title, date:x.date, sub:x.org, note:'', bullets:x.bullets.filter(b=>b.trim())})); if(e.length) out.push({title:'Achievements', entries:e}); }
+    else if(k==='certifications'){ const e = d.certifications.filter(x=>x.name.trim()).map(x=>({head:x.name, date:x.date, sub:x.issuer, note:x.url, bullets:[]})); if(e.length) out.push({title:'Certifications', entries:e}); }
+    else if(k==='languages'){ const lines = d.languages.filter(x=>x.name.trim()).map(x=>({b:x.name.trim(), t:x.level.trim()})); if(lines.length) out.push({title:'Languages', lines}); }
+    else if(k==='customSections') d.customSections.filter(s=>s.title.trim()).forEach(s=>out.push({title:s.title.trim(), entries:[{head:'', date:'', sub:'', note:'', bullets:s.bullets.filter(b=>b.trim())}]}));
+  });
+  return out;
+}
+function resumeFileBase(){ return (resumeData.name||'resume').trim().replace(/[^\w.-]+/g,'_').replace(/^_+|_+$/g,'') || 'resume'; }
+function downloadResumeTxt(){
+  const d = resumeData;
+  let txt = d.name + '\n' + [d.title, ...resumeContactList()].filter(Boolean).join(' | ') + '\n\n';
+  resumeModel().forEach(b=>{
+    txt += b.title.toUpperCase() + '\n';
+    (b.paras||[]).forEach(p=>{ txt += p + '\n'; });
+    (b.lines||[]).forEach(l=>{ txt += (l.b ? l.b + ': ' : '') + l.t + '\n'; });
+    (b.entries||[]).forEach(e=>{
+      const head = [e.head, e.sub].filter(Boolean).join(' — ') + (e.date ? ' (' + e.date + ')' : '');
+      if(head) txt += head + '\n';
+      if(e.note) txt += e.note + '\n';
+      e.bullets.forEach(x=>{ txt += '- ' + x + '\n'; });
+    });
+    txt += '\n';
+  });
+  downloadBlob(new Blob([txt.trim()+'\n'], {type:'text/plain'}), resumeFileBase() + '_ATS.txt');
+}
+function downloadResumeMd(){
+  const d = resumeData;
+  let md = '# ' + d.name + '\n\n' + [d.title, ...resumeContactList()].filter(Boolean).join(' · ') + '\n\n';
+  resumeModel().forEach(b=>{
+    md += '## ' + b.title + '\n\n';
+    (b.paras||[]).forEach(p=>{ md += p + '\n\n'; });
+    if(b.lines) md += b.lines.map(l=>'- ' + (l.b ? '**' + l.b + ':** ' : '') + l.t).join('\n') + '\n\n';
+    (b.entries||[]).forEach(e=>{
+      const head = [e.head && '**' + e.head + '**', e.sub].filter(Boolean).join(' — ') + (e.date ? ' _(' + e.date + ')_' : '');
+      if(head) md += head + '\n\n';
+      if(e.note) md += e.note + '\n\n';
+      if(e.bullets.length) md += e.bullets.map(x=>'- ' + x).join('\n') + '\n\n';
+    });
+  });
+  downloadBlob(new Blob([md.trim()+'\n'], {type:'text/markdown'}), resumeFileBase() + '.md');
+}
+function downloadResumeJson(){
+  const payload = {app:'dotnet-tracker-resume', version:1, exportedAt:new Date().toISOString(), resume:resumeData};
+  downloadBlob(new Blob([JSON.stringify(payload,null,2)], {type:'application/json'}), resumeFileBase() + '_resume.json');
+}
+function importResumeJson(e){
+  const file = e.target.files[0]; e.target.value=''; if(!file) return;
+  if(file.size > 2*1024*1024){ alert('That file is too large to be a resume export.'); return; }
+  const r = new FileReader();
+  r.onload = ()=>{
+    let obj; try{ obj = JSON.parse(r.result); }catch(err){ alert('That file is not valid JSON.'); return; }
+    const src = obj && obj.resume && typeof obj.resume==='object' ? obj.resume : obj;
+    if(!src || typeof src!=='object' || Array.isArray(src) || typeof src.name!=='string'){ alert('This does not look like a resume export from this app.'); return; }
+    if(!confirm('Replace your current resume with "'+src.name+'"? Your current one is saved first as a version called "Backup before import".')) return;
+    resumeVersions.push({id:'ver-'+Date.now(), name:'Backup before import '+new Date().toLocaleDateString(), data:JSON.parse(JSON.stringify(resumeData)), savedAt:Date.now()});
+    lsSave('dotnet_resume_versions', resumeVersions);
+    resumeData = resumeMigrate(JSON.parse(JSON.stringify(src)));
+    activeResumeVersionId = null; localStorage.removeItem('dotnet_resume_active_version');
+    saveResumeData(); renderResumeBuilder();
+    if(window.UI) UI.toast('Resume imported');
+  };
+  r.readAsText(file);
+}
+// ---- Word (.docx): real bullets, right-aligned dates, no tables or text boxes, so ATS software reads it cleanly ----
+function xmlEsc(s){ return String(s==null?'':s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function buildResumeDocx(){
+  const d = resumeData, st = d.style, letter = st.page==='letter';
+  const pgW = letter ? 12240 : 11906, pgH = letter ? 15840 : 16838, mar = 680, textW = pgW - mar*2;
+  const font = st.font==='sans' ? 'Calibri' : 'Georgia';
+  const base = {s:19, m:21, l:23}[st.size] || 21;
+  const accent = (st.template==='modern' ? st.accent : '#111827').slice(1).toUpperCase();
+  const run = (t, o={}) => `<w:r><w:rPr>${o.b?'<w:b/>':''}${o.i?'<w:i/>':''}${o.color?`<w:color w:val="${o.color}"/>`:''}<w:sz w:val="${o.sz||base}"/><w:szCs w:val="${o.sz||base}"/></w:rPr><w:t xml:space="preserve">${xmlEsc(t)}</w:t></w:r>`;
+  const para = (runs, o={}) => `<w:p><w:pPr>${o.keep?'<w:keepNext/>':''}${o.num?'<w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>':''}${o.border?`<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="${o.border}"/></w:pBdr>`:''}${o.tab?`<w:tabs><w:tab w:val="right" w:pos="${textW}"/></w:tabs>`:''}<w:spacing w:before="${o.before||0}" w:after="${o.after==null?40:o.after}" w:line="${st.template==='compact'?240:264}" w:lineRule="auto"/></w:pPr>${runs}</w:p>`;
+  let body = para(run(d.name, {b:1, sz:base+16, color:accent}), {after:20});
+  if(d.title.trim()) body += para(run(d.title, {sz:base+3, color:'374151'}), {after:20});
+  const contact = resumeContactList();
+  if(contact.length) body += para(run(contact.join('  •  '), {sz:base-1, color:'4B5563'}), {after:60});
+  resumeModel().forEach(b=>{
+    body += para(run(b.title.toUpperCase(), {b:1, sz:base+1, color:accent}), {before:160, after:60, border:accent, keep:1});
+    (b.paras||[]).forEach(p=>{ body += para(run(p)); });
+    (b.lines||[]).forEach(l=>{ body += para((l.b ? run(l.b+': ', {b:1}) : '') + run(l.t), {after:20}); });
+    (b.entries||[]).forEach(e=>{
+      if(e.head || e.date) body += para(run(e.head, {b:1}) + (e.date ? '<w:r><w:tab/></w:r>' + run(e.date, {color:'4B5563', sz:base-1}) : ''), {tab:1, keep:1, after:0, before:60});
+      if(e.sub) body += para(run(e.sub, {i:1, color:'374151'}), {after:20, keep:e.bullets.length>0 || !!e.note});
+      if(e.note) body += para(run(e.note, {color:'4B5563', sz:base-1}), {after:20});
+      e.bullets.forEach(x=>{ body += para(run(x), {num:1, after:20}); });
+    });
+  });
+  const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const files = [
+    ['[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>`],
+    ['_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`],
+    ['word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/></Relationships>`],
+    ['word/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:cs="${font}" w:eastAsia="${font}"/><w:sz w:val="${base}"/><w:szCs w:val="${base}"/><w:lang w:val="en-US"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="40" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style></w:styles>`],
+    ['word/numbering.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering ${W}><w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="360" w:hanging="220"/></w:pPr></w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>`],
+    ['word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${body}<w:sectPr><w:pgSz w:w="${pgW}" w:h="${pgH}"/><w:pgMar w:top="${mar}" w:right="${mar}" w:bottom="${mar}" w:left="${mar}" w:header="360" w:footer="360" w:gutter="0"/></w:sectPr></w:body></w:document>`]
+  ];
+  const enc = new TextEncoder();
+  return new Blob([zipStore(files.map(([name,xml])=>({name, data:enc.encode(xml)})))], {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+}
+function downloadResumeDocx(){ downloadBlob(buildResumeDocx(), resumeFileBase() + '.docx'); }
+// ---- PDF through the browser's print dialog (choose "Save as PDF") ----
 function downloadResumePDF(){
   const root = document.getElementById('resume-print-root');
-  if(root) root.innerHTML = resumePreviewHTML();
+  if(root){ root.innerHTML = resumePreviewHTML(); applyResumeStyle(root); }
+  let ps = document.getElementById('resume-page-style');
+  if(!ps){ ps = document.createElement('style'); ps.id = 'resume-page-style'; document.head.appendChild(ps); }
+  ps.textContent = '@media print{@page{size:' + (resumeData.style.page==='letter' ? 'letter' : 'A4') + ';margin:12mm;}}';
   document.body.classList.add('resume-print-mode');
   window.print();
 }
 window.addEventListener('afterprint', ()=>document.body.classList.remove('resume-print-mode'));
 
-function downloadResumeTxt(){
-  const d = resumeData;
-  let txt = `${d.name}\n${d.email}${d.phone?' | '+d.phone:''}${d.title?'\n'+d.title:''}\n\n`;
-  if(d.summary) txt += `SUMMARY\n${d.summary}\n\n`;
-  if(d.skills.length){ txt += 'SKILLS\n'; d.skills.forEach(s=>{ if(s.cat||s.items) txt += `${s.cat}: ${s.items}\n`; }); txt += '\n'; }
-  if(d.experience.length){ txt += 'WORK EXPERIENCE\n'; d.experience.forEach(x=>{ if(!x.company) return; txt += `${x.company} — ${x.role} (${x.date})\n`; x.bullets.forEach(b=>txt+=`- ${b}\n`); txt += '\n'; }); }
-  if(d.projects.length){ txt += 'PROJECTS\n'; d.projects.forEach(p=>{ if(!p.title) return; txt += `${p.title}${p.tech?' — '+p.tech:''} (${p.date})\n`; p.bullets.forEach(b=>txt+=`- ${b}\n`); txt += '\n'; }); }
-  if(d.education.length){ txt += 'EDUCATION\n'; d.education.forEach(e=>{ if(!e.degree) return; txt += `${e.degree}, ${e.school} (${e.year})\n`; if(e.detail) txt += `${e.detail}\n`; }); txt += '\n'; }
-  if(d.achievements.length){ txt += 'ACHIEVEMENTS\n'; d.achievements.forEach(a=>{ if(!a.title) return; txt += `${a.title} — ${a.org} (${a.date})\n`; a.bullets.forEach(b=>txt+=`- ${b}\n`); }); txt += '\n'; }
-  if(d.certifications.length){ txt += 'CERTIFICATIONS\n'; d.certifications.forEach(cert=>{ if(!cert.name) return; txt += `${cert.name} — ${cert.issuer} (${cert.date})${cert.url?' — '+cert.url:''}\n`; }); txt += '\n'; }
-  if(d.languages.length){ txt += 'LANGUAGES\n'; d.languages.forEach(l=>{ if(!l.name) return; txt += `${l.name}: ${l.level}\n`; }); txt += '\n'; }
-  (d.customSections||[]).forEach(sec=>{
-    if(!sec.title) return;
-    txt += `${sec.title.toUpperCase()}\n`;
-    (sec.bullets||[]).forEach(b=>txt+=`- ${b}\n`);
-    txt += '\n';
-  });
-  const blob = new Blob([txt], {type:'text/plain'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = (d.name||'resume').trim().replace(/\s+/g,'_') + '_ATS.txt';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+// ===================== JOB APPLICATION TRACKER =====================
+const JOB_STATUSES = [['wishlist','Wishlist','#64748b'],['applied','Applied','#2563eb'],['screening','Screening','#7c3aed'],['interview','Interview','#d97706'],['offer','Offer','#16a34a'],['rejected','Rejected','#dc2626'],['withdrawn','Withdrawn','#6b7280']];
+const JOB_CLOSED = ['offer','rejected','withdrawn'];
+let jobApps = (()=>{ const a = lsJSON('dotnet_job_apps','[]'); return Array.isArray(a) ? a.filter(x=>x && typeof x==='object') : []; })();
+let jobFilter = 'all';
+function saveJobApps(){ lsSave('dotnet_job_apps', jobApps); }
+const jobStatusInfo = s => JOB_STATUSES.find(x=>x[0]===s) || JOB_STATUSES[0];
+function jobDate(s){ if(!/^\d{4}-\d{2}-\d{2}$/.test(s||'')) return ''; return new Date(s+'T00:00:00').toLocaleDateString([], {day:'numeric', month:'short'}); }
+function jobAddDays(n){ const d = new Date(); d.setDate(d.getDate()+n); return ymd(d); }
+function renderJobTracker(){
+  const box = document.getElementById('job-tracker'); if(!box) return;
+  const today = ymd(new Date());
+  const counts = {}; jobApps.forEach(j=>{ counts[j.status] = (counts[j.status]||0)+1; });
+  const applied = jobApps.filter(j=>j.status!=='wishlist').length, moved = jobApps.filter(j=>['screening','interview','offer'].includes(j.status)).length;
+  const due = jobApps.filter(j=>j.followUp && j.followUp<=today && !JOB_CLOSED.includes(j.status));
+  const list = jobApps.filter(j=>jobFilter==='all' || j.status===jobFilter).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const pills = [['all','All',jobApps.length], ...JOB_STATUSES.map(s=>[s[0], s[1], counts[s[0]]||0])]
+    .map(([k,l,n])=>`<button type="button" class="job-pill ${jobFilter===k?'on':''}" onclick="setJobFilter('${k}')">${l} <b>${n}</b></button>`).join('');
+  const rows = list.map(j=>{
+    const [,label,col] = jobStatusInfo(j.status), ver = resumeVersions.find(v=>v.id===j.versionId);
+    const fu = j.followUp && !JOB_CLOSED.includes(j.status) ? (j.followUp < today ? `<span class="job-fu over">Follow-up overdue · ${esc(jobDate(j.followUp))}</span>` : j.followUp === today ? '<span class="job-fu today">Follow up today</span>' : `<span class="job-fu">Follow up ${esc(jobDate(j.followUp))}</span>`) : '';
+    return `<div class="job-row" data-job-id="${escA(j.id)}" style="--jc:${col}">
+      <div class="job-main">
+        <div class="job-title"><b>${esc(j.company||'Untitled')}</b>${j.role ? ' — '+esc(j.role) : ''}${j.url && safeUrl(j.url)!=='#' ? ` <a href="${escA(safeUrl(j.url))}" target="_blank" rel="noopener noreferrer" aria-label="Open job posting" title="Open job posting"><i class="bi bi-box-arrow-up-right"></i></a>` : ''}</div>
+        <div class="job-meta">${j.location ? esc(j.location)+' · ' : ''}${j.appliedOn ? 'Applied '+esc(jobDate(j.appliedOn)) : 'Not applied yet'}${ver ? ' · <i class="bi bi-file-earmark-person" aria-hidden="true"></i> '+esc(ver.name) : ''} ${fu}</div>
+      </div>
+      <select class="job-status" aria-label="Status" onchange="setJobStatus('${escA(j.id)}', this.value)" style="border-color:${col};color:${col}">${JOB_STATUSES.map(s=>`<option value="${s[0]}" ${s[0]===j.status?'selected':''}>${s[1]}</option>`).join('')}</select>
+      <div class="job-actions">
+        ${j.jd ? `<button type="button" class="item-action-btn" onclick="matchJob('${escA(j.id)}')" title="Check my resume against this job's description" aria-label="Check match"><i class="bi bi-bullseye"></i></button>` : ''}
+        <button type="button" class="item-action-btn" onclick="snapshotForJob('${escA(j.id)}')" title="Save the current resume as a version for this job" aria-label="Save resume version"><i class="bi bi-file-earmark-plus"></i></button>
+        <button type="button" class="item-action-btn" onclick="openJobForm('${escA(j.id)}')" title="Edit" aria-label="Edit"><i class="bi bi-pencil"></i></button>
+        <button type="button" class="item-action-btn danger" onclick="deleteJobApp('${escA(j.id)}')" title="Delete" aria-label="Delete"><i class="bi bi-trash"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+  box.innerHTML = `
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+      <div class="small text-muted">${jobApps.length ? `${applied} applied · ${moved} moving forward${applied ? ' ('+Math.round(moved/applied*100)+'%)' : ''}` : 'Track every application: status, follow-up dates and the resume you sent.'}</div>
+      <button class="btn btn-sm btn-primary" onclick="openJobForm()"><i class="bi bi-plus-lg me-1"></i>Add application</button>
+    </div>
+    ${due.length ? `<div class="job-due"><i class="bi bi-bell-fill me-1" aria-hidden="true"></i><b>${due.length}</b> follow-up${due.length===1?'':'s'} due: ${due.slice(0,3).map(j=>esc(j.company||'Untitled')).join(', ')}${due.length>3?'…':''}</div>` : ''}
+    ${jobApps.length ? `<div class="job-pills">${pills}</div>` : ''}
+    <div class="job-list">${rows || (jobApps.length ? '<p class="small text-muted text-center py-2 mb-0">Nothing with this status.</p>' : '')}</div>`;
 }
+function setJobFilter(k){ jobFilter = k; renderJobTracker(); }
+function setJobStatus(id, status){
+  const j = jobApps.find(x=>x.id===id); if(!j) return;
+  const prev = j.status; j.status = status; j.updatedAt = Date.now();
+  if(status==='applied' && prev==='wishlist'){ if(!j.appliedOn) j.appliedOn = ymd(new Date()); if(!j.followUp) j.followUp = jobAddDays(7); }
+  if(JOB_CLOSED.includes(status)) j.followUp = '';
+  saveJobApps(); renderJobTracker();
+}
+function openJobForm(id){
+  const j = id ? jobApps.find(x=>x.id===id) : null;
+  if(id && !j) return;
+  const opt = (s, v) => `<option value="${escA(v)}" ${s===v?'selected':''}>`;
+  openModal(`
+    <div class="author-form docshub-form-compact mb-0">
+      <h6 class="form-title"><i class="bi bi-briefcase me-1"></i>${j?'Edit application':'Add application'}</h6>
+      <div class="row g-2">
+        <div class="col-md-6"><label>Company <span class="text-danger">*</span></label><input id="job-company" class="form-control" value="${escA(j?j.company:'')}"></div>
+        <div class="col-md-6"><label>Role <span class="text-danger">*</span></label><input id="job-role" class="form-control" value="${escA(j?j.role:'')}"></div>
+        <div class="col-md-6"><label>Job link</label><input id="job-url" class="form-control" placeholder="https://…" value="${escA(j?j.url:'')}"></div>
+        <div class="col-md-6"><label>Location</label><input id="job-location" class="form-control" placeholder="City / Remote" value="${escA(j?j.location:'')}"></div>
+        <div class="col-md-4"><label>Status</label><select id="job-status-f" class="form-select">${JOB_STATUSES.map(s=>`<option value="${s[0]}" ${(j?j.status:'wishlist')===s[0]?'selected':''}>${s[1]}</option>`).join('')}</select></div>
+        <div class="col-md-4"><label>Applied on</label><input id="job-applied" type="date" class="form-control" value="${escA(j?j.appliedOn:'')}"></div>
+        <div class="col-md-4"><label>Follow up on</label><input id="job-followup" type="date" class="form-control" value="${escA(j?j.followUp:'')}"></div>
+        <div class="col-12"><label>Resume version sent</label><select id="job-version" class="form-select"><option value="">— none / current —</option>${resumeVersions.map(v=>`<option value="${escA(v.id)}" ${j&&j.versionId===v.id?'selected':''}>${esc(v.name)}</option>`).join('')}</select></div>
+        <div class="col-12"><label>Job description <span class="text-muted fw-normal">(paste it — used for the ATS match)</span></label><textarea id="job-jd" class="form-control" rows="4">${esc(j?j.jd:'')}</textarea></div>
+        <div class="col-12"><label>Notes</label>${rteEditorHTML('job-notes','Contacts, interview dates, salary talk, questions…', j?j.notes:'')}</div>
+      </div>
+      <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-primary btn-sm" onclick="saveJobForm('${j?escA(j.id):''}')"><i class="bi bi-check2 me-1"></i>${j?'Save':'Add'}</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>`);
+  draftSetup('job|'+(j?'e:'+j.id:'n'), ()=>openJobForm(id));
+}
+function saveJobForm(id){
+  const company = document.getElementById('job-company').value.trim(), role = document.getElementById('job-role').value.trim();
+  if(!company || !role){ alert('Please fill in the company and the role.'); return; }
+  const urlRaw = document.getElementById('job-url').value.trim(), url = urlRaw ? normUrl(urlRaw) : '';
+  if(urlRaw && !url){ alert('That job link does not look valid.'); return; }
+  const status = document.getElementById('job-status-f').value;
+  const data = {company, role, url, location:document.getElementById('job-location').value.trim(), status,
+    appliedOn:document.getElementById('job-applied').value, followUp:JOB_CLOSED.includes(status) ? '' : document.getElementById('job-followup').value,
+    versionId:document.getElementById('job-version').value, jd:document.getElementById('job-jd').value, notes:rteGetHTML('job-notes'), updatedAt:Date.now()};
+  if(id){ const j = jobApps.find(x=>x.id===id); if(!j) return; Object.assign(j, data); }
+  else jobApps.unshift({id:'job-'+Date.now(), createdAt:Date.now(), ...data});
+  saveJobApps(); draftClear(); closeModal(); renderJobTracker();
+}
+function deleteJobApp(id){
+  const idx = jobApps.findIndex(x=>x.id===id); if(idx<0) return;
+  const removed = jobApps[idx];
+  jobApps.splice(idx,1); saveJobApps(); renderJobTracker();
+  toastUndo('Deleted "'+clipText(removed.company||'application')+'"', ()=>{ jobApps.splice(Math.min(idx, jobApps.length), 0, removed); saveJobApps(); renderJobTracker(); });
+}
+function matchJob(id){
+  const j = jobApps.find(x=>x.id===id); if(!j) return;
+  if(j.versionId && resumeVersions.some(v=>v.id===j.versionId) && j.versionId!==activeResumeVersionId) switchResumeVersion(j.versionId);
+  resumeData.jd = j.jd || ''; saveResumeData(); syncJdBox();
+  flashEl(document.getElementById('resume-ats-card'));
+  if(window.UI) UI.toast('Showing the match for '+(j.company||'this job'));
+}
+function snapshotForJob(id){
+  const j = jobApps.find(x=>x.id===id); if(!j) return;
+  const name = (j.company + (j.role ? ' – ' + j.role : '')).slice(0,60);
+  const ex = resumeVersions.find(v=>v.name.toLowerCase()===name.toLowerCase());
+  if(ex){ if(!confirm('A version called "'+name+'" already exists. Overwrite it with your current resume?')) return; ex.data = JSON.parse(JSON.stringify(resumeData)); ex.savedAt = Date.now(); j.versionId = ex.id; }
+  else { const v = {id:'ver-'+Date.now(), name, data:JSON.parse(JSON.stringify(resumeData)), savedAt:Date.now()}; resumeVersions.push(v); j.versionId = v.id; }
+  lsSave('dotnet_resume_versions', resumeVersions); j.updatedAt = Date.now(); saveJobApps();
+  renderResumeVersionSelect(); renderJobTracker();
+  if(window.UI) UI.toast('Saved resume version "'+name+'"');
+}
+function jumpToJobApp(id){
+  goTab('profile');
+  const b = [...document.querySelectorAll('.profile-subtab')].find(x=>(x.getAttribute('onclick')||'').includes("'resume'")); if(b) b.click();
+  jobFilter = 'all'; renderJobTracker();
+  setTimeout(()=>flashEl(document.querySelector('.job-row[data-job-id="'+CSS.escape(id)+'"]')), 80);
+}
+
 let done = new Set((lsJSON('dotnet_done2', '[]') || []).map(Number).filter(n => n >= 1 && n <= 175));
 let filter = 'all';
 let searchTerm = '';
@@ -3324,8 +3961,8 @@ function renderAdvanced(){
       </div>`;
     list.appendChild(el);
     attachAdvDragEvents(el);
-    if(!closed && item.type==='Image' && item.mediaKey){ idbGet(item.mediaKey).then(d=>{ const img=document.getElementById('img-'+item.id); if(img&&d) img.src=d; }); }
   });
+    hydrateSliders(c);
 }
 
 let draggedAdvId = null;
@@ -3363,7 +4000,7 @@ function deleteAdvItem(id){
     if(isSeed){ advDeleted.delete(id); localStorage.setItem('dotnet_adv_deleted', JSON.stringify([...advDeleted])); }
     else { advCustom.splice(Math.min(idx, advCustom.length), 0, removed); localStorage.setItem('dotnet_adv_custom', JSON.stringify(advCustom)); }
     renderAdvanced();
-  }, ()=>{ if(item.mediaKey) idbDelete(item.mediaKey); });
+  }, ()=>{ itemMediaKeys(item).forEach(k=>idbDelete(k));  });
 }
 function editAdvItem(id){ openAdvForm(id); }
 
@@ -3408,8 +4045,8 @@ function openAdvForm(itemId, category){
       <div class="col-12"><label>Topic / notes <span class="text-muted fw-normal">(optional, collapsible)</span></label>${rteEditorHTML('adv-para','Write your notes here…', isEdit && item.type==='PDF'?item.summary||'':'')}</div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey && item.type==='Image' ? '' : '<span class="text-danger">*required</span>'}</label><div class="media-drop" onclick="document.getElementById('adv-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image or drop it here<input type="file" id="adv-image-input" accept="image/*" style="display:none" onclick="event.stopPropagation()" onchange="handleAdvMediaFile(event)"></div><div class="media-preview-name" id="adv-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
-      <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('adv-summary','Short description…', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
+    <div class="col-12"><label>Images <span class="text-danger">*required</span> <span class="text-muted fw-normal">— as many as you want</span></label>${imgPickerHTML('adv-imgs', isEdit && item.type==='Image' ? itemImages(item) : [])}</div>
+    <div class="col-12"><label>Description <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('adv-summary','Short description…', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
       <div class="col-12"><label>Link URL <span class="text-danger">*required</span> <span class="text-muted fw-normal">— video links play right here</span></label><input id="adv-url" class="form-control" value="${escA(isEdit && item.url?item.url:'')}" placeholder="https://..."></div>
@@ -3442,7 +4079,8 @@ function openAdvForm(itemId, category){
         ${!isEdit ? `<button class="btn btn-link btn-sm text-muted" onclick="openAdvChooser()"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
       </div>
     </div>`;
-  if(category==='Content'){ document.getElementById('adv-type').value = (isEdit && ['Bullets','Paragraph','Diagram'].includes(item.type)) ? item.type : 'Bullets'; renderAdvTypeFields(); }
+  if(category==='Image') imgPickerRender('adv-imgs');
+  if(category==='Content'){ document.getElementById('adv-type').value = (isEdit && ['Bullets','Paragraph','Diagram'].includes(item.type)) ? item.type : 'Bullets'; renderAdvTypeFields(); }  
   draftSetup('adv|'+(isEdit?'e:'+itemId:'n')+'|'+category, ()=>openAdvForm(itemId, category));
   slot.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
@@ -3485,19 +4123,24 @@ async function submitAdvForm(category){
   if(type==='Link' || type==='Video') data.url = normUrl(document.getElementById('adv-url').value);
   const old = editingAdvItem ? getAllAdvItems().find(i=>i.id===editingAdvItem) : null;
   if(editingAdvItem && !old){ alert('That topic no longer exists.'); closeAdvForm(); renderAdvanced(); return; }
-  const isMediaType = (type==='Image'||type==='PDF');
-  const keepOld = !!(old && isMediaType && !pendingAdvMedia && old.mediaKey && old.type===type);
-  if(isMediaType && !pendingAdvMedia && !keepOld){ alert(type==='PDF' ? 'Please choose a PDF file to upload.' : 'Please choose an image file to upload.'); return; }
+  const isImg = type==='Image', isPDF = type==='PDF';
+  const keepOld = !!(old && isPDF && !pendingAdvMedia && old.mediaKey && old.type==='PDF');
+  if(isPDF && !pendingAdvMedia && !keepOld){ alert('Please choose a PDF file to upload.'); return; }
+  if(isImg && !(IMGPICK['adv-imgs']||[]).length){ alert('Please add at least one image.'); return; }
   if((type==='Link'||type==='Video') && !data.url){ alert('Please enter a valid web link (https://…).'); return; }
-  if(isMediaType && pendingAdvMedia){
+  if(isPDF && pendingAdvMedia){
     const key = 'media-adv-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
     const busy = busyStart();
     try{ await idbPut(key, pendingAdvMedia.dataUrl, busy.progress); } finally { busy.done(); }
     data.mediaKey = key; data.mediaName = pendingAdvMedia.name;
   } else if(keepOld){ data.mediaKey = old.mediaKey; data.mediaName = old.mediaName; }
+  if(isImg){
+    const busy = busyStart();
+    try{ const imgs = await imgPickerCommit('adv-imgs','media-adv-',busy); data.images = imgs; data.mediaKey = imgs[0].key; data.mediaName = imgs[0].name; } finally { busy.done(); }
+  }
 
   if(editingAdvItem){
-    if(old.mediaKey && old.mediaKey!==data.mediaKey) idbDelete(old.mediaKey);   // replaced, or switched away from PDF/Image
+    pruneMedia(old, data);   // replaced, or switched away from PDF/Image
     if(editingAdvItem.startsWith('adv-seed-')){
       STALE_KEYS.forEach(k=>{ if(!(k in data)) data[k] = null; });   // clear the built-in topic's old bullets/link/etc.
       advOverrides[editingAdvItem] = data;
@@ -3788,7 +4431,7 @@ function deleteQAItem(id){
     if(isSeed){ qaDeleted.delete(id); localStorage.setItem('dotnet_qa_deleted', JSON.stringify([...qaDeleted])); }
     else { customQA.splice(Math.min(idx, customQA.length), 0, removed); localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA)); }
     renderInterview();
-  }, ()=>{ if(item.mediaKey) idbDelete(item.mediaKey); });
+  }, ()=>{ itemMediaKeys(item).forEach(k=>idbDelete(k));  });
 }
 function editQAItem(id){ openQAForm(id); }
 
@@ -3839,7 +4482,7 @@ function deleteQACategory(catName){
   const items = qaItemsOfCategory(catName);
   if(!confirm(`Delete the category "${catName}" and its ${items.length} question${items.length===1?'':'s'}? This can't be undone.`)) return;
   items.forEach(i=>{
-    if(i.mediaKey) idbDelete(i.mediaKey);
+    itemMediaKeys(i).forEach(k=>idbDelete(k));
     if(String(i.id).startsWith('qa-seed-')) qaDeleted.add(i.id);
     else customQA = customQA.filter(x=>x.id!==i.id);
   });
@@ -3935,8 +4578,8 @@ function openQAForm(itemId, category){
       <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-para','Optional notes', isEdit && item.type==='PDF'?item.summary||'':'')}</div>`;
   } else if(category==='Image'){
     typeSpecificHTML = `
-      <div class="col-12"><label>Image file ${isEdit && item.mediaKey && item.type==='Image' ? '' : '<span class="text-danger">*</span>'}</label><div class="media-drop" onclick="document.getElementById('qa-image-input').click()"><i class="bi bi-cloud-upload me-1"></i>Choose an image or drop it here<input type="file" id="qa-image-input" accept="image/*" style="display:none" onclick="event.stopPropagation()" onchange="handleQAMediaFile(event)"></div><div class="media-preview-name" id="qa-media-name">${esc(isEdit && item.type==='Image'?(item.mediaName||'Existing image kept'):'')}</div></div>
-      <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-summary','Optional notes', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
+    <div class="col-12"><label>Images <span class="text-danger">*</span> <span class="text-muted fw-normal">— as many as you want</span></label>${imgPickerHTML('qa-imgs', isEdit && item.type==='Image' ? itemImages(item) : [])}</div>
+    <div class="col-12"><label>Notes <span class="text-muted fw-normal">(optional)</span></label>${rteEditorHTML('qa-summary','Optional notes', isEdit && item.type==='Image'?item.summary||'':'')}</div>`;
   } else if(category==='Link'){
     typeSpecificHTML = `
       <div class="col-12"><label>Link URL <span class="text-danger">*</span></label><input id="qa-url" class="form-control" value="${escA(isEdit && item.url?item.url:'')}" placeholder="https://..."></div>
@@ -3963,6 +4606,7 @@ function openQAForm(itemId, category){
         ${!isEdit ? `<button class="btn btn-link btn-sm text-muted p-0 ps-2" onclick="openQATypeChooser(pendingQADestination)"><i class="bi bi-arrow-left me-1"></i>Back</button>` : ''}
       </div>
     </div>`);
+  if(category==='Image') imgPickerRender('qa-imgs');  
   draftSetup('qa|'+(isEdit?'e:'+itemId:'n:'+pendingQACategory+':'+pendingQADestination)+'|'+category, ()=>openQAForm(itemId, category));
 }
 function closeQAForm(){ closeModal(); editingQAItem=null; pendingQAMedia=null; qaDraft=null; }
@@ -3994,16 +4638,20 @@ async function submitQAForm(category){
     if(type==='PDF') data.summary = rteGetHTML('qa-para');
     if(type==='Link' || type==='Video') data.url = normUrl(document.getElementById('qa-url').value);
     if((type==='Link'||type==='Video') && !data.url){ alert('Please enter a valid web link (https://…).'); return; }
-    if(type==='Image' || type==='PDF'){
-      const keepOld = !!(old && !pendingQAMedia && old.mediaKey && old.type===type);
-      if(!pendingQAMedia && !keepOld){ alert(type==='PDF' ? 'Please choose a PDF file to upload.' : 'Please choose an image file to upload.'); return; }
+    if(type==='Image'){
+    if(!(IMGPICK['qa-imgs']||[]).length){ alert('Please add at least one image.'); return; }
+      const busy = busyStart();
+      try{ const imgs = await imgPickerCommit('qa-imgs','media-qa-',busy); data.images = imgs; data.mediaKey = imgs[0].key; data.mediaName = imgs[0].name; } finally { busy.done(); }
+     } else if(type==='PDF'){
+      const keepOld = !!(old && !pendingQAMedia && old.mediaKey && old.type==='PDF');
+      if(!pendingQAMedia && !keepOld){ alert('Please choose a PDF file to upload.'); return; }
       if(pendingQAMedia){
-        const key = 'media-qa-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
-        const busy = busyStart();
-        try{ await idbPut(key, pendingQAMedia.dataUrl, busy.progress); } finally { busy.done(); }
-        data.mediaKey = key; data.mediaName = pendingQAMedia.name;
-      } else { data.mediaKey = old.mediaKey; data.mediaName = old.mediaName; }
-    }
+      const key = 'media-qa-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+      const busy = busyStart();
+      try{ await idbPut(key, pendingQAMedia.dataUrl, busy.progress); } finally { busy.done(); }
+      data.mediaKey = key; data.mediaName = pendingQAMedia.name;
+    } else { data.mediaKey = old.mediaKey; data.mediaName = old.mediaName; }
+  }
   } else {
     const a = rteGetHTML('qa-a');
     if(!a){ alert('Please write the answer.'); return; }
@@ -4018,7 +4666,7 @@ async function submitQAForm(category){
       data.section = secEl.value;
       if(data.section !== qaSectionOf(old)){ const sx = qaSections.find(x=>x.key===data.section); movedNote = 'Moved to ' + (sx ? sx.label : 'another tab'); }
     }
-    if(old.mediaKey && old.mediaKey!==data.mediaKey) idbDelete(old.mediaKey);   // replaced, or switched away from PDF/Image
+    pruneMedia(old, data);   // replaced, or switched away from PDF/Image
     if(editingQAItem.startsWith('qa-seed-')){
       qaOverrides[editingQAItem] = data;
       localStorage.setItem('dotnet_qa_overrides', JSON.stringify(qaOverrides));
@@ -4026,7 +4674,7 @@ async function submitQAForm(category){
       const idx = customQA.findIndex(i=>i.id===editingQAItem);
       if(idx<0){ alert('That question no longer exists.'); closeQAForm(); renderInterview(); return; }
       const merged = {...old, ...data, id:old.id};
-      ['type','badgeColor','url','mediaKey','mediaName'].forEach(k=>{ if(!(k in data)) delete merged[k]; });
+      ['type','badgeColor','url','mediaKey','mediaName','images'].forEach(k=>{ if(!(k in data)) delete merged[k]; });
       customQA[idx] = merged;
       localStorage.setItem('dotnet_custom_qa', JSON.stringify(customQA));
     }
@@ -4052,12 +4700,7 @@ function toggleQA(id, itemId, el){
   ans.style.display=shown?'none':'block';
   el.setAttribute('aria-expanded', String(!shown));
   if(icon) icon.style.transform=shown?'':'rotate(180deg)';
-  if(!shown && itemId){
-    const item = getAllQAItems().find(i=>i.id===itemId);
-    if(item && item.type==='Image' && item.mediaKey){
-      idbGet(item.mediaKey).then(d=>{ const img=document.getElementById('img-'+item.id); if(img&&d) img.src=d; });
-    }
-  }
+  if(!shown) hydrateSliders(ans);
 }
 
 function renderSummary(){
@@ -4254,9 +4897,10 @@ const BACKUP_MIME_EXT = {'application/pdf':'pdf','image/png':'png','image/jpeg':
 // Every uploaded PDF/image the app still references, wherever it lives.
 function collectMediaRefs(){
   const refs = [];
-  getAllAuthors().forEach(a=>a.items.forEach(i=>{ if(i.mediaKey) refs.push({key:i.mediaKey, name:i.mediaName||i.title, title:i.title, where:'Docs Hub'}); }));
-  getAllQAItems().forEach(i=>{ if(i.mediaKey) refs.push({key:i.mediaKey, name:i.mediaName||i.q, title:i.q, where:'Interview Q&A'}); });
-  getAllAdvItems().forEach(i=>{ if(i.mediaKey) refs.push({key:i.mediaKey, name:i.mediaName||i.title, title:i.title, where:'Advanced+'}); });
+  const addRefs = (it, name, title, where) => itemMediaKeys(it).forEach(k=>refs.push({key:k, name:name||title, title, where}));
+  getAllAuthors().forEach(a=>a.items.forEach(i=>addRefs(i, i.mediaName||i.title, i.title, 'Docs Hub')));
+  getAllQAItems().forEach(i=>addRefs(i, i.mediaName||i.q, i.q, 'Interview Q&A'));
+  getAllAdvItems().forEach(i=>addRefs(i, i.mediaName||i.title, i.title, 'Advanced+'));
   Object.entries(dayNotes).forEach(([n,e])=>{ if(e && e.mediaKey) refs.push({key:e.mediaKey, name:e.mediaName||('Day '+n+' note image'), title:'Day '+n+' note', where:'Notes'}); });
   const seen = new Set();
   return refs.filter(r=>!seen.has(r.key) && seen.add(r.key));
