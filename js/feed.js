@@ -218,7 +218,7 @@
     if (it.type === "Image" || (it.src === "notes" && it.mediaKey)) {
       h += imageSliderHTML({ type: "Image", title: it.title, images: it.images, mediaKey: it.mediaKey, mediaName: it.mediaName });
     }
-    if (it.mediaKey && it.type === "PDF") h += `<div class="item-pdf-box"><i class="bi bi-file-earmark-pdf-fill"></i><span class="item-pdf-name">${esc(it.mediaName || "Attached PDF")}</span><button class="btn btn-sm btn-outline-danger" onclick="downloadStoredMedia('${esc(it.id)}')"><i class="bi bi-download me-1"></i>Download</button></div>`;
+        if (it.mediaKey && it.type === "PDF") h += pdfBoxHTML({ id: it.id, mediaKey: it.mediaKey, mediaName: it.mediaName });
     if (it.url && (it.type === "Video" || it.type === "Link" || it.src === "links")) {
       const vid = typeof getVideoEmbedInfo === "function" ? getVideoEmbedInfo(it.url) : null;
       if (vid && vid.kind === "iframe") {

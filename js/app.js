@@ -885,9 +885,7 @@ function itemBodyHTML(item){
     html += `<div class="diagram-flow">${item.steps.map((s,i)=>`<span class="diagram-step">${esc(s)}</span>${i<item.steps.length-1?'<i class="bi bi-arrow-right diagram-arrow" aria-hidden="true"></i>':''}`).join('')}</div>`;
   }
   if(item.type==='Image') html += imageSliderHTML(item);
-  if(item.type==='PDF' && item.mediaKey){
-    html += `<div class="item-pdf-box"><i class="bi bi-file-earmark-pdf-fill"></i><span class="item-pdf-name">${esc(item.mediaName||'Attached PDF')}</span><button class="btn btn-sm btn-outline-primary" onclick="togglePdfPreview('${item.id}')"><i class="bi bi-eye me-1"></i>Preview</button><button class="btn btn-sm btn-outline-danger" onclick="downloadStoredMedia('${item.id}')"><i class="bi bi-download me-1"></i>Download</button></div><div id="pdf-preview-${item.id}" style="display:none"></div>`;
-  }
+    if(item.type==='PDF' && item.mediaKey) html += pdfBoxHTML(item);
   if((item.type==='Video' || (item.type==='Link' && getVideoEmbedInfo(item.url))) && item.url){
     const vid = getVideoEmbedInfo(item.url);
     if(vid && vid.kind==='iframe'){
@@ -1230,18 +1228,79 @@ function dataUrlToBlob(dataUrl){
   return new Blob([bytes], {type: mime});
 }
 
-async function togglePdfPreview(itemId){
-  const box = document.getElementById('pdf-preview-'+itemId);
+// ---- PDF: loads only when you click Preview. Same markup + code for Docs Hub, Advanced, Q&A and Feed ----
+function pdfBoxHTML(item){
+  const id = escA(item.id);
+  return `<div class="item-pdf-box"><i class="bi bi-file-earmark-pdf-fill"></i><span class="item-pdf-name">${esc(item.mediaName||'Attached PDF')}</span>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-pdf-toggle onclick="togglePdfPreview('${id}',this)"><i class="bi bi-eye me-1"></i>Preview</button>
+    <button type="button" class="btn btn-sm btn-outline-danger" onclick="downloadStoredMedia('${id}')"><i class="bi bi-download me-1"></i>Download</button></div><div class="pdf-preview" style="display:none"></div>`;
+}
+function pdfUnfull(box){
   if(!box) return;
-  if(box.style.display==='block'){ box.style.display='none'; box.innerHTML=''; return; }
+  box.classList.remove('pdf-full'); document.body.classList.remove('pdf-lock');
+  if(box._ph){ box._ph.replaceWith(box); box._ph = null; }      // put it back under its card
+  const b = box.querySelector('[data-pdf-full]');
+  if(b) b.innerHTML = '<i class="bi bi-arrows-fullscreen me-1"></i>Full screen';
+}
+function pdfClose(box){
+  if(!box) return;
+  pdfUnfull(box);
+  if(box._blobUrl){ URL.revokeObjectURL(box._blobUrl); box._blobUrl = null; }
+  box.innerHTML = ''; box.style.display = 'none'; box.dataset.open = '';
+  const t = box.previousElementSibling && box.previousElementSibling.querySelector('[data-pdf-toggle]');
+  if(t) t.innerHTML = '<i class="bi bi-eye me-1"></i>Preview';
+}
+function pdfFull(btn){
+  const box = btn.closest('.pdf-preview'); if(!box) return;
+  if(box.classList.contains('pdf-full')){ pdfUnfull(box); return; }
+  const ph = document.createElement('div'); ph.style.display = 'none';
+  box.after(ph); box._ph = ph;
+  document.body.appendChild(box);                                // move out of the card so nothing can clip it
+  box.classList.add('pdf-full'); document.body.classList.add('pdf-lock');
+  btn.innerHTML = '<i class="bi bi-fullscreen-exit me-1"></i>Exit full screen';
+}
+function pdfDragStart(e, grip){
+  const box = grip.closest('.pdf-preview'), wrap = box && box.querySelector('.pdf-frame-wrap');
+  if(!wrap || box.classList.contains('pdf-full')) return;
+  e.preventDefault();
+  const startY = e.clientY, startH = wrap.getBoundingClientRect().height;
+  box.classList.add('pdf-dragging');
+  try{ grip.setPointerCapture(e.pointerId); }catch(_){}
+  const move = ev => { wrap.style.height = Math.max(200, Math.min(innerHeight*0.95, startH + ev.clientY - startY)) + 'px'; };
+  const up = () => {
+    box.classList.remove('pdf-dragging');
+    grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', up);
+  };
+  grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
+}
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') pdfUnfull(document.querySelector('.pdf-preview.pdf-full'));
+});
+
+async function togglePdfPreview(itemId, btn){
+  const holder = btn && btn.closest('.item-pdf-box');
+  const box = holder && holder.nextElementSibling;
+  if(!box || !box.classList.contains('pdf-preview')) return;
+  if(box.dataset.open==='1'){ pdfClose(box); return; }
   const item = findAnyItemById(itemId);
   if(!item || !item.mediaKey) return;
-  const dataUrl = await idbGet(item.mediaKey);
-  if(!dataUrl){ box.innerHTML = '<div class="small text-danger">Could not load this PDF from storage.</div>'; box.style.display='block'; return; }
+  const label = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Loading…';
+  let dataUrl = null; try{ dataUrl = await idbGet(item.mediaKey); }catch(e){ console.error(e); }
+  btn.disabled = false;
+  if(!dataUrl){ btn.innerHTML = label; box.innerHTML = '<div class="small text-danger mt-1">Could not load this PDF from storage.</div>'; box.style.display = 'block'; return; }
   const blobUrl = URL.createObjectURL(dataUrlToBlob(dataUrl));
+  box._blobUrl = blobUrl;
   const pages = pdfPageCount(dataUrl), bytes = Math.round(dataUrl.length*0.75);
-  box.innerHTML = `<div class="small text-muted mt-1">${pages ? pages+' page'+(pages===1?'':'s')+' · ' : ''}${fmtBytes(bytes)}</div><embed src="${blobUrl}" type="application/pdf" style="width:100%;height:420px;border-radius:8px;border:1px solid var(--border);margin-top:6px">`;
-  box.style.display='block';
+  box.innerHTML = `<div class="pdf-bar"><span class="pdf-info">${pages ? pages+' page'+(pages===1?'':'s')+' · ' : ''}${fmtBytes(bytes)}</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-pdf-full onclick="pdfFull(this)"><i class="bi bi-arrows-fullscreen me-1"></i>Full screen</button>
+      <a class="btn btn-sm btn-outline-secondary" href="${blobUrl}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>New tab</a>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdfClose(this.closest('.pdf-preview'))"><i class="bi bi-x-lg me-1"></i>Close</button></div>
+    <div class="pdf-frame-wrap"><iframe class="pdf-frame" src="${blobUrl}" title="PDF preview"></iframe></div>
+        <div class="pdf-grip" onpointerdown="pdfDragStart(event,this)" title="Drag to resize" aria-label="Drag to resize the preview"><span></span></div>
+        <div class="pdf-hint">Drag the bar above to resize. Blank on a phone? Use “New tab”.</div>`;
+  box.style.display = 'block'; box.dataset.open = '1';
+  btn.innerHTML = '<i class="bi bi-eye-slash me-1"></i>Hide';
 }
 
 function showMoreItems(authorId){
