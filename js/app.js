@@ -1235,48 +1235,135 @@ function pdfBoxHTML(item){
     <button type="button" class="btn btn-sm btn-outline-primary" data-pdf-toggle onclick="togglePdfPreview('${id}',this)"><i class="bi bi-eye me-1"></i>Preview</button>
     <button type="button" class="btn btn-sm btn-outline-danger" onclick="downloadStoredMedia('${id}')"><i class="bi bi-download me-1"></i>Download</button></div><div class="pdf-preview" style="display:none"></div>`;
 }
-function pdfUnfull(box){
-  if(!box) return;
-  box.classList.remove('pdf-full'); document.body.classList.remove('pdf-lock');
-  if(box._ph){ box._ph.replaceWith(box); box._ph = null; }      // put it back under its card
-  const b = box.querySelector('[data-pdf-full]');
-  if(b) b.innerHTML = '<i class="bi bi-arrows-fullscreen me-1"></i>Full screen';
+
+// ===== PDF viewer built on PDF.js: pages are drawn on canvases, so it works on phones too =====
+const PDFJS_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+let _pdfjsP = null;
+function loadPdfJs(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if(_pdfjsP) return _pdfjsP;
+  _pdfjsP = new Promise((res,rej)=>{
+    const s = document.createElement('script'); s.src = PDFJS_BASE+'pdf.min.js';
+    s.onload = ()=>{ window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_BASE+'pdf.worker.min.js'; res(window.pdfjsLib); };
+    s.onerror = ()=>{ _pdfjsP = null; s.remove(); rej(new Error('Could not load the PDF viewer. Check your internet connection and try again.')); };
+    document.head.appendChild(s);
+  });
+  return _pdfjsP;
 }
+// Draws a PDF (Uint8Array) inside `host`. Returns {pages, refresh, destroy} or null on failure.
+async function pdfMount(host, bytes){
+  host.innerHTML = '<div class="pv-msg"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading PDF…</div>';
+  let doc;
+  try{
+    const lib = await loadPdfJs();
+    doc = await lib.getDocument({data: bytes.slice()}).promise;
+  }catch(e){
+    host.innerHTML = '<div class="pv-msg text-danger">'+esc(e && e.name==='PasswordException' ? 'This PDF is password protected.' : (e && e.message) || 'Could not open this PDF.')+'</div>';
+    return null;
+  }
+  const N = doc.numPages, sizes = [], pages = {};
+  try{
+    const first = await doc.getPage(1); pages[1] = first;
+    const v1 = first.getViewport({scale:1}); sizes[1] = [v1.width, v1.height];
+    if(N <= 150){ for(let i=2;i<=N;i++){ const p = await doc.getPage(i); pages[i] = p; const v = p.getViewport({scale:1}); sizes[i] = [v.width, v.height]; } }
+  }catch(e){ host.innerHTML = '<div class="pv-msg text-danger">Could not read this PDF.</div>'; return null; }
+  host.innerHTML = `<div class="pv">
+    <div class="pv-bar"><span class="pv-pg">1 / ${N}</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-z="out" aria-label="Zoom out"><i class="bi bi-dash-lg"></i></button>
+      <span class="pv-zoom">100%</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-z="in" aria-label="Zoom in"><i class="bi bi-plus-lg"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-z="fit">Fit</button></div>
+    <div class="pv-scroll"><div class="pv-pages"></div></div></div>`;
+  const wrap = host.querySelector('.pv-scroll'), list = host.querySelector('.pv-pages'),
+        pgLabel = host.querySelector('.pv-pg'), zl = host.querySelector('.pv-zoom'), bar = host.querySelector('.pv-bar');
+  const els = [];
+  for(let i=1;i<=N;i++){ const d = document.createElement('div'); d.className = 'pv-page'; list.appendChild(d); els[i] = d; }
+  let scale = 1, base = 1, zoomed = false, destroyed = false, tick = false;
+  const fitScale = ()=> Math.max(.3, ((wrap.clientWidth || host.clientWidth || 360) - 16) / sizes[1][0]);
+  const place = ()=>{ for(let i=1;i<=N;i++){ const s = sizes[i] || sizes[1]; els[i].style.width = Math.floor(s[0]*scale)+'px'; els[i].style.height = Math.floor(s[1]*scale)+'px'; } };
+  const label = ()=>{ zl.textContent = Math.round(scale/base*100)+'%'; };
+  const cancel = i=>{ const t = els[i]._t; if(t){ try{ t.cancel(); }catch(_){} els[i]._t = null; } };
+  const renderPage = async i=>{
+    const el = els[i], sc = scale;
+    if(el._r===sc || el._busy===sc) return;
+    el._busy = sc; cancel(i);
+    try{
+      const page = pages[i] || (pages[i] = await doc.getPage(i));
+      if(destroyed || el._busy!==sc) return;
+      const vp = page.getViewport({scale:sc});
+      sizes[i] = [vp.width/sc, vp.height/sc];
+      el.style.width = Math.floor(vp.width)+'px'; el.style.height = Math.floor(vp.height)+'px';
+      const dpr = Math.max(.5, Math.min(window.devicePixelRatio||1, 2, Math.sqrt(16e6/(vp.width*vp.height))));
+      const c = document.createElement('canvas');
+      c.width = Math.floor(vp.width*dpr); c.height = Math.floor(vp.height*dpr);
+      c.style.width = '100%'; c.style.height = '100%';
+      const task = page.render({canvasContext:c.getContext('2d'), viewport:vp, transform: dpr===1 ? null : [dpr,0,0,dpr,0,0]});
+      el._t = task;
+      await task.promise;
+      if(destroyed || el._busy!==sc) return;
+      el.innerHTML = ''; el.appendChild(c); el._r = sc;
+    }catch(e){ if(!(e && e.name==='RenderingCancelledException')) console.error(e); }
+    finally{ if(el._r!==sc && el._busy===sc) el._busy = 0; }
+  };
+  const renderVisible = ()=>{
+    if(destroyed) return;
+    const wr = wrap.getBoundingClientRect(), h = wr.height || 400;
+    let cur = 0;
+    for(let i=1;i<=N;i++){
+      const r = els[i].getBoundingClientRect();
+      if(r.bottom > wr.top - h && r.top < wr.bottom + h) renderPage(i);
+      else if((r.bottom < wr.top - 3*h || r.top > wr.bottom + 3*h) && els[i]._r){ cancel(i); els[i].innerHTML = ''; els[i]._r = 0; els[i]._busy = 0; }   // free memory
+      if(!cur && r.bottom > wr.top + h*0.35) cur = i;
+    }
+    pgLabel.textContent = (cur || N)+' / '+N;
+  };
+  const setScale = ns=>{
+    ns = Math.min(5*base, Math.max(.3, ns)); if(Math.abs(ns-scale) < .001) return;
+    const ratio = wrap.scrollHeight ? wrap.scrollTop/wrap.scrollHeight : 0;
+    scale = ns;
+    for(let i=1;i<=N;i++){ cancel(i); els[i].innerHTML = ''; els[i]._r = 0; els[i]._busy = 0; }
+    place(); wrap.scrollTop = ratio*wrap.scrollHeight; label(); renderVisible();
+  };
+  bar.addEventListener('click', e=>{
+    const b = e.target.closest('[data-z]'); if(!b) return;
+    if(b.dataset.z==='fit'){ zoomed = false; base = fitScale(); setScale(base); }
+    else { zoomed = true; setScale(scale*(b.dataset.z==='in' ? 1.25 : .8)); }
+  });
+  wrap.addEventListener('scroll', ()=>{ if(tick) return; tick = true; requestAnimationFrame(()=>{ tick = false; renderVisible(); }); }, {passive:true});
+  let lastW = 0;
+  const ro = window.ResizeObserver ? new ResizeObserver(()=>{
+    const w = wrap.clientWidth;
+    if(w && w!==lastW){ lastW = w; if(!zoomed){ base = fitScale(); scale = 0; setScale(base); return; } }
+    renderVisible();
+  }) : null;
+  base = fitScale(); scale = base; place(); label(); renderVisible();
+  if(ro) ro.observe(wrap);
+  return {pages:N, refresh:renderVisible, destroy(){ destroyed = true; if(ro) ro.disconnect(); try{ doc.destroy(); }catch(_){} host.innerHTML = ''; }};
+}
+
+// ---- inline preview (inside the card) ----
 function pdfClose(box){
   if(!box) return;
-  pdfUnfull(box);
-  if(box._blobUrl){ URL.revokeObjectURL(box._blobUrl); box._blobUrl = null; }
-  box.innerHTML = ''; box.style.display = 'none'; box.dataset.open = '';
+  if(box._viewer){ box._viewer.destroy(); box._viewer = null; }
+  box._bytes = null; box.innerHTML = ''; box.style.display = 'none'; box.dataset.open = '';
   const t = box.previousElementSibling && box.previousElementSibling.querySelector('[data-pdf-toggle]');
   if(t) t.innerHTML = '<i class="bi bi-eye me-1"></i>Preview';
 }
-function pdfFull(btn){
-  const box = btn.closest('.pdf-preview'); if(!box) return;
-  if(box.classList.contains('pdf-full')){ pdfUnfull(box); return; }
-  const ph = document.createElement('div'); ph.style.display = 'none';
-  box.after(ph); box._ph = ph;
-  document.body.appendChild(box);                                // move out of the card so nothing can clip it
-  box.classList.add('pdf-full'); document.body.classList.add('pdf-lock');
-  btn.innerHTML = '<i class="bi bi-fullscreen-exit me-1"></i>Exit full screen';
+function pdfOpenTab(btn){
+  const box = btn.closest('.pdf-preview'); if(!box || !box._bytes) return;
+  const url = URL.createObjectURL(new Blob([box._bytes], {type:'application/pdf'}));
+  window.open(url, '_blank');
+  setTimeout(()=>URL.revokeObjectURL(url), 120000);
 }
 function pdfDragStart(e, grip){
-  const box = grip.closest('.pdf-preview'), wrap = box && box.querySelector('.pdf-frame-wrap');
-  if(!wrap || box.classList.contains('pdf-full')) return;
+  const box = grip.closest('.pdf-preview'), wrap = box && box.querySelector('.pdf-frame-wrap'); if(!wrap) return;
   e.preventDefault();
   const startY = e.clientY, startH = wrap.getBoundingClientRect().height;
-  box.classList.add('pdf-dragging');
   try{ grip.setPointerCapture(e.pointerId); }catch(_){}
-  const move = ev => { wrap.style.height = Math.max(200, Math.min(innerHeight*0.95, startH + ev.clientY - startY)) + 'px'; };
-  const up = () => {
-    box.classList.remove('pdf-dragging');
-    grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', up);
-  };
+  const move = ev => { wrap.style.height = Math.max(220, Math.min(innerHeight*0.95, startH + ev.clientY - startY)) + 'px'; };
+  const up = () => { grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', up); };
   grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
 }
-document.addEventListener('keydown', e=>{
-  if(e.key==='Escape') pdfUnfull(document.querySelector('.pdf-preview.pdf-full'));
-});
-
 async function togglePdfPreview(itemId, btn){
   const holder = btn && btn.closest('.item-pdf-box');
   const box = holder && holder.nextElementSibling;
@@ -1289,19 +1376,48 @@ async function togglePdfPreview(itemId, btn){
   let dataUrl = null; try{ dataUrl = await idbGet(item.mediaKey); }catch(e){ console.error(e); }
   btn.disabled = false;
   if(!dataUrl){ btn.innerHTML = label; box.innerHTML = '<div class="small text-danger mt-1">Could not load this PDF from storage.</div>'; box.style.display = 'block'; return; }
-  const blobUrl = URL.createObjectURL(dataUrlToBlob(dataUrl));
-  box._blobUrl = blobUrl;
-  const pages = pdfPageCount(dataUrl), bytes = Math.round(dataUrl.length*0.75);
-  box.innerHTML = `<div class="pdf-bar"><span class="pdf-info">${pages ? pages+' page'+(pages===1?'':'s')+' · ' : ''}${fmtBytes(bytes)}</span>
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-pdf-full onclick="pdfFull(this)"><i class="bi bi-arrows-fullscreen me-1"></i>Full screen</button>
-      <a class="btn btn-sm btn-outline-secondary" href="${blobUrl}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>New tab</a>
+  const bytes = dataUrlToBytes(dataUrl);
+  box._bytes = bytes; box._name = item.mediaName || item.title || 'PDF';
+  box.innerHTML = `<div class="pdf-bar"><span class="pdf-info">${fmtBytes(bytes.length)}</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdfFull(this)"><i class="bi bi-arrows-fullscreen me-1"></i>Full screen</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdfOpenTab(this)"><i class="bi bi-box-arrow-up-right me-1"></i>Open</button>
       <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdfClose(this.closest('.pdf-preview'))"><i class="bi bi-x-lg me-1"></i>Close</button></div>
-    <div class="pdf-frame-wrap"><iframe class="pdf-frame" src="${blobUrl}" title="PDF preview"></iframe></div>
-        <div class="pdf-grip" onpointerdown="pdfDragStart(event,this)" title="Drag to resize" aria-label="Drag to resize the preview"><span></span></div>
-        <div class="pdf-hint">Drag the bar above to resize. Blank on a phone? Use “New tab”.</div>`;
+    <div class="pdf-frame-wrap"></div>
+    <div class="pdf-grip" onpointerdown="pdfDragStart(event,this)" title="Drag to resize" aria-label="Drag to resize the preview"><span></span></div>`;
   box.style.display = 'block'; box.dataset.open = '1';
   btn.innerHTML = '<i class="bi bi-eye-slash me-1"></i>Hide';
+  const v = await pdfMount(box.querySelector('.pdf-frame-wrap'), bytes);
+  if(box.dataset.open!=='1'){ if(v) v.destroy(); return; }          // closed while loading
+  box._viewer = v;
+  if(v){ const info = box.querySelector('.pdf-info'); if(info) info.textContent = v.pages+' page'+(v.pages===1?'':'s')+' · '+fmtBytes(bytes.length); }
 }
+
+// ---- full screen: its own overlay (nothing gets moved, so nothing reloads) ----
+let _pdfOv = null, _pdfPushed = false;
+async function pdfFull(btn){
+  const box = btn.closest('.pdf-preview'); if(!box || !box._bytes || _pdfOv) return;
+  const ov = document.createElement('div');
+  ov.className = 'pdf-overlay'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','PDF viewer');
+  ov.innerHTML = `<div class="pdf-ov-top"><span class="pdf-ov-title">${esc(box._name||'PDF')}</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-ov-close><i class="bi bi-x-lg me-1"></i>Close</button></div>
+    <div class="pdf-ov-body"></div>`;
+  document.body.appendChild(ov); document.body.classList.add('pdf-lock');
+  _pdfOv = ov;
+  ov.querySelector('[data-ov-close]').onclick = ()=>pdfFullClose();
+  try{ history.pushState({pdfov:1}, ''); _pdfPushed = true; }catch(_){}      // phone Back button closes the viewer
+  const v = await pdfMount(ov.querySelector('.pdf-ov-body'), box._bytes);
+  if(_pdfOv!==ov){ if(v) v.destroy(); return; }
+  ov._viewer = v;
+}
+function pdfFullClose(fromPop){
+  const ov = _pdfOv; if(!ov) return; _pdfOv = null;
+  if(ov._viewer) ov._viewer.destroy();
+  ov.remove(); document.body.classList.remove('pdf-lock');
+  if(_pdfPushed){ _pdfPushed = false; if(!fromPop){ try{ history.back(); }catch(_){} } }
+}
+window.addEventListener('popstate', ()=>{ if(_pdfOv) pdfFullClose(true); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && _pdfOv) pdfFullClose(); });
+
 
 function showMoreItems(authorId){
   expandedCount[authorId] = (expandedCount[authorId]||ITEM_PAGE_SIZE) + 10;
