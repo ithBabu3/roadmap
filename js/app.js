@@ -7,7 +7,8 @@ function openModal(html){
     const mEl = document.getElementById('appModal');
     appModalInstance = new bootstrap.Modal(mEl);
     mEl.addEventListener('hide.bs.modal', ()=>draftFlush());      // keep what was typed if the dialog is closed by accident
-    mEl.addEventListener('hidden.bs.modal', ()=>{ _draft = null; });
+    mEl.addEventListener('shown.bs.modal', ()=>{ if(mEl._bk==null) mEl._bk = BackStack.push(()=>{ mEl._bk = null; appModalInstance.hide(); }); });
+    mEl.addEventListener('hidden.bs.modal', ()=>{ _draft = null; if(mEl._bk!=null){ const id = mEl._bk; mEl._bk = null; BackStack.release(id); } });
   }
   appModalInstance.show();
 }
@@ -326,21 +327,137 @@ function sliderDownloadAll(btn){
   downloadBlob(new Blob([zipStore(files)], {type:'application/zip'}), (s.dataset.title||'images').replace(/[^\w.-]+/g,'_')+'.zip');
 }
 // Full-screen preview, with next/previous when the image belongs to a slider
+// ---- Back button: overlays register here, so Back closes them instead of leaving the app ----
+const BackStack = (()=>{
+  const stack = []; let seq = 0, ignore = 0;
+  window.addEventListener('popstate', ()=>{
+    if(ignore > 0){ ignore--; return; }
+    const top = stack.pop(); if(top) top.close();
+  });
+  return {
+    push(close){ const id = ++seq; stack.push({id, close}); try{ history.pushState({bk:id}, ''); }catch(_){} return id; },
+    release(id){                                   // closed by a button, not by Back
+      const i = stack.findIndex(s=>s.id===id); if(i < 0) return;
+      stack.splice(i, 1); ignore++;
+      try{ history.back(); }catch(_){ ignore--; }
+    }
+  };
+})();
+
+// ---- Slider: swipe with a finger (or drag with a mouse) ----
+(function(){
+  let s = null, swipedAt = 0;
+  document.addEventListener('pointerdown', e=>{
+    const track = e.target.closest && e.target.closest('.img-track');
+    if(!track || track.children.length < 2 || (e.pointerType==='mouse' && e.button!==0)) return;
+    s = {track, x:e.clientX, y:e.clientY, left:track.scrollLeft, w:track.clientWidth, t:Date.now(), drag:false, restore:[]};
+    for(let p = track.parentElement; p && p !== document.body; p = p.parentElement){   // draggable cards hijack the gesture
+      if(p.draggable){ p.draggable = false; s.restore.push(p); }
+    }
+  });
+  document.addEventListener('pointermove', e=>{
+    if(!s) return;
+    const dx = e.clientX - s.x, dy = e.clientY - s.y;
+    if(!s.drag){
+      if(Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)){ s.drag = true; s.track.classList.add('swiping'); }
+      else return;
+    }
+    s.track.scrollLeft = s.left - dx;
+  });
+  const end = e=>{
+    if(!s) return;
+    const c = s; s = null;
+    c.restore.forEach(p=>{ p.draggable = true; });
+    if(!c.drag) return;
+    swipedAt = Date.now();
+    const dx = (e.clientX || c.x) - c.x, n = c.track.children.length;
+    const idx = Math.round(c.left / Math.max(1, c.w));
+    const fast = Math.abs(dx) / Math.max(1, Date.now() - c.t) > 0.4;
+    let to = idx;
+    if(dx < -Math.max(40, c.w*0.15) || (fast && dx < -15)) to = idx + 1;
+    else if(dx > Math.max(40, c.w*0.15) || (fast && dx > 15)) to = idx - 1;
+    to = Math.max(0, Math.min(n - 1, to));
+    c.track.classList.remove('swiping');
+    sliderTo(c.track.closest('.img-slider'), to);
+  };
+  document.addEventListener('pointerup', end);
+  document.addEventListener('pointercancel', end);
+  document.addEventListener('click', e=>{ if(Date.now() - swipedAt < 350){ e.stopPropagation(); e.preventDefault(); } }, true);   // a swipe is not a tap
+})();
+
+// ---- Full-screen image viewer: swipe left/right, swipe down to close, pinch or double-tap to zoom, Back closes it ----
 function openLightbox(img){
   if(!img || !img.src) return;
   const slider = img.closest('.img-slider');
   const list = slider ? [...slider.querySelectorAll('img[src]')] : [img];
   let idx = Math.max(0, list.indexOf(img)); const many = list.length > 1;
   const ov = document.createElement('div'); ov.className = 'lightbox'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','Image preview'); ov.tabIndex = -1;
-  ov.innerHTML = '<img alt=""><button type="button" class="lightbox-close" aria-label="Close preview"><i class="bi bi-x-lg"></i></button>' +
+  ov.innerHTML = '<div class="lb-stage"><img alt="" draggable="false"></div><button type="button" class="lightbox-close" aria-label="Close preview"><i class="bi bi-x-lg"></i></button>' +
     (many ? '<button type="button" class="lightbox-nav prev" aria-label="Previous"><i class="bi bi-chevron-left"></i></button><button type="button" class="lightbox-nav next" aria-label="Next"><i class="bi bi-chevron-right"></i></button><span class="lightbox-count"></span>' : '');
-  const big = ov.querySelector('img'), cnt = ov.querySelector('.lightbox-count');
-  const show = i=>{ idx = (i+list.length)%list.length; big.src = list[idx].src; big.alt = list[idx].alt || ''; if(cnt) cnt.textContent = (idx+1)+' / '+list.length; };
+  const stage = ov.querySelector('.lb-stage'), big = stage.querySelector('img'), cnt = ov.querySelector('.lightbox-count');
+  let sc = 1, tx = 0, ty = 0, closed = false, bk = null;
+  const apply = ()=>{ big.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+sc+')'; };
+  const reset = anim=>{ big.style.transition = anim ? 'transform .2s' : 'none'; sc = 1; tx = 0; ty = 0; apply(); };
+  const show = i=>{ idx = (i+list.length)%list.length; big.src = list[idx].src; big.alt = list[idx].alt || ''; if(cnt) cnt.textContent = (idx+1)+' / '+list.length; reset(false); };
   const onKey = e=>{ if(e.key==='Escape') close(); else if(many && e.key==='ArrowRight') show(idx+1); else if(many && e.key==='ArrowLeft') show(idx-1); };
-  const close = ()=>{ ov.remove(); document.removeEventListener('keydown', onKey); if(slider && many) sliderTo(slider, idx, true); };
-  ov.addEventListener('click', e=>{ if(e.target===ov || e.target.closest('.lightbox-close')) close(); else if(e.target.closest('.lightbox-nav.prev')) show(idx-1); else if(e.target.closest('.lightbox-nav.next')) show(idx+1); });
+  const close = fromBack=>{
+    if(closed) return; closed = true;
+    document.removeEventListener('keydown', onKey); ov.remove(); document.body.classList.remove('lb-lock');
+    if(slider && many) sliderTo(slider, idx, true);
+    if(fromBack!==true && bk!==null) BackStack.release(bk);
+  };
+  // gestures
+  const ptrs = new Map(); let start = null, pinch0 = null, moved = false, lastTap = 0;
+  const dist = ()=>{ const [a,b] = [...ptrs.values()]; return Math.hypot(a.x-b.x, a.y-b.y); };
+  stage.addEventListener('pointerdown', e=>{
+    try{ stage.setPointerCapture(e.pointerId); }catch(_){}
+    ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    big.style.transition = 'none';
+    if(ptrs.size === 2){ pinch0 = {d:dist(), s:sc}; start = null; }
+    else { start = {x:e.clientX, y:e.clientY, tx, ty, onImg:e.target===big}; moved = false; }
+  });
+  stage.addEventListener('pointermove', e=>{
+    if(!ptrs.has(e.pointerId)) return;
+    ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    if(ptrs.size === 2 && pinch0){ sc = Math.max(1, Math.min(5, pinch0.s * dist() / pinch0.d)); if(sc===1){ tx = 0; ty = 0; } moved = true; apply(); return; }
+    if(!start) return;
+    const dx = e.clientX - start.x, dy = e.clientY - start.y;
+    if(Math.abs(dx) + Math.abs(dy) > 8) moved = true;
+    if(sc > 1){ tx = start.tx + dx; ty = start.ty + dy; }
+    else if(Math.abs(dy) > Math.abs(dx)){ tx = 0; ty = Math.max(0, dy); }
+    else { tx = dx; ty = 0; }
+    apply();
+  });
+  const end = e=>{
+    if(!ptrs.has(e.pointerId)) return;
+    ptrs.delete(e.pointerId);
+    if(e.type==='pointercancel'){ start = null; pinch0 = null; reset(true); return; }
+    if(pinch0){ if(ptrs.size < 2){ pinch0 = null; start = null; if(sc < 1.05) reset(true); } return; }
+    if(!start) return;
+    const s = start; start = null;
+    const dx = e.clientX - s.x, dy = e.clientY - s.y;
+    big.style.transition = 'transform .2s';
+    if(!moved){                                                  // a tap
+      const now = Date.now();
+      if(s.onImg && now - lastTap < 320){ lastTap = 0; if(sc > 1) reset(true); else { sc = 2.5; tx = 0; ty = 0; apply(); } }
+      else { lastTap = now; if(!s.onImg && sc === 1) close(); }
+      return;
+    }
+    if(sc > 1) return;                                           // just panning a zoomed image
+    if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) && many) show(idx + (dx < 0 ? 1 : -1));
+    else if(dy > 100 && Math.abs(dy) > Math.abs(dx)) close();
+    else reset(true);
+  };
+  stage.addEventListener('pointerup', end);
+  stage.addEventListener('pointercancel', end);
+  ov.addEventListener('click', e=>{
+    if(e.target.closest('.lightbox-close')) close();
+    else if(e.target.closest('.lightbox-nav.prev')) show(idx-1);
+    else if(e.target.closest('.lightbox-nav.next')) show(idx+1);
+  });
   document.addEventListener('keydown', onKey);
-  show(idx); document.body.appendChild(ov); ov.focus();
+  show(idx); document.body.appendChild(ov); document.body.classList.add('lb-lock'); ov.focus();
+  bk = BackStack.push(()=>close(true));
 }
 // Accepts "example.com/page" as well as full URLs; returns '' for anything that isn't a web link.
 function normUrl(u){

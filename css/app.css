@@ -1014,3 +1014,16 @@ code{background:var(--surface-3);color:var(--primary-ink);padding:1px 6px;border
 .pdf-ov-body{position:relative;flex:1;min-height:0;}
 body.pdf-lock{overflow:hidden;}
 @media(max-width:575.98px){.pdf-frame-wrap{height:62vh;}}
+
+
+/* ---- touch: slider swipe + viewer ---- */
+.img-track{touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;}
+.img-track.swiping{scroll-snap-type:none;cursor:grabbing;}
+.img-slide img{-webkit-user-drag:none;}
+.lightbox{padding:0;}
+.lb-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;touch-action:none;overflow:hidden;}
+.lb-stage img{max-width:96%;max-height:92%;object-fit:contain;transform-origin:center;user-select:none;-webkit-user-select:none;-webkit-user-drag:none;will-change:transform;cursor:grab;border-radius:6px;box-shadow:none;}
+.lightbox-close{z-index:2;top:calc(14px + env(safe-area-inset-top,0px));}
+.lightbox-nav,.lightbox-count{z-index:2;}
+body.lb-lock{overflow:hidden;}
+@media(max-width:575.98px){.lightbox-nav{display:none;}}
